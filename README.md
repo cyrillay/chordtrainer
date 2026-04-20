@@ -1,6 +1,6 @@
 # Étude · Chord Trainer
 
-A minimalist web app for practicing chord recognition by ear.
+A web app for practicing chords on piano or guitar.
 
 ## What it does
 
