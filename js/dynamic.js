@@ -65,7 +65,7 @@ export function startDynamic() {
   tick(); // immediate downbeat
   dyn.intervalId = setInterval(tick, intervalMs);
 
-  document.getElementById('dynamicStartBtn').textContent = 'Stop tempo';
+  document.getElementById('dynamicStartBtn').textContent = 'Stop metronome';
   document.getElementById('dynamicStartBtn').classList.add('danger');
   document.getElementById('beatIndicator').style.display = 'flex';
 }
@@ -78,7 +78,7 @@ export function stopDynamic() {
   dyn.barStarted = false;
   clearBeatIndicator();
 
-  document.getElementById('dynamicStartBtn').textContent = 'Start tempo';
+  document.getElementById('dynamicStartBtn').textContent = 'Start metronome';
   document.getElementById('dynamicStartBtn').classList.remove('danger');
   document.getElementById('beatIndicator').style.display = 'none';
 }
@@ -95,6 +95,5 @@ export function setBpm(bpm) {
 
 export function setDynamicEnabled(enabled) {
   state.dynamic.enabled = enabled;
-  document.getElementById('dynamicControls').style.display = enabled ? 'flex' : 'none';
   if (!enabled && state.dynamic.running) stopDynamic();
 }

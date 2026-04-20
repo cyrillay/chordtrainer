@@ -1,12 +1,23 @@
 // Entry point: wires DOM events, initializes modules.
 import { state } from './state.js';
-import { fillQueue, advanceToNextChord, resetProgressionStream, syncProgressionConfig } from './generator.js';
-import { buildPiano, displayChord, updatePianoHighlight, updateStatus } from './views.js';
+import {
+  fillQueue,
+  advanceToNextChord,
+  resetProgressionStream,
+  syncProgressionConfig,
+  countUsableProgressions
+} from './generator.js';
+import { buildPiano, displayChord, updatePianoHighlight, updateStatus, renderNextPreview } from './views.js';
 import { startMicrophone, stopMicrophone, loadSensitivity, syncSlidersFromState, bindSensitivityControls } from './audio.js';
 import { startMidi, stopMidi } from './midi.js';
-import { startDynamic, stopDynamic, setBpm, setDynamicEnabled } from './dynamic.js';
+import { startDynamic, stopDynamic, setBpm } from './dynamic.js';
 import { buildCircle, updateCircleHighlight } from './circle.js';
 import { buildGuitar, updateGuitarHighlight } from './guitar.js';
+
+const MIN_USABLE_PROGRESSIONS = 3;
+
+// Visible instrument: 'piano' or 'guitar'. Persisted so the choice survives reloads.
+let currentInstrument = localStorage.getItem('chordTrainer.instrument') || 'piano';
 
 function updateRootsSummary() {
   const checked = document.querySelectorAll('[data-root]:checked').length;
@@ -19,8 +30,47 @@ export function refreshInputReadout() {
   document.getElementById('inputReadout').style.display = active ? 'block' : 'none';
 }
 
-document.getElementById('newChordBtn').addEventListener('click', () => {
-  advanceToNextChord(displayChord);
+// ---- Input mode (mic vs MIDI) ----
+
+async function switchInputMode(mode) {
+  // Start the new mode before stopping the old one, so a failed permission
+  // request doesn't leave the user with no input at all.
+  if (mode === 'listening') {
+    if (!state.isListening) await startMicrophone();
+    if (state.isListening && state.midiEnabled) stopMidi();
+  } else if (mode === 'midi') {
+    if (!state.midiEnabled) await startMidi();
+    if (state.midiEnabled && state.isListening) stopMicrophone();
+  }
+  updateInputModeButton();
+  refreshInputReadout();
+  updateStatus();
+}
+
+function updateInputModeButton() {
+  const btn = document.getElementById('inputModeBtn');
+  if (btn) {
+    const mode = state.midiEnabled ? 'midi' : 'listening';
+    btn.textContent = mode === 'midi' ? 'MIDI Mode' : 'Listening Mode';
+    btn.dataset.mode = mode;
+  }
+  const micBtn = document.getElementById('micBtn');
+  if (micBtn) {
+    micBtn.textContent = state.isListening ? 'Stop microphone' : 'Enable microphone';
+    micBtn.classList.toggle('danger', state.isListening);
+  }
+  const midiBtn = document.getElementById('midiBtn');
+  if (midiBtn) {
+    midiBtn.textContent = state.midiEnabled ? 'Disconnect MIDI' : 'Connect MIDI';
+    midiBtn.classList.toggle('danger', state.midiEnabled);
+  }
+}
+
+document.getElementById('inputModeBtn').addEventListener('click', async () => {
+  // Toggle between modes. Each click re-requests permission for the target mode,
+  // which lets the user recover if they denied permission on a prior attempt.
+  const next = state.midiEnabled ? 'listening' : 'midi';
+  await switchInputMode(next);
 });
 
 document.getElementById('micBtn').addEventListener('click', async () => {
@@ -28,7 +78,9 @@ document.getElementById('micBtn').addEventListener('click', async () => {
     stopMicrophone();
   } else {
     await startMicrophone();
+    if (state.isListening && state.midiEnabled) stopMidi();
   }
+  updateInputModeButton();
   refreshInputReadout();
   updateStatus();
 });
@@ -38,17 +90,78 @@ document.getElementById('midiBtn').addEventListener('click', async () => {
     stopMidi();
   } else {
     await startMidi();
+    if (state.midiEnabled && state.isListening) stopMicrophone();
   }
+  updateInputModeButton();
   refreshInputReadout();
   updateStatus();
 });
 
-// Dynamic mode toggle
-document.getElementById('dynamicModeCb').addEventListener('change', (e) => {
-  setDynamicEnabled(e.target.checked);
+// ---- Instrument display (piano vs guitar) ----
+
+function showInstrumentEnabled() {
+  return document.getElementById('showInstrumentCb').checked;
+}
+
+function applyInstrumentVisibility() {
+  const show = showInstrumentEnabled();
+  const pianoWrap = document.getElementById('pianoWrap');
+  const guitarWrap = document.getElementById('guitarWrap');
+  const actions = document.getElementById('instrumentActions');
+  const btn = document.getElementById('changeInstrumentBtn');
+
+  if (!show) {
+    pianoWrap.style.display = 'none';
+    guitarWrap.style.display = 'none';
+    actions.style.display = 'none';
+    return;
+  }
+  actions.style.display = 'flex';
+  pianoWrap.style.display = currentInstrument === 'piano' ? 'block' : 'none';
+  guitarWrap.style.display = currentInstrument === 'guitar' ? 'block' : 'none';
+  if (btn) btn.textContent = currentInstrument === 'piano' ? 'Guitar mode' : 'Piano mode';
+  if (currentInstrument === 'piano') updatePianoHighlight();
+  else updateGuitarHighlight();
+}
+
+document.getElementById('changeInstrumentBtn').addEventListener('click', () => {
+  currentInstrument = currentInstrument === 'piano' ? 'guitar' : 'piano';
+  localStorage.setItem('chordTrainer.instrument', currentInstrument);
+  applyInstrumentVisibility();
 });
 
-// Tempo slider
+// ---- Progressions filter / warning ----
+
+function updateProgressionsAvailability() {
+  const cb = document.getElementById('progressionsCb');
+  const warn = document.getElementById('progressionsWarning');
+  syncProgressionConfig();
+  const count = countUsableProgressions();
+
+  if (!cb.checked) {
+    warn.style.display = 'none';
+    return;
+  }
+  if (count < MIN_USABLE_PROGRESSIONS) {
+    cb.checked = false;
+    document.getElementById('smartPivotsLabel').style.display = 'none';
+    warn.textContent = `Only ${count} progression${count === 1 ? '' : 's'} match your selected chord qualities. Enable more qualities to use progressions mode.`;
+    warn.style.display = 'block';
+    // Flush queue so we go back to free-random chords.
+    state.chordQueue = [];
+    fillQueue();
+    renderNextPreview();
+  } else {
+    warn.style.display = 'none';
+  }
+}
+
+// ---- Standard event wiring ----
+
+document.getElementById('newChordBtn').addEventListener('click', () => {
+  advanceToNextChord(displayChord);
+});
+
 const bpmSlider = document.getElementById('bpmSlider');
 const bpmValue = document.getElementById('bpmValue');
 bpmSlider.addEventListener('input', () => {
@@ -57,7 +170,6 @@ bpmSlider.addEventListener('input', () => {
   setBpm(v);
 });
 
-// Start/stop tempo button
 document.getElementById('dynamicStartBtn').addEventListener('click', () => {
   if (state.dynamic.running) stopDynamic();
   else startDynamic();
@@ -72,14 +184,22 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// Refresh state when settings change.
+// Settings checkboxes.
 document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
   cb.addEventListener('change', () => {
-    if (cb.id === 'pianoHighlightCb') {
-      updatePianoHighlight();
+    if (cb.id === 'showInstrumentCb') {
+      applyInstrumentVisibility();
     } else if (cb.id === 'progressionsCb') {
       document.getElementById('smartPivotsLabel').style.display = cb.checked ? 'flex' : 'none';
-      if (cb.checked) resetProgressionStream();
+      if (cb.checked) {
+        syncProgressionConfig();
+        if (countUsableProgressions() < MIN_USABLE_PROGRESSIONS) {
+          updateProgressionsAvailability();
+          return;
+        }
+        resetProgressionStream();
+      }
+      document.getElementById('progressionsWarning').style.display = 'none';
       state.chordQueue = [];
       fillQueue();
       advanceToNextChord(displayChord);
@@ -88,19 +208,19 @@ document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
     } else if (cb.id === 'circleCb') {
       document.getElementById('circleWrap').style.display = cb.checked ? 'flex' : 'none';
       if (cb.checked) updateCircleHighlight();
-    } else if (cb.id === 'guitarCb') {
-      const showGuitar = cb.checked;
-      document.getElementById('pianoWrap').style.display = showGuitar ? 'none' : 'block';
-      document.getElementById('guitarWrap').style.display = showGuitar ? 'block' : 'none';
-      if (showGuitar) updateGuitarHighlight();
-    } else if (cb.dataset.quality || cb.dataset.root) {
-      // Chord pool changed: flush queue so new chords match the new settings.
+    } else if (cb.id === 'inversionsCb') {
       state.chordQueue = [];
       fillQueue();
+      renderNextPreview();
+    } else if (cb.dataset.quality || cb.dataset.root) {
       if (cb.dataset.root) {
         updateRootsSummary();
-        syncProgressionConfig();
       }
+      syncProgressionConfig();
+      updateProgressionsAvailability();
+      state.chordQueue = [];
+      fillQueue();
+      renderNextPreview();
     }
   });
 });
@@ -121,5 +241,15 @@ buildPiano();
 buildCircle();
 buildGuitar();
 updateRootsSummary();
+applyInstrumentVisibility();
 fillQueue();
 advanceToNextChord(displayChord);
+
+// Auto-request the microphone on first load. The browser prompt counts as
+// user interaction for the AudioContext, and if the user denies, they can
+// retry later via the header mode switcher.
+startMicrophone().finally(() => {
+  updateInputModeButton();
+  refreshInputReadout();
+  updateStatus();
+});
