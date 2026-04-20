@@ -175,7 +175,7 @@ export function displayChord(chord) {
               : `<span class="prog-degree">${t}</span>`
           ).join(' ')
         : m.token;
-      const cycleInfo = m.targetCycles > 1 ? ` · cycle ${m.cycle + 1}/${m.targetCycles}` : '';
+      const cycleInfo = m.targetCycles > 1 ? ` · cycle ${m.cycle + 1}/${m.targetCycles === Infinity ? '∞' : m.targetCycles}` : '';
       progEl.innerHTML = `<em>${m.progression}</em> · in ${keyDisp} · ${degreesHtml}${cycleInfo}`;
       progEl.style.display = 'block';
     } else {

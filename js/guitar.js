@@ -245,7 +245,7 @@ export function updateGuitarHighlight() {
 
   // Fret numbers (along the bottom)
   for (let f = 0; f < numFrets; f++) {
-    const fretNum = startFret + f;
+    const fretNum = startFret + f + 1;
     const x = padX + (f + 0.5) * fretSpacing;
     svgContent += `<text x="${x}" y="${padY + 5 * stringSpacing + 18}" class="gtr-fret-num">${fretNum}</text>`;
   }

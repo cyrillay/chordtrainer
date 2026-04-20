@@ -1305,13 +1305,15 @@ footer em {
 }
 
 .gtr-fret {
-  stroke: var(--line);
+  stroke: var(--ivory-dim);
   stroke-width: 1.2;
+  opacity: 0.3;
 }
 
 .gtr-fret.gtr-nut {
   stroke: var(--ivory-dim);
   stroke-width: 4;
+  opacity: 0.8;
 }
 
 .gtr-fret-num {

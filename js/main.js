@@ -259,7 +259,7 @@ document.querySelectorAll('.cycle-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.cycle-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    setProgressionCycles(parseInt(btn.dataset.cycles, 10));
+    setProgressionCycles(btn.dataset.cycles === 'Infinity' ? Infinity : parseInt(btn.dataset.cycles, 10));
   });
 });
 
