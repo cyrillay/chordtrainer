@@ -52,8 +52,6 @@ export async function startMidi() {
       document.getElementById('midiStatus').textContent = describeInputs(access);
     };
 
-    document.getElementById('midiBtn').textContent = 'Disconnect MIDI';
-    document.getElementById('midiBtn').classList.add('danger');
     const status = document.getElementById('midiStatus');
     status.style.display = 'block';
     status.textContent = describeInputs(access);
@@ -75,8 +73,6 @@ export function stopMidi() {
   state.midiEnabled = false;
   state.midiHeldNotes = new Set();
 
-  document.getElementById('midiBtn').textContent = 'Connect MIDI';
-  document.getElementById('midiBtn').classList.remove('danger');
   document.getElementById('midiStatus').style.display = 'none';
 
   applyHeardPitchClasses(new Set());

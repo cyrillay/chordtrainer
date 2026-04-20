@@ -35,13 +35,24 @@ function smartPivotsOn() {
 
 export function resetProgressionStream() {
   progressionStream.setAllowedRoots(getEnabledRoots());
+  progressionStream.setEnabledQualities(getEnabledQualities());
   progressionStream.setSmartPivots(smartPivotsOn());
   progressionStream.advanceProgression();
 }
 
 export function syncProgressionConfig() {
   progressionStream.setAllowedRoots(getEnabledRoots());
+  progressionStream.setEnabledQualities(getEnabledQualities());
   progressionStream.setSmartPivots(smartPivotsOn());
+}
+
+export function countUsableProgressions() {
+  return progressionStream.usableCount();
+}
+
+function inversionsOn() {
+  const cb = document.getElementById('inversionsCb');
+  return cb && cb.checked;
 }
 
 function generateRandomFreeChord(avoidSymbols) {
@@ -54,13 +65,14 @@ function generateRandomFreeChord(avoidSymbols) {
     return null;
   }
 
+  const useInversions = inversionsOn();
   let attempt = 0;
   let chord;
   do {
     const root = roots[Math.floor(Math.random() * roots.length)];
     const quality = qualities[Math.floor(Math.random() * qualities.length)];
     const numNotes = CHORD_FORMULAS[quality].intervals.length;
-    const inversion = Math.floor(Math.random() * numNotes);
+    const inversion = useInversions ? Math.floor(Math.random() * numNotes) : 0;
     chord = buildChord(root, quality, inversion);
     attempt++;
   } while (avoidSymbols.includes(chord.symbol) && attempt < 10);

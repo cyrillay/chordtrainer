@@ -13,12 +13,21 @@
 <div class="app">
   <header>
     <div class="wordmark">Étude <em>—</em> Chord Trainer</div>
-    <div class="meta">Op. 1 · Listening Mode</div>
+    <div class="meta">Op. 1 No 42 · <button type="button" id="inputModeBtn" class="mode-toggle">Listening Mode</button></div>
   </header>
 
   <main class="stage">
-    <div class="label">Next chord</div>
-    <div class="chord-display" id="chordDisplay">—</div>
+    <div class="chord-row">
+      <div class="chord-col chord-col-current">
+        <div class="chord-display" id="chordDisplay">—</div>
+      </div>
+      <span class="chord-sep" aria-hidden="true"></span>
+      <div class="chord-col chord-col-next">
+        <div class="label">Next chord</div>
+        <div class="chord-display chord-display-next" id="chordDisplayNext"></div>
+      </div>
+      <div class="success-burst" id="successBurst" aria-hidden="true">◆</div>
+    </div>
     <div class="chord-notes" id="chordNotes"></div>
     <div class="progression-info" id="progressionInfo" style="display:none;"></div>
 
@@ -44,6 +53,10 @@
       <svg id="guitarSvg" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
 
+    <div class="instrument-actions" id="instrumentActions">
+      <button type="button" id="changeInstrumentBtn" class="instrument-toggle">Change instrument</button>
+    </div>
+
     <div class="circle-wrap" id="circleWrap" style="display:none;">
       <svg id="circleSvg" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
@@ -52,10 +65,7 @@
       <button id="newChordBtn" class="primary">New chord</button>
       <button id="micBtn">Enable microphone</button>
       <button id="midiBtn">Connect MIDI</button>
-    </div>
-
-    <div class="dynamic-controls" id="dynamicControls" style="display:none;">
-      <button id="dynamicStartBtn">Start tempo</button>
+      <button id="dynamicStartBtn">Start metronome</button>
       <div class="tempo-control">
         <label for="bpmSlider">Tempo</label>
         <input type="range" id="bpmSlider" min="40" max="200" step="1" value="80">
@@ -93,14 +103,14 @@
 
       <div class="setting-group">
         <label>Options</label>
-        <label class="checkbox-item"><input type="checkbox" id="pianoHighlightCb" checked>Highlight keys on piano</label>
-        <label class="checkbox-item"><input type="checkbox" id="dynamicModeCb">Dynamic mode (metronome)</label>
+        <label class="checkbox-item"><input type="checkbox" id="showInstrumentCb" checked>Show instrument</label>
         <label class="checkbox-item"><input type="checkbox" id="progressionsCb">Chord progressions</label>
         <label class="checkbox-item sub-option" id="smartPivotsLabel" style="display:none;">
           <input type="checkbox" id="smartPivotsCb" checked>Smart progressions (pivot keys)
         </label>
+        <div class="progressions-warning" id="progressionsWarning" style="display:none;"></div>
+        <label class="checkbox-item"><input type="checkbox" id="inversionsCb">Include inversions</label>
         <label class="checkbox-item"><input type="checkbox" id="circleCb">Show circle of fifths</label>
-        <label class="checkbox-item"><input type="checkbox" id="guitarCb">Guitar mode (instead of piano)</label>
       </div>
 
       <div class="setting-group setting-group-wide">

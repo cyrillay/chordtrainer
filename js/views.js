@@ -4,6 +4,7 @@ import { CHORD_FORMULAS, NOTE_DISPLAY, noteToPitchClass, pitchClassToDisplay } f
 import { advanceToNextChord } from './generator.js';
 import { updateCircleHighlight } from './circle.js';
 import { updateGuitarHighlight } from './guitar.js';
+import { triggerSuccess } from './feedback.js';
 
 export function buildPiano() {
   const piano = document.getElementById('piano');
@@ -84,11 +85,11 @@ function keyToMidi(noteName, octave) {
 }
 
 export function updatePianoHighlight() {
-  const showHighlight = document.getElementById('pianoHighlightCb').checked;
+  const showInstrument = document.getElementById('showInstrumentCb').checked;
   const allKeys = document.querySelectorAll('.key-white, .key-black');
   allKeys.forEach(k => k.classList.remove('target', 'heard', 'wrong'));
 
-  if (!showHighlight || !state.currentChord) return;
+  if (!showInstrument || !state.currentChord) return;
 
   const targetPcs = state.currentChord.pitchClasses;
   const voicing = buildVoicing(state.currentChord.orderedNotes);
@@ -109,6 +110,23 @@ export function updatePianoHighlight() {
   });
 }
 
+function formatChordHtml(chord) {
+  const formula = CHORD_FORMULAS[chord.quality];
+  const rootDisplay = NOTE_DISPLAY[chord.root];
+  const suffix = formula.suffix;
+  const bassNote = chord.orderedNotes[0] !== noteToPitchClass(chord.root)
+    ? '/' + pitchClassToDisplay(chord.orderedNotes[0])
+    : '';
+  return `${rootDisplay}<span class="accent">${suffix}</span>${bassNote ? '<span class="accent">' + bassNote + '</span>' : ''}`;
+}
+
+export function renderNextPreview() {
+  const el = document.getElementById('chordDisplayNext');
+  if (!el) return;
+  const next = state.chordQueue[0];
+  el.innerHTML = next ? formatChordHtml(next) : '';
+}
+
 export function displayChord(chord) {
   state.currentChord = chord;
   state.heardPitchClasses = new Set();
@@ -120,17 +138,12 @@ export function displayChord(chord) {
   if (!chord) {
     display.textContent = '—';
     notesEl.innerHTML = '';
+    renderNextPreview();
     return;
   }
 
-  const formula = CHORD_FORMULAS[chord.quality];
-  const rootDisplay = NOTE_DISPLAY[chord.root];
-  const suffix = formula.suffix;
-  const bassNote = chord.orderedNotes[0] !== noteToPitchClass(chord.root)
-    ? '/' + pitchClassToDisplay(chord.orderedNotes[0])
-    : '';
-
-  display.innerHTML = `${rootDisplay}<span class="accent">${suffix}</span>${bassNote ? '<span class="accent">' + bassNote + '</span>' : ''}`;
+  display.innerHTML = formatChordHtml(chord);
+  renderNextPreview();
 
   // Re-trigger fade-in animation.
   display.style.animation = 'none';
@@ -206,16 +219,21 @@ export function updateStatus() {
     statusEl.innerHTML = '◆ Correct ◆';
     statusEl.className = 'status success';
 
+    const now = Date.now();
+    const fresh = now - state.lastSuccessTime > 1500;
+    if (fresh) {
+      state.lastSuccessTime = now;
+      triggerSuccess();
+    }
+
     if (state.dynamic.running) {
-      // In dynamic mode the metronome controls progression; just record success.
+      // Metronome controls progression; just record success for the bar.
       state.dynamic.correctThisBar = true;
-    } else {
-      // Auto-advance is always on now (the option was removed).
-      const now = Date.now();
-      if (now - state.lastSuccessTime > 1500) {
-        state.lastSuccessTime = now;
-        setTimeout(() => advanceToNextChord(displayChord), 900);
-      }
+    } else if (fresh) {
+      // MIDI is deterministic — advance almost immediately. Mic gets a small
+      // delay to let the visual feedback land before the chord changes.
+      const delay = state.midiEnabled ? 200 : 700;
+      setTimeout(() => advanceToNextChord(displayChord), delay);
     }
   } else if (heard.size === 0) {
     statusEl.innerHTML = '<span class="listening-dot"></span>Listening...';

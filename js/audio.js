@@ -25,8 +25,6 @@ export async function startMicrophone() {
     source.connect(state.analyser);
 
     state.isListening = true;
-    document.getElementById('micBtn').textContent = 'Stop microphone';
-    document.getElementById('micBtn').classList.add('danger');
     document.getElementById('levelMeter').style.display = 'block';
 
     analyzeLoop();
@@ -45,8 +43,6 @@ export function stopMicrophone() {
   state.heardPitchClasses = new Set();
   state.heardHistory = [];
 
-  document.getElementById('micBtn').textContent = 'Enable microphone';
-  document.getElementById('micBtn').classList.remove('danger');
   document.getElementById('levelMeter').style.display = 'none';
   document.getElementById('meterFill').style.width = '0%';
 

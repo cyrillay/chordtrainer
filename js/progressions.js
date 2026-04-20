@@ -12,6 +12,22 @@ import { NOTE_NAMES, noteToPitchClass, buildChord } from './theory.js';
 
 // All progressions transcribed verbatim from the user's reference.
 export const PROGRESSIONS = [
+  // Basic triadic pop/rock progressions (major & minor triads only)
+  { name: 'I–vi–IV–V (50s)',      tokens: ['I', 'vi', 'IV', 'V'] },
+  { name: 'I–IV–vi–V',            tokens: ['I', 'IV', 'vi', 'V'] },
+  { name: 'vi–IV–I–V',            tokens: ['vi', 'IV', 'I', 'V'] },
+  { name: 'I–V–vi–IV (axis)',     tokens: ['I', 'V', 'vi', 'IV'] },
+  { name: 'I–ii–V–I',             tokens: ['I', 'ii', 'V', 'I'] },
+  { name: 'I–IV–V–IV',            tokens: ['I', 'IV', 'V', 'IV'] },
+  { name: 'I–vi–ii–V',            tokens: ['I', 'vi', 'ii', 'V'] },
+  { name: 'vi–V–IV–V',            tokens: ['vi', 'V', 'IV', 'V'] },
+  { name: 'I–IV–I–V',             tokens: ['I', 'IV', 'I', 'V'] },
+  { name: 'ii–V–I–vi',            tokens: ['ii', 'V', 'I', 'vi'] },
+  { name: 'I–iii–vi–IV',          tokens: ['I', 'iii', 'vi', 'IV'] },
+  { name: 'I–IV–ii–V',            tokens: ['I', 'IV', 'ii', 'V'] },
+  { name: 'vi–IV–I–ii',           tokens: ['vi', 'IV', 'I', 'ii'] },
+  { name: 'I–V–IV–V',             tokens: ['I', 'V', 'IV', 'V'] },
+
   // Long progressions
   { name: 'Amen',                 tokens: ['IVΔ', 'IΔ'] },
   { name: 'Autumnal',             tokens: ['ii', 'V7', 'viiø', 'III7', 'viΔ'] },
@@ -123,6 +139,34 @@ function suffixToQuality(suffix, isUpper) {
   return isUpper ? 'maj' : 'min';
 }
 
+// Quality produced by a token, independent of key — used to pre-filter
+// progressions against the user's enabled chord-quality set.
+export function tokenQuality(token) {
+  const parsed = parseRoman(token);
+  if (!parsed.degree) return null;
+  return suffixToQuality(parsed.suffix, parsed.isUpper);
+}
+
+export function progressionQualities(prog) {
+  const qs = new Set();
+  for (const t of prog.tokens) {
+    const q = tokenQuality(t);
+    if (q) qs.add(q);
+  }
+  return qs;
+}
+
+export function getUsableProgressions(enabledQualities) {
+  if (!enabledQualities || enabledQualities.length === 0) return [];
+  const enabled = new Set(enabledQualities);
+  return PROGRESSIONS.filter(prog => {
+    for (const q of progressionQualities(prog)) {
+      if (!enabled.has(q)) return false;
+    }
+    return true;
+  });
+}
+
 export function romanToChord(token, keyRoot) {
   const { accidental, degree, isUpper, suffix } = parseRoman(token);
   if (!degree) return null;
@@ -162,6 +206,8 @@ export class ProgressionStream {
   constructor() {
     this.smartPivots = false;
     this.allowedRoots = null;
+    this.enabledQualities = null;
+    this.usable = PROGRESSIONS;
     this.currentKey = pickRandomKey(null);
     this.currentProgression = PROGRESSIONS[Math.floor(Math.random() * PROGRESSIONS.length)];
     this.position = 0;
@@ -169,17 +215,25 @@ export class ProgressionStream {
 
   setSmartPivots(on) { this.smartPivots = on; }
   setAllowedRoots(roots) { this.allowedRoots = roots; }
+  setEnabledQualities(qualities) {
+    this.enabledQualities = qualities;
+    this.usable = getUsableProgressions(qualities);
+  }
+
+  usableCount() { return this.usable.length; }
 
   advanceProgression() {
     this.position = 0;
     this.currentKey = this.smartPivots
       ? pickRelatedKey(this.currentKey, this.allowedRoots)
       : pickRandomKey(this.allowedRoots);
-    // Avoid the same progression twice in a row when possible.
+    // Fall back to full list if the filter left us empty — caller should have
+    // prevented this, but we never want to crash mid-stream.
+    const pool = this.usable.length > 0 ? this.usable : PROGRESSIONS;
     let next;
     let tries = 0;
     do {
-      next = PROGRESSIONS[Math.floor(Math.random() * PROGRESSIONS.length)];
+      next = pool[Math.floor(Math.random() * pool.length)];
       tries++;
     } while (next === this.currentProgression && tries < 5);
     this.currentProgression = next;
