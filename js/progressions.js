@@ -211,6 +211,8 @@ export class ProgressionStream {
     this.currentKey = pickRandomKey(null);
     this.currentProgression = PROGRESSIONS[Math.floor(Math.random() * PROGRESSIONS.length)];
     this.position = 0;
+    this.targetCycles = 1;
+    this.currentCycle = 0;
   }
 
   setSmartPivots(on) { this.smartPivots = on; }
@@ -219,16 +221,16 @@ export class ProgressionStream {
     this.enabledQualities = qualities;
     this.usable = getUsableProgressions(qualities);
   }
+  setCycles(n) { this.targetCycles = n; }
 
   usableCount() { return this.usable.length; }
 
   advanceProgression() {
     this.position = 0;
+    this.currentCycle = 0;
     this.currentKey = this.smartPivots
       ? pickRelatedKey(this.currentKey, this.allowedRoots)
       : pickRandomKey(this.allowedRoots);
-    // Fall back to full list if the filter left us empty — caller should have
-    // prevented this, but we never want to crash mid-stream.
     const pool = this.usable.length > 0 ? this.usable : PROGRESSIONS;
     let next;
     let tries = 0;
@@ -241,7 +243,12 @@ export class ProgressionStream {
 
   next() {
     if (this.position >= this.currentProgression.tokens.length) {
-      this.advanceProgression();
+      this.currentCycle++;
+      if (this.currentCycle >= this.targetCycles) {
+        this.advanceProgression();
+      } else {
+        this.position = 0;
+      }
     }
     const token = this.currentProgression.tokens[this.position];
     const chord = romanToChord(token, this.currentKey);
@@ -249,8 +256,11 @@ export class ProgressionStream {
       progression: this.currentProgression.name,
       key: this.currentKey,
       token,
+      tokens: this.currentProgression.tokens,
       position: this.position,
-      total: this.currentProgression.tokens.length
+      total: this.currentProgression.tokens.length,
+      cycle: this.currentCycle,
+      targetCycles: this.targetCycles
     };
     this.position++;
     if (chord) chord.meta = meta;

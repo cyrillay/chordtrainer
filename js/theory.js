@@ -11,11 +11,11 @@ export const CHORD_FORMULAS = {
   'min':  { intervals: [0, 3, 7],     suffix: 'm',     name: 'Minor' },
   'dim':  { intervals: [0, 3, 6],     suffix: '°',     name: 'Diminished' },
   'aug':  { intervals: [0, 4, 8],     suffix: '+',     name: 'Augmented' },
-  'maj7': { intervals: [0, 4, 7, 11], suffix: 'maj7',  name: 'Major 7th' },
+  'maj7': { intervals: [0, 4, 7, 11], suffix: 'M7',    name: 'Major 7th' },
   'min7': { intervals: [0, 3, 7, 10], suffix: 'm7',    name: 'Minor 7th' },
   'dom7': { intervals: [0, 4, 7, 10], suffix: '7',     name: 'Dominant 7th' },
   'm7b5': { intervals: [0, 3, 6, 10], suffix: 'ø',     name: 'Half-diminished' },
-  'mMaj7':{ intervals: [0, 3, 7, 11], suffix: 'm(maj7)', name: 'Minor major 7th' }
+  'mMaj7':{ intervals: [0, 3, 7, 11], suffix: 'mM7',   name: 'Minor major 7th' }
 };
 
 export function noteToPitchClass(name) {

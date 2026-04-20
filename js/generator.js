@@ -46,6 +46,10 @@ export function syncProgressionConfig() {
   progressionStream.setSmartPivots(smartPivotsOn());
 }
 
+export function setProgressionCycles(n) {
+  progressionStream.setCycles(n);
+}
+
 export function countUsableProgressions() {
   return progressionStream.usableCount();
 }
@@ -118,9 +122,10 @@ export function renderQueue() {
     const bassNote = chord.orderedNotes[0] !== noteToPitchClass(chord.root)
       ? '/' + pitchClassToDisplay(chord.orderedNotes[0])
       : '';
+    const rootHtml = rootDisplay.replace(/^([A-G])([\u266F\u266D])$/, '$1<span class="accidental">$2</span>');
     return `<div class="queue-item">
       <span class="position">${idx + 1}</span>
-      <span>${rootDisplay}<span class="accent">${suffix}${bassNote}</span></span>
+      <span>${rootHtml}<span class="accent">${suffix}${bassNote}</span></span>
     </div>`;
   }).join('');
 }

@@ -88,14 +88,25 @@ export function buildCircle() {
   }
 }
 
-export function updateCircleHighlight() {
-  document.querySelectorAll('.cof-slot').forEach(s => s.classList.remove('active'));
-  if (!state.currentChord) return;
-  const rootPc = NOTE_NAMES.indexOf(state.currentChord.root);
-  const quality = state.currentChord.quality;
+function highlightSlot(chord, cls) {
+  if (!chord) return;
+  const rootPc = NOTE_NAMES.indexOf(chord.root);
+  const quality = chord.quality;
   const ring = INNER_QUALITIES.has(quality) ? 'inner'
              : OUTER_QUALITIES.has(quality) ? 'outer'
              : 'outer';
   const match = document.querySelector(`.cof-slot[data-ring="${ring}"][data-pc="${rootPc}"]`);
-  if (match) match.classList.add('active');
+  if (match) match.classList.add(cls);
+}
+
+export function updateCircleHighlight() {
+  document.querySelectorAll('.cof-slot').forEach(s => {
+    s.classList.remove('active', 'upcoming-1', 'upcoming-2', 'upcoming-3');
+  });
+  if (!state.currentChord) return;
+  highlightSlot(state.currentChord, 'active');
+  const queue = state.chordQueue;
+  if (queue[0]) highlightSlot(queue[0], 'upcoming-1');
+  if (queue[1]) highlightSlot(queue[1], 'upcoming-2');
+  if (queue[2]) highlightSlot(queue[2], 'upcoming-3');
 }

@@ -110,6 +110,12 @@ export function updatePianoHighlight() {
   });
 }
 
+function formatRootHtml(rootDisplay) {
+  const match = rootDisplay.match(/^([A-G])([\u266F\u266D])$/);
+  if (match) return `${match[1]}<span class="accidental">${match[2]}</span>`;
+  return rootDisplay;
+}
+
 function formatChordHtml(chord) {
   const formula = CHORD_FORMULAS[chord.quality];
   const rootDisplay = NOTE_DISPLAY[chord.root];
@@ -117,7 +123,7 @@ function formatChordHtml(chord) {
   const bassNote = chord.orderedNotes[0] !== noteToPitchClass(chord.root)
     ? '/' + pitchClassToDisplay(chord.orderedNotes[0])
     : '';
-  return `${rootDisplay}<span class="accent">${suffix}</span>${bassNote ? '<span class="accent">' + bassNote + '</span>' : ''}`;
+  return `${formatRootHtml(rootDisplay)}<span class="accent">${suffix}</span>${bassNote ? '<span class="accent">' + bassNote + '</span>' : ''}`;
 }
 
 export function renderNextPreview() {
@@ -161,7 +167,16 @@ export function displayChord(chord) {
     if (chord.meta) {
       const m = chord.meta;
       const keyDisp = NOTE_DISPLAY[m.key];
-      progEl.innerHTML = `<em>${m.progression}</em> · in ${keyDisp} · ${m.token} <span class="prog-pos">(${m.position + 1}/${m.total})</span>`;
+      const tokens = m.tokens || [];
+      const degreesHtml = tokens.length > 0
+        ? tokens.map((t, i) =>
+            i === m.position
+              ? `<span class="prog-degree active">${t}</span>`
+              : `<span class="prog-degree">${t}</span>`
+          ).join(' ')
+        : m.token;
+      const cycleInfo = m.targetCycles > 1 ? ` · cycle ${m.cycle + 1}/${m.targetCycles}` : '';
+      progEl.innerHTML = `<em>${m.progression}</em> · in ${keyDisp} · ${degreesHtml}${cycleInfo}`;
       progEl.style.display = 'block';
     } else {
       progEl.style.display = 'none';

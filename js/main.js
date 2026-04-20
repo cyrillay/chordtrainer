@@ -5,12 +5,13 @@ import {
   advanceToNextChord,
   resetProgressionStream,
   syncProgressionConfig,
-  countUsableProgressions
+  countUsableProgressions,
+  setProgressionCycles
 } from './generator.js';
 import { buildPiano, displayChord, updatePianoHighlight, updateStatus, renderNextPreview } from './views.js';
 import { startMicrophone, stopMicrophone, loadSensitivity, syncSlidersFromState, bindSensitivityControls } from './audio.js';
 import { startMidi, stopMidi } from './midi.js';
-import { startDynamic, stopDynamic, setBpm } from './dynamic.js';
+import { startDynamic, stopDynamic, setBpm, setMetronomeMuted } from './dynamic.js';
 import { buildCircle, updateCircleHighlight } from './circle.js';
 import { buildGuitar, updateGuitarHighlight } from './guitar.js';
 
@@ -145,6 +146,7 @@ function updateProgressionsAvailability() {
   if (count < MIN_USABLE_PROGRESSIONS) {
     cb.checked = false;
     document.getElementById('smartPivotsLabel').style.display = 'none';
+    document.getElementById('progressionCyclesLabel').style.display = 'none';
     warn.textContent = `Only ${count} progression${count === 1 ? '' : 's'} match your selected chord qualities. Enable more qualities to use progressions mode.`;
     warn.style.display = 'block';
     // Flush queue so we go back to free-random chords.
@@ -175,6 +177,10 @@ document.getElementById('dynamicStartBtn').addEventListener('click', () => {
   else startDynamic();
 });
 
+document.getElementById('muteMetronomeCb').addEventListener('change', (e) => {
+  setMetronomeMuted(e.target.checked);
+});
+
 // Space to advance to a new chord (disabled while dynamic mode runs).
 document.addEventListener('keydown', (e) => {
   if (e.code === 'Space' && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
@@ -191,6 +197,7 @@ document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
       applyInstrumentVisibility();
     } else if (cb.id === 'progressionsCb') {
       document.getElementById('smartPivotsLabel').style.display = cb.checked ? 'flex' : 'none';
+      document.getElementById('progressionCyclesLabel').style.display = cb.checked ? 'flex' : 'none';
       if (cb.checked) {
         syncProgressionConfig();
         if (countUsableProgressions() < MIN_USABLE_PROGRESSIONS) {
@@ -215,6 +222,7 @@ document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
     } else if (cb.dataset.quality || cb.dataset.root) {
       if (cb.dataset.root) {
         updateRootsSummary();
+        updateToggleAllRootsBtn();
       }
       syncProgressionConfig();
       updateProgressionsAvailability();
@@ -222,6 +230,36 @@ document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
       fillQueue();
       renderNextPreview();
     }
+  });
+});
+
+// Toggle all roots button.
+document.getElementById('toggleAllRootsBtn').addEventListener('click', () => {
+  const rootCbs = document.querySelectorAll('[data-root]');
+  const allChecked = Array.from(rootCbs).every(cb => cb.checked);
+  rootCbs.forEach(cb => cb.checked = !allChecked);
+  updateRootsSummary();
+  updateToggleAllRootsBtn();
+  syncProgressionConfig();
+  updateProgressionsAvailability();
+  state.chordQueue = [];
+  fillQueue();
+  renderNextPreview();
+});
+
+function updateToggleAllRootsBtn() {
+  const btn = document.getElementById('toggleAllRootsBtn');
+  const rootCbs = document.querySelectorAll('[data-root]');
+  const allChecked = Array.from(rootCbs).every(cb => cb.checked);
+  btn.textContent = allChecked ? 'Unselect all' : 'Select all';
+}
+
+// Progression cycle buttons.
+document.querySelectorAll('.cycle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.cycle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    setProgressionCycles(parseInt(btn.dataset.cycles, 10));
   });
 });
 

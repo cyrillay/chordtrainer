@@ -47,7 +47,7 @@ function tick() {
   }
   dyn.barStarted = true;
 
-  tickSound(isDownbeat);
+  if (!dyn.muted) tickSound(isDownbeat);
   flashBeatIndicator(dyn.beatIndex);
 
   dyn.beatIndex = (dyn.beatIndex + 1) % 4;
@@ -91,6 +91,10 @@ export function setBpm(bpm) {
     const intervalMs = 60000 / bpm;
     state.dynamic.intervalId = setInterval(tick, intervalMs);
   }
+}
+
+export function setMetronomeMuted(muted) {
+  state.dynamic.muted = muted;
 }
 
 export function setDynamicEnabled(enabled) {

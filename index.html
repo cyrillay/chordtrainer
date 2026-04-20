@@ -70,6 +70,7 @@
         <label for="bpmSlider">Tempo</label>
         <input type="range" id="bpmSlider" min="40" max="200" step="1" value="80">
         <span class="bpm-value" id="bpmValue">80 BPM</span>
+        <label class="checkbox-item mute-option"><input type="checkbox" id="muteMetronomeCb">Mute</label>
       </div>
     </div>
 
@@ -99,6 +100,8 @@
         <label class="checkbox-item"><input type="checkbox" data-quality="maj7">Major 7th</label>
         <label class="checkbox-item"><input type="checkbox" data-quality="min7">Minor 7th</label>
         <label class="checkbox-item"><input type="checkbox" data-quality="dom7">Dominant 7th</label>
+        <label class="checkbox-item"><input type="checkbox" data-quality="m7b5">Half-diminished (ø)</label>
+        <label class="checkbox-item"><input type="checkbox" data-quality="mMaj7">Minor major 7th</label>
       </div>
 
       <div class="setting-group">
@@ -108,6 +111,15 @@
         <label class="checkbox-item sub-option" id="smartPivotsLabel" style="display:none;">
           <input type="checkbox" id="smartPivotsCb" checked>Smart progressions (pivot keys)
         </label>
+        <div class="sub-option inline-option" id="progressionCyclesLabel" style="display:none;">
+          <span class="inline-option-label">Progression cycles</span>
+          <div class="cycle-btns" id="cycleBtns">
+            <button type="button" class="cycle-btn active" data-cycles="1">1</button>
+            <button type="button" class="cycle-btn" data-cycles="2">2</button>
+            <button type="button" class="cycle-btn" data-cycles="3">3</button>
+            <button type="button" class="cycle-btn" data-cycles="4">4</button>
+          </div>
+        </div>
         <div class="progressions-warning" id="progressionsWarning" style="display:none;"></div>
         <label class="checkbox-item"><input type="checkbox" id="inversionsCb">Include inversions</label>
         <label class="checkbox-item"><input type="checkbox" id="circleCb">Show circle of fifths</label>
@@ -119,6 +131,9 @@
             <span class="details-label">Roots</span>
             <span class="details-summary" id="rootsSummary">12 selected</span>
           </summary>
+          <div class="roots-actions">
+            <button type="button" id="toggleAllRootsBtn" class="toggle-all-btn">Unselect all</button>
+          </div>
           <div class="roots-grid">
             <label class="checkbox-item"><input type="checkbox" data-root="C" checked>C</label>
             <label class="checkbox-item"><input type="checkbox" data-root="C#" checked>C♯ / D♭</label>
@@ -217,6 +232,20 @@
         </div>
       </div>
     </div>
+  </section>
+
+  <section class="info-banner">
+    <details class="info-details" id="infoDetails">
+      <summary class="info-toggle">Tips &amp; Info</summary>
+      <div class="info-content">
+        <ul>
+          <li>Got ideas or found a bug? Hit the <strong>Suggestions</strong> button below — all feedback helps.</li>
+          <li>Everything runs locally in your browser. No data is sent or stored anywhere.</li>
+          <li>MIDI input is more precise than microphone. For audio mode, tweak detection in <strong>Advanced settings</strong> if it feels off.</li>
+          <li>Instead of pure random chords, try <strong>Chord progressions</strong> mode — it walks you through real progressions used in jazz and pop standards.</li>
+        </ul>
+      </div>
+    </details>
   </section>
 
   <footer>

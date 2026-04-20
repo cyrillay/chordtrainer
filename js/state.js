@@ -24,7 +24,8 @@ export const state = {
     running: false,
     beatIndex: 0,             // 0..3 within the current bar
     intervalId: null,
-    correctThisBar: false
+    correctThisBar: false,
+    muted: false
   },
 
   sensitivity: {
