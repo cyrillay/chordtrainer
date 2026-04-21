@@ -13,7 +13,7 @@
 <div class="app">
   <header>
     <div class="wordmark">Étude <em>—</em> Chord Trainer</div>
-    <div class="meta">Op. 1 No 42 · <button type="button" id="inputModeBtn" class="mode-toggle">Listening Mode</button></div>
+    <div class="meta">Op. 2 No 62 · <button type="button" id="inputModeBtn" class="mode-toggle">Listening Mode</button></div>
   </header>
 
   <main class="stage">
@@ -107,11 +107,11 @@
       <div class="setting-group">
         <label>Options</label>
         <label class="checkbox-item"><input type="checkbox" id="showInstrumentCb" checked>Show instrument</label>
-        <label class="checkbox-item"><input type="checkbox" id="progressionsCb">Chord progressions</label>
-        <label class="checkbox-item sub-option" id="smartPivotsLabel" style="display:none;">
+        <label class="checkbox-item"><input type="checkbox" id="progressionsCb" checked>Chord progressions</label>
+        <label class="checkbox-item sub-option" id="smartPivotsLabel">
           <input type="checkbox" id="smartPivotsCb" checked>Smart progressions (pivot keys)
         </label>
-        <div class="sub-option inline-option" id="progressionCyclesLabel" style="display:none;">
+        <div class="sub-option inline-option" id="progressionCyclesLabel">
           <span class="inline-option-label">Progression cycles</span>
           <div class="cycle-btns" id="cycleBtns">
             <button type="button" class="cycle-btn active" data-cycles="1">1</button>
@@ -121,7 +121,9 @@
             <button type="button" class="cycle-btn" data-cycles="Infinity">∞</button>
           </div>
         </div>
-        <div class="progressions-warning" id="progressionsWarning" style="display:none;"></div>
+        <div class="sub-option" id="manageProgressionsWrap">
+          <button type="button" id="manageProgressionsBtn" class="manage-prog-btn">Manage progressions…</button>
+        </div>
         <label class="checkbox-item"><input type="checkbox" id="inversionsCb">Include inversions</label>
         <label class="checkbox-item"><input type="checkbox" id="circleCb">Show circle of fifths</label>
       </div>
@@ -243,7 +245,7 @@
           <li>Got ideas or found a bug? Hit the <strong>Suggestions</strong> button below — all feedback helps.</li>
           <li>Everything runs locally in your browser. No data is sent or stored anywhere.</li>
           <li>MIDI input is more precise than microphone. For audio mode, tweak detection in <strong>Advanced settings</strong> if it feels off.</li>
-          <li>Instead of pure random chords, try <strong>Chord progressions</strong> mode — it walks you through real progressions used in jazz and pop standards.</li>
+          <li>Instead of pure random chords, try <strong>Chord progressions</strong> mode — it walks you through real progressions used in jazz and pop standards. Feel free to add your own</li>
         </ul>
       </div>
     </details>
@@ -261,5 +263,30 @@
 </div>
 
 <script type="module" src="js/main.js"></script>
+
+<!-- Progression manager modal -->
+<div id="progModalOverlay" class="prog-modal-overlay" style="display:none;">
+  <div class="prog-modal-box">
+    <div class="prog-modal-header">
+      <h3 class="prog-modal-title">Chord progressions</h3>
+      <button type="button" id="progModalClose" class="prog-modal-close">×</button>
+    </div>
+    <div class="prog-modal-toolbar">
+      <button type="button" id="progSelectAll" class="prog-toolbar-btn">Select all</button>
+      <button type="button" id="progUnselectAll" class="prog-toolbar-btn">Unselect all</button>
+    </div>
+    <div class="prog-modal-body">
+      <div id="progBuiltinList" class="prog-list"></div>
+      <div class="prog-section-header">Custom <span id="progCustomCount">0/10</span></div>
+      <div id="progCustomList"></div>
+    </div>
+    <form id="addCustomForm" class="prog-add-form" style="display:flex;">
+      <input name="progName" class="prog-input" placeholder="Name" required maxlength="50" autocomplete="off">
+      <input name="progTokens" class="prog-input prog-input-wide" placeholder="Tokens  e.g.  ii  V7  IΔ" required autocomplete="off">
+      <button type="submit" class="prog-add-btn">Add</button>
+    </form>
+    <div id="progAddLimit" class="prog-limit-msg" style="display:none;">Maximum of 10 custom progressions reached.</div>
+  </div>
+</div>
 </body>
 </html>

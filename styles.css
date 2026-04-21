@@ -163,6 +163,12 @@ header {
   margin-left: -0.15em;
 }
 
+@media (max-width: 600px) {
+  .accidental {
+    margin-left: 0;
+  }
+}
+
 .chord-display .accent {
   color: var(--gold);
   font-style: italic;
@@ -303,11 +309,19 @@ header {
   font-weight: 600;
 }
 
-/* Sub-option (indented checkbox shown under a parent toggle) */
-.checkbox-item.sub-option {
+/* Sub-option (indented element shown under a parent toggle) */
+.sub-option {
   margin-left: 1.5rem;
-  font-size: 0.95rem;
   opacity: 0.85;
+}
+
+.checkbox-item.sub-option {
+  font-size: 0.95rem;
+}
+
+.inline-option-label {
+  font-size: 0.95rem;
+  font-family: 'Cormorant Garamond', serif;
 }
 
 /* Status */
@@ -1239,10 +1253,6 @@ footer em {
   padding: 0.3rem 0;
 }
 
-.inline-option-label {
-  font-size: 0.95rem;
-}
-
 .cycle-btns {
   display: flex;
   gap: 0.3rem;
@@ -1438,4 +1448,269 @@ footer em {
 .cof-slot.active .cof-label {
   fill: var(--ink);
   font-weight: 600;
+}
+
+/* ---- Progression manager modal ---- */
+
+.prog-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 9, 8, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.prog-modal-box {
+  background: var(--paper);
+  border: 1px solid var(--gold);
+  width: 100%;
+  max-width: 640px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.prog-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.2rem 0.8rem;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.prog-modal-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: var(--ivory);
+}
+
+.prog-modal-close {
+  background: none;
+  border: none;
+  color: var(--ivory-dim);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.1rem;
+}
+
+.prog-modal-close:hover { color: var(--gold); }
+
+.prog-modal-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.prog-toolbar-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  padding: 0.28rem 0.7rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ivory-dim);
+  cursor: pointer;
+}
+
+.prog-toolbar-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.prog-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+.prog-list { padding: 0; }
+
+.prog-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.38rem 1.2rem;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(42, 36, 32, 0.6);
+}
+
+.prog-item:hover { background: rgba(200, 164, 100, 0.04); }
+
+.prog-item input[type="checkbox"] {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--gold);
+  border-radius: 2px;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.prog-item input[type="checkbox"]:checked { background: var(--gold); }
+
+.prog-item input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--ink);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.prog-item-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  color: var(--ivory);
+  min-width: 150px;
+  flex-shrink: 0;
+}
+
+.prog-item-tokens {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--ivory-dim);
+  letter-spacing: 0.04em;
+  flex: 1;
+  opacity: 0.7;
+}
+
+.prog-delete-btn,
+.prog-edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 0.15rem;
+  line-height: 1;
+  flex-shrink: 0;
+  opacity: 0.4;
+  font-size: 1rem;
+  color: var(--ivory-dim);
+}
+
+.prog-delete-btn:hover { color: var(--crimson); opacity: 1; }
+.prog-edit-btn:hover   { color: var(--gold);    opacity: 1; }
+
+.prog-item-editing {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.38rem 1.2rem;
+  background: rgba(200, 164, 100, 0.04);
+  border-bottom: 1px solid rgba(42, 36, 32, 0.6);
+}
+
+.prog-edit-save,
+.prog-edit-cancel {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0 0.15rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.prog-edit-save   { color: var(--sage);   }
+.prog-edit-cancel { color: var(--ivory-dim); opacity: 0.5; }
+.prog-edit-save:hover   { opacity: 0.8; }
+.prog-edit-cancel:hover { opacity: 1; color: var(--crimson); }
+
+.prog-section-header {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+  padding: 0.7rem 1.2rem 0.3rem;
+  border-top: 1px solid var(--line);
+  opacity: 0.7;
+}
+
+.prog-empty {
+  padding: 0.5rem 1.2rem 0.8rem;
+  font-size: 0.9rem;
+  color: var(--ivory-dim);
+  font-style: italic;
+  opacity: 0.5;
+}
+
+.prog-add-form {
+  gap: 0.4rem;
+  padding: 0.7rem 1.2rem;
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.prog-input {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ivory);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  padding: 0.32rem 0.6rem;
+  outline: none;
+  min-width: 0;
+}
+
+.prog-input:focus { border-color: var(--gold); }
+
+.prog-input-wide { flex: 1; }
+
+.prog-add-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  padding: 0.32rem 0.7rem;
+  border: 1px solid var(--gold);
+  background: transparent;
+  color: var(--gold);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.prog-add-btn:hover { background: var(--gold); color: var(--ink); }
+
+.prog-limit-msg {
+  padding: 0.6rem 1.2rem;
+  font-size: 0.8rem;
+  color: var(--ivory-dim);
+  font-style: italic;
+  border-top: 1px solid var(--line);
+  opacity: 0.7;
+}
+
+.manage-prog-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.manage-prog-btn:hover {
+  color: var(--ivory);
+}
+
+@media (max-width: 480px) {
+  .prog-item-name { min-width: 110px; }
+  .prog-add-form { flex-wrap: wrap; }
+  .prog-input-wide { width: 100%; }
 }
