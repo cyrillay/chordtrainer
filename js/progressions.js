@@ -156,10 +156,10 @@ export function progressionQualities(prog) {
   return qs;
 }
 
-export function getUsableProgressions(enabledQualities) {
+export function getUsableProgressions(enabledQualities, pool = PROGRESSIONS) {
   if (!enabledQualities || enabledQualities.length === 0) return [];
   const enabled = new Set(enabledQualities);
-  return PROGRESSIONS.filter(prog => {
+  return pool.filter(prog => {
     for (const q of progressionQualities(prog)) {
       if (!enabled.has(q)) return false;
     }
@@ -207,6 +207,7 @@ export class ProgressionStream {
     this.smartPivots = false;
     this.allowedRoots = null;
     this.enabledQualities = null;
+    this.allProgressions = PROGRESSIONS;
     this.usable = PROGRESSIONS;
     this.currentKey = pickRandomKey(null);
     this.currentProgression = PROGRESSIONS[Math.floor(Math.random() * PROGRESSIONS.length)];
@@ -217,9 +218,13 @@ export class ProgressionStream {
 
   setSmartPivots(on) { this.smartPivots = on; }
   setAllowedRoots(roots) { this.allowedRoots = roots; }
+  setAllProgressions(pool) {
+    this.allProgressions = pool;
+    this.usable = getUsableProgressions(this.enabledQualities, pool);
+  }
   setEnabledQualities(qualities) {
     this.enabledQualities = qualities;
-    this.usable = getUsableProgressions(qualities);
+    this.usable = getUsableProgressions(qualities, this.allProgressions);
   }
   setCycles(n) { this.targetCycles = n; }
 
@@ -231,7 +236,9 @@ export class ProgressionStream {
     this.currentKey = this.smartPivots
       ? pickRelatedKey(this.currentKey, this.allowedRoots)
       : pickRandomKey(this.allowedRoots);
-    const pool = this.usable.length > 0 ? this.usable : PROGRESSIONS;
+    const pool = this.usable.length > 0 ? this.usable
+      : this.allProgressions.length > 0 ? this.allProgressions
+      : PROGRESSIONS;
     let next;
     let tries = 0;
     do {

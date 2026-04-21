@@ -6,6 +6,7 @@
 import { state } from './state.js';
 import { CHORD_FORMULAS, NOTE_DISPLAY, buildChord, noteToPitchClass, pitchClassToDisplay } from './theory.js';
 import { ProgressionStream } from './progressions.js';
+import { getActiveProgressions } from './progressionManager.js';
 
 export const QUEUE_SIZE = 3;
 
@@ -34,6 +35,7 @@ function smartPivotsOn() {
 }
 
 export function resetProgressionStream() {
+  progressionStream.setAllProgressions(getActiveProgressions());
   progressionStream.setAllowedRoots(getEnabledRoots());
   progressionStream.setEnabledQualities(getEnabledQualities());
   progressionStream.setSmartPivots(smartPivotsOn());
@@ -41,6 +43,7 @@ export function resetProgressionStream() {
 }
 
 export function syncProgressionConfig() {
+  progressionStream.setAllProgressions(getActiveProgressions());
   progressionStream.setAllowedRoots(getEnabledRoots());
   progressionStream.setEnabledQualities(getEnabledQualities());
   progressionStream.setSmartPivots(smartPivotsOn());

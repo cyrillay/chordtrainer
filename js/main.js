@@ -5,7 +5,6 @@ import {
   advanceToNextChord,
   resetProgressionStream,
   syncProgressionConfig,
-  countUsableProgressions,
   setProgressionCycles
 } from './generator.js';
 import { buildPiano, displayChord, updatePianoHighlight, updateStatus, renderNextPreview } from './views.js';
@@ -14,8 +13,7 @@ import { startMidi, stopMidi } from './midi.js';
 import { startDynamic, stopDynamic, setBpm, setMetronomeMuted } from './dynamic.js';
 import { buildCircle, updateCircleHighlight } from './circle.js';
 import { buildGuitar, updateGuitarHighlight } from './guitar.js';
-
-const MIN_USABLE_PROGRESSIONS = 3;
+import { initProgressionModal } from './progressionManager.js';
 
 // Visible instrument: 'piano' or 'guitar'. Persisted so the choice survives reloads.
 let currentInstrument = localStorage.getItem('chordTrainer.instrument') || 'piano';
@@ -134,28 +132,7 @@ document.getElementById('changeInstrumentBtn').addEventListener('click', () => {
 // ---- Progressions filter / warning ----
 
 function updateProgressionsAvailability() {
-  const cb = document.getElementById('progressionsCb');
-  const warn = document.getElementById('progressionsWarning');
   syncProgressionConfig();
-  const count = countUsableProgressions();
-
-  if (!cb.checked) {
-    warn.style.display = 'none';
-    return;
-  }
-  if (count < MIN_USABLE_PROGRESSIONS) {
-    cb.checked = false;
-    document.getElementById('smartPivotsLabel').style.display = 'none';
-    document.getElementById('progressionCyclesLabel').style.display = 'none';
-    warn.textContent = `Only ${count} progression${count === 1 ? '' : 's'} match your selected chord qualities. Enable more qualities to use progressions mode.`;
-    warn.style.display = 'block';
-    // Flush queue so we go back to free-random chords.
-    state.chordQueue = [];
-    fillQueue();
-    renderNextPreview();
-  } else {
-    warn.style.display = 'none';
-  }
 }
 
 // ---- Standard event wiring ----
@@ -198,15 +175,10 @@ document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
     } else if (cb.id === 'progressionsCb') {
       document.getElementById('smartPivotsLabel').style.display = cb.checked ? 'flex' : 'none';
       document.getElementById('progressionCyclesLabel').style.display = cb.checked ? 'flex' : 'none';
+      document.getElementById('manageProgressionsWrap').style.display = cb.checked ? 'block' : 'none';
       if (cb.checked) {
-        syncProgressionConfig();
-        if (countUsableProgressions() < MIN_USABLE_PROGRESSIONS) {
-          updateProgressionsAvailability();
-          return;
-        }
         resetProgressionStream();
       }
-      document.getElementById('progressionsWarning').style.display = 'none';
       state.chordQueue = [];
       fillQueue();
       advanceToNextChord(displayChord);
@@ -272,6 +244,10 @@ document.getElementById('advancedBtn').addEventListener('click', () => {
 });
 
 // Init.
+initProgressionModal(() => {
+  syncProgressionConfig();
+  updateProgressionsAvailability();
+});
 loadSensitivity();
 bindSensitivityControls();
 syncSlidersFromState();
@@ -280,6 +256,7 @@ buildCircle();
 buildGuitar();
 updateRootsSummary();
 applyInstrumentVisibility();
+syncProgressionConfig();
 fillQueue();
 advanceToNextChord(displayChord);
 
