@@ -31,7 +31,12 @@
       <div class="success-burst" id="successBurst" aria-hidden="true">✓</div>
     </div>
 
-    <div class="status" id="status">Press <em>begin</em> to start</div>
+    <div class="status-row">
+      <div class="status" id="status">Press <em>begin</em> to start</div>
+      <div class="level-meter level-meter-inline" id="levelMeter" style="display:none;">
+        <div class="meter-bar"><div class="meter-fill" id="meterFill"></div></div>
+      </div>
+    </div>
 
     <div class="beat-indicator" id="beatIndicator" style="display:none;">
       <span class="beat-dot"></span>
@@ -77,13 +82,6 @@
 
     <div class="input-readout" id="inputReadout" style="display:none;">
       Detected: <span id="detectedNotes">—</span>
-    </div>
-
-    <div class="level-meter" id="levelMeter" style="display:none;">
-      <div class="meter-label">
-        <span>Microphone level</span>
-      </div>
-      <div class="meter-bar"><div class="meter-fill" id="meterFill"></div></div>
     </div>
 
     <div class="midi-status" id="midiStatus" style="display:none;">—</div>

@@ -307,8 +307,16 @@ header {
 }
 
 /* Status */
-.status {
+.status-row {
   margin-top: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.status {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.8rem;
   letter-spacing: 0.15em;
@@ -320,6 +328,23 @@ header {
 .status.success { color: var(--sage); }
 .status.wrong { color: var(--crimson); }
 .status.listening { color: var(--gold); }
+
+/* Inline mic meter — lives on the same line as "Listening..." so the user
+   can glance at their signal without looking elsewhere. Double-class selector
+   beats the specificity of the default `.level-meter` (which is defined
+   later in the file and would otherwise win). */
+.level-meter.level-meter-inline {
+  margin-top: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 0;
+  flex: 0 0 140px;
+  min-width: 100px;
+  max-width: 160px;
+}
+.level-meter.level-meter-inline .meter-label { display: none; }
+.level-meter.level-meter-inline .meter-bar { height: 4px; }
 
 /* Piano visualization */
 .piano-wrap {
@@ -1960,10 +1985,11 @@ body.reward-shake {
   }
 }
 
-/* Circle of fifths becomes illegible below ~420px (labels overlap). Hide it
-   rather than letting the layout get ugly. */
+/* Shrink the circle on narrow viewports instead of hiding it — most phones
+   report a CSS width between 375 and 393px, so hiding was too aggressive. */
 @media (max-width: 420px) {
-  .circle-wrap { display: none !important; }
+  .circle-wrap { padding: 0.75rem; max-width: 100%; }
+  #circleSvg { width: 240px; height: 240px; }
 }
 
 /* Respect users who asked the OS to reduce motion. */

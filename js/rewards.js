@@ -126,8 +126,11 @@ function buildDOM() {
     <span class="streak-best" id="streakBest"></span>
   `;
   if (!enabled) counter.style.display = 'none';
+  // Anchor the streak counter after the whole status row (status + inline meter),
+  // not between them — otherwise it splits the row and forces the meter to wrap.
   const status = document.getElementById('status');
-  status.parentNode.insertBefore(counter, status.nextSibling);
+  const anchor = status.closest('.status-row') || status;
+  anchor.parentNode.insertBefore(counter, anchor.nextSibling);
 
   streakEl = document.getElementById('streakValue');
   bestEl = document.getElementById('streakBest');
