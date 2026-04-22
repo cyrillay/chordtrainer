@@ -4,7 +4,7 @@
 //   - progressions: walk through predefined chord progressions (see progressions.js)
 
 import { state } from './state.js';
-import { CHORD_FORMULAS, NOTE_DISPLAY, buildChord, noteToPitchClass, pitchClassToDisplay } from './theory.js';
+import { CHORD_FORMULAS, buildChord, formatChordHtml } from './theory.js';
 import { ProgressionStream } from './progressions.js';
 import { getActiveProgressions } from './progressionManager.js';
 
@@ -119,16 +119,9 @@ export function renderQueue() {
 
   container.classList.add('active');
   items.innerHTML = state.chordQueue.map((chord, idx) => {
-    const formula = CHORD_FORMULAS[chord.quality];
-    const rootDisplay = NOTE_DISPLAY[chord.root];
-    const suffix = formula.suffix;
-    const bassNote = chord.orderedNotes[0] !== noteToPitchClass(chord.root)
-      ? '/' + pitchClassToDisplay(chord.orderedNotes[0])
-      : '';
-    const rootHtml = rootDisplay.replace(/^([A-G])([\u266F\u266D])$/, '$1<span class="accidental">$2</span>');
     return `<div class="queue-item">
       <span class="position">${idx + 1}</span>
-      <span>${rootHtml}<span class="accent">${suffix}${bassNote}</span></span>
+      <span>${formatChordHtml(chord)}</span>
     </div>`;
   }).join('');
 }

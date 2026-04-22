@@ -7,13 +7,14 @@ import {
   syncProgressionConfig,
   setProgressionCycles
 } from './generator.js';
-import { buildPiano, displayChord, updatePianoHighlight, updateStatus, renderNextPreview } from './views.js';
+import { buildPiano, displayChord, updatePianoHighlight, updateStatus, renderNextPreview, cheatCurrentChord } from './views.js';
 import { startMicrophone, stopMicrophone, loadSensitivity, syncSlidersFromState, bindSensitivityControls } from './audio.js';
 import { startMidi, stopMidi } from './midi.js';
 import { startDynamic, stopDynamic, setBpm, setMetronomeMuted } from './dynamic.js';
 import { buildCircle, updateCircleHighlight } from './circle.js';
 import { buildGuitar, updateGuitarHighlight } from './guitar.js';
 import { initProgressionModal } from './progressionManager.js';
+import { initRewards, setRewardsEnabled, isRewardsEnabled } from './rewards.js';
 
 // Visible instrument: 'piano' or 'guitar'. Persisted so the choice survives reloads.
 let currentInstrument = localStorage.getItem('chordTrainer.instrument') || 'piano';
@@ -159,18 +160,25 @@ document.getElementById('muteMetronomeCb').addEventListener('change', (e) => {
 });
 
 // Space to advance to a new chord (disabled while dynamic mode runs).
+// Shift+Enter: secret cheat — validates the current chord instantly (for testing).
 document.addEventListener('keydown', (e) => {
   if (e.code === 'Space' && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
     e.preventDefault();
     if (state.dynamic.running) return;
     advanceToNextChord(displayChord);
   }
+  if (e.code === 'Enter' && e.shiftKey && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+    e.preventDefault();
+    cheatCurrentChord();
+  }
 });
 
 // Settings checkboxes.
 document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
   cb.addEventListener('change', () => {
-    if (cb.id === 'showInstrumentCb') {
+    if (cb.id === 'rewardsCb') {
+      setRewardsEnabled(cb.checked);
+    } else if (cb.id === 'showInstrumentCb') {
       applyInstrumentVisibility();
     } else if (cb.id === 'progressionsCb') {
       document.getElementById('smartPivotsLabel').style.display = cb.checked ? 'flex' : 'none';
@@ -244,6 +252,10 @@ document.getElementById('advancedBtn').addEventListener('click', () => {
 });
 
 // Init.
+initRewards();
+// Sync rewards checkbox with persisted state.
+const rewardsCb = document.getElementById('rewardsCb');
+if (rewardsCb) rewardsCb.checked = isRewardsEnabled();
 initProgressionModal(() => {
   syncProgressionConfig();
   updateProgressionsAvailability();

@@ -2,6 +2,14 @@
 // Uses an independent AudioContext so it works even when the mic is off and
 // doesn't fight the FFT analyser.
 
+// Observer pattern: other modules (e.g. rewards) can react to events.
+const successObservers = [];
+export function onSuccess(fn) { successObservers.push(fn); }
+
+const chordChangeObservers = [];
+export function onChordChange(fn) { chordChangeObservers.push(fn); }
+export function notifyChordChange() { chordChangeObservers.forEach(fn => fn()); }
+
 let chimeCtx = null;
 
 function getCtx() {
@@ -58,4 +66,5 @@ export function flashSuccess() {
 export function triggerSuccess() {
   flashSuccess();
   playSuccessChime();
+  successObservers.forEach(fn => fn());
 }

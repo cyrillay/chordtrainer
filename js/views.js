@@ -1,10 +1,10 @@
 // DOM rendering for the chord display, piano, and status line.
 import { state } from './state.js';
-import { CHORD_FORMULAS, NOTE_DISPLAY, noteToPitchClass, pitchClassToDisplay } from './theory.js';
+import { NOTE_DISPLAY, noteToPitchClass, pitchClassToDisplay, formatChordHtml } from './theory.js';
 import { advanceToNextChord } from './generator.js';
 import { updateCircleHighlight } from './circle.js';
 import { updateGuitarHighlight } from './guitar.js';
-import { triggerSuccess } from './feedback.js';
+import { triggerSuccess, notifyChordChange } from './feedback.js';
 
 export function buildPiano() {
   const piano = document.getElementById('piano');
@@ -110,22 +110,6 @@ export function updatePianoHighlight() {
   });
 }
 
-function formatRootHtml(rootDisplay) {
-  const match = rootDisplay.match(/^([A-G])([\u266F\u266D])$/);
-  if (match) return `${match[1]}<span class="accidental">${match[2]}</span>`;
-  return rootDisplay;
-}
-
-function formatChordHtml(chord) {
-  const formula = CHORD_FORMULAS[chord.quality];
-  const rootDisplay = NOTE_DISPLAY[chord.root];
-  const suffix = formula.suffix;
-  const bassNote = chord.orderedNotes[0] !== noteToPitchClass(chord.root)
-    ? '/' + pitchClassToDisplay(chord.orderedNotes[0])
-    : '';
-  return `${formatRootHtml(rootDisplay)}<span class="accent">${suffix}</span>${bassNote ? '<span class="accent">' + bassNote + '</span>' : ''}`;
-}
-
 export function renderNextPreview() {
   const el = document.getElementById('chordDisplayNext');
   if (!el) return;
@@ -187,6 +171,13 @@ export function displayChord(chord) {
   updateGuitarHighlight();
   updateCircleHighlight();
   updateStatus();
+  notifyChordChange();
+}
+
+// Debug shortcut: fake-play the current chord's exact pitch classes.
+export function cheatCurrentChord() {
+  if (!state.currentChord) return;
+  applyHeardPitchClasses(new Set(state.currentChord.pitchClasses));
 }
 
 // Source-agnostic update: takes a Set of pitch classes from any input source.

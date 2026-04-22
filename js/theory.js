@@ -26,6 +26,23 @@ export function pitchClassToDisplay(pc) {
   return NOTE_DISPLAY[NOTE_NAMES[pc]];
 }
 
+// HTML rendering helpers for chord names — shared by views.js and generator.js.
+export function formatRootHtml(rootDisplay) {
+  const match = rootDisplay.match(/^([A-G])([\u266F\u266D])$/);
+  if (match) return `${match[1]}<span class="accidental">${match[2]}</span>`;
+  return rootDisplay;
+}
+
+export function formatChordHtml(chord) {
+  const formula = CHORD_FORMULAS[chord.quality];
+  const rootDisplay = NOTE_DISPLAY[chord.root];
+  const suffix = formula.suffix;
+  const bassNote = chord.orderedNotes[0] !== noteToPitchClass(chord.root)
+    ? '/' + pitchClassToDisplay(chord.orderedNotes[0])
+    : '';
+  return `${formatRootHtml(rootDisplay)}<span class="accent">${suffix}</span>${bassNote ? '<span class="accent">' + bassNote + '</span>' : ''}`;
+}
+
 export function buildChord(root, quality, inversion = 0) {
   const formula = CHORD_FORMULAS[quality];
   const rootPc = noteToPitchClass(root);
