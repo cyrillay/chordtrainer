@@ -221,10 +221,20 @@ export class ProgressionStream {
   setAllProgressions(pool) {
     this.allProgressions = pool;
     this.usable = getUsableProgressions(this.enabledQualities, pool);
+    this.reseedIfUnusable();
   }
   setEnabledQualities(qualities) {
     this.enabledQualities = qualities;
     this.usable = getUsableProgressions(qualities, this.allProgressions);
+    this.reseedIfUnusable();
+  }
+  // Called after filter changes: if the progression we were mid-way through is
+  // no longer allowed (e.g. at startup, where the constructor picks blind), or
+  // after the user disables a quality it relies on — jump to a fresh one.
+  reseedIfUnusable() {
+    if (this.usable.length > 0 && !this.usable.includes(this.currentProgression)) {
+      this.advanceProgression();
+    }
   }
   setCycles(n) { this.targetCycles = n; }
 

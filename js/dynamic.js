@@ -2,55 +2,42 @@
 import { state } from './state.js';
 import { advanceToNextChord } from './generator.js';
 import { displayChord } from './views.js';
+import { playClick } from './tones.js';
+import { $, $$ } from './dom.js';
+import { BAR_BEATS } from './constants.js';
 
-let metronomeCtx = null;
+let beatDots = null;
 
-function ensureCtx() {
-  if (!metronomeCtx) {
-    metronomeCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  return metronomeCtx;
-}
-
-function tickSound(isDownbeat) {
-  const ctx = ensureCtx();
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.frequency.value = isDownbeat ? 1200 : 800;
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  const now = ctx.currentTime;
-  gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(isDownbeat ? 0.25 : 0.15, now + 0.005);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
-  osc.start(now);
-  osc.stop(now + 0.08);
+function getBeatDots() {
+  if (!beatDots) beatDots = $$('#beatIndicator .beat-dot');
+  return beatDots;
 }
 
 function flashBeatIndicator(beatIndex) {
-  const dots = document.querySelectorAll('#beatIndicator .beat-dot');
-  dots.forEach((d, i) => d.classList.toggle('active', i === beatIndex));
+  const dots = getBeatDots();
+  for (let i = 0; i < dots.length; i++) dots[i].classList.toggle('active', i === beatIndex);
 }
 
 function clearBeatIndicator() {
-  document.querySelectorAll('#beatIndicator .beat-dot').forEach(d => d.classList.remove('active'));
+  for (const d of getBeatDots()) d.classList.remove('active');
 }
 
 function tick() {
   const dyn = state.dynamic;
   const isDownbeat = dyn.beatIndex === 0;
 
-  // On downbeat (beat 1) of every bar after the first, advance to next chord.
   if (isDownbeat && dyn.barStarted) {
     advanceToNextChord(displayChord);
     dyn.correctThisBar = false;
   }
   dyn.barStarted = true;
 
-  if (!dyn.muted) tickSound(isDownbeat);
+  if (!dyn.muted) {
+    playClick({ freq: isDownbeat ? 1200 : 800, peak: isDownbeat ? 0.25 : 0.15 });
+  }
   flashBeatIndicator(dyn.beatIndex);
 
-  dyn.beatIndex = (dyn.beatIndex + 1) % 4;
+  dyn.beatIndex = (dyn.beatIndex + 1) % BAR_BEATS;
 }
 
 export function startDynamic() {
@@ -61,13 +48,12 @@ export function startDynamic() {
   dyn.barStarted = false;
   dyn.correctThisBar = false;
 
-  const intervalMs = 60000 / dyn.bpm;
-  tick(); // immediate downbeat
-  dyn.intervalId = setInterval(tick, intervalMs);
+  tick();
+  dyn.intervalId = setInterval(tick, 60000 / dyn.bpm);
 
-  document.getElementById('dynamicStartBtn').textContent = 'Stop metronome';
-  document.getElementById('dynamicStartBtn').classList.add('danger');
-  document.getElementById('beatIndicator').style.display = 'flex';
+  $('dynamicStartBtn').textContent = 'Stop metronome';
+  $('dynamicStartBtn').classList.add('danger');
+  $('beatIndicator').style.display = 'flex';
 }
 
 export function stopDynamic() {
@@ -78,24 +64,20 @@ export function stopDynamic() {
   dyn.barStarted = false;
   clearBeatIndicator();
 
-  document.getElementById('dynamicStartBtn').textContent = 'Start metronome';
-  document.getElementById('dynamicStartBtn').classList.remove('danger');
-  document.getElementById('beatIndicator').style.display = 'none';
+  $('dynamicStartBtn').textContent = 'Start metronome';
+  $('dynamicStartBtn').classList.remove('danger');
+  $('beatIndicator').style.display = 'none';
 }
 
 export function setBpm(bpm) {
   state.dynamic.bpm = bpm;
   if (state.dynamic.running) {
-    // Restart the interval at the new tempo (preserves beat phase).
     clearInterval(state.dynamic.intervalId);
-    const intervalMs = 60000 / bpm;
-    state.dynamic.intervalId = setInterval(tick, intervalMs);
+    state.dynamic.intervalId = setInterval(tick, 60000 / bpm);
   }
 }
 
-export function setMetronomeMuted(muted) {
-  state.dynamic.muted = muted;
-}
+export function setMetronomeMuted(muted) { state.dynamic.muted = muted; }
 
 export function setDynamicEnabled(enabled) {
   state.dynamic.enabled = enabled;

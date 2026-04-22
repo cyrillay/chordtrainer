@@ -1,40 +1,59 @@
 // DOM rendering for the chord display, piano, and status line.
+//
+// Piano keys are cached at build time so highlight updates are per-key flips
+// instead of repeated querySelectorAll + class sweeps. Chord notes chips are
+// likewise tracked after each displayChord().
+
 import { state } from './state.js';
-import { NOTE_DISPLAY, noteToPitchClass, pitchClassToDisplay, formatChordHtml } from './theory.js';
+import { noteToPitchClass, pitchClassToDisplay, formatChordHtml } from './theory.js';
 import { advanceToNextChord } from './generator.js';
 import { updateCircleHighlight } from './circle.js';
 import { updateGuitarHighlight } from './guitar.js';
 import { triggerSuccess, notifyChordChange } from './feedback.js';
+import { $ } from './dom.js';
+import {
+  PIANO_OCTAVES, PIANO_START_OCTAVE,
+  MIC_SUCCESS_DELAY_MS, MIDI_SUCCESS_DELAY_MS, SUCCESS_DEDUP_MS
+} from './constants.js';
+
+const WHITE_KEY_NOTES = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+const BLACK_KEY_MAP = [
+  { after: 'C', note: 'C#' },
+  { after: 'D', note: 'D#' },
+  { after: 'F', note: 'F#' },
+  { after: 'G', note: 'G#' },
+  { after: 'A', note: 'A#' }
+];
+
+// Built once in buildPiano, then mutated in updatePianoHighlight.
+const pianoKeys = []; // { el, pc, midi }
+let noteChipEls = []; // chip <span> elements for the current chord
 
 export function buildPiano() {
-  const piano = document.getElementById('piano');
+  const piano = $('piano');
   piano.innerHTML = '';
+  pianoKeys.length = 0;
 
-  const octaves = 3;
-  const startOctave = 3;
-  const whiteKeyNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
-  const blackKeyPositions = [
-    { after: 'C', note: 'C#' },
-    { after: 'D', note: 'D#' },
-    { after: 'F', note: 'F#' },
-    { after: 'G', note: 'G#' },
-    { after: 'A', note: 'A#' }
-  ];
-
+  const frag = document.createDocumentFragment();
   let whiteKeyCount = 0;
-  for (let o = 0; o < octaves; o++) {
-    for (const n of whiteKeyNotes) {
+
+  for (let o = 0; o < PIANO_OCTAVES; o++) {
+    const octave = PIANO_START_OCTAVE + o;
+    for (const n of WHITE_KEY_NOTES) {
       const key = document.createElement('div');
       key.className = 'key-white';
-      key.dataset.note = n;
-      key.dataset.octave = startOctave + o;
       if (n === 'C') {
         const lbl = document.createElement('div');
         lbl.className = 'key-label';
-        lbl.textContent = n + (startOctave + o);
+        lbl.textContent = n + octave;
         key.appendChild(lbl);
       }
-      piano.appendChild(key);
+      frag.appendChild(key);
+      pianoKeys.push({
+        el: key,
+        pc: noteToPitchClass(n),
+        midi: (octave + 1) * 12 + noteToPitchClass(n),
+      });
       whiteKeyCount++;
     }
   }
@@ -44,35 +63,38 @@ export function buildPiano() {
   const whiteKeyWidth = 100 / whiteKeyCount;
 
   let whiteIndex = 0;
-  for (let o = 0; o < octaves; o++) {
-    for (let w = 0; w < whiteKeyNotes.length; w++) {
-      const note = whiteKeyNotes[w];
-      const blackAfter = blackKeyPositions.find(b => b.after === note);
+  for (let o = 0; o < PIANO_OCTAVES; o++) {
+    const octave = PIANO_START_OCTAVE + o;
+    for (const note of WHITE_KEY_NOTES) {
+      const blackAfter = BLACK_KEY_MAP.find(b => b.after === note);
       if (blackAfter) {
         const bk = document.createElement('div');
         bk.className = 'key-black';
-        bk.dataset.note = blackAfter.note;
-        bk.dataset.octave = startOctave + o;
         const leftPct = (whiteIndex + 1) * whiteKeyWidth - (whiteKeyWidth * 0.3);
         bk.style.left = leftPct + '%';
         bk.style.width = (whiteKeyWidth * 0.6) + '%';
         blackKeysContainer.appendChild(bk);
+        pianoKeys.push({
+          el: bk,
+          pc: noteToPitchClass(blackAfter.note),
+          midi: (octave + 1) * 12 + noteToPitchClass(blackAfter.note),
+        });
       }
       whiteIndex++;
     }
   }
+
+  piano.appendChild(frag);
   piano.appendChild(blackKeysContainer);
 }
 
 // Single-voicing helper: bass in octave 4, other notes stack upward.
-// Returns a Set of MIDI numbers covering exactly one occurrence of each chord note.
 function buildVoicing(orderedNotes) {
-  const bassOctave = 4; // C4 = MIDI 60
+  const bassOctave = 4;
   let last = (bassOctave + 1) * 12 + orderedNotes[0];
   const voicing = new Set([last]);
   for (let i = 1; i < orderedNotes.length; i++) {
-    const pc = orderedNotes[i];
-    let m = last - (last % 12) + pc;
+    let m = last - (last % 12) + orderedNotes[i];
     while (m <= last) m += 12;
     voicing.add(m);
     last = m;
@@ -80,39 +102,47 @@ function buildVoicing(orderedNotes) {
   return voicing;
 }
 
-function keyToMidi(noteName, octave) {
-  return (parseInt(octave) + 1) * 12 + noteToPitchClass(noteName);
+let showInstrumentCache = null;
+export function invalidateShowInstrument() { showInstrumentCache = null; }
+
+function showInstrumentEnabled() {
+  if (showInstrumentCache === null) {
+    showInstrumentCache = $('showInstrumentCb').checked;
+  }
+  return showInstrumentCache;
 }
 
 export function updatePianoHighlight() {
-  const showInstrument = document.getElementById('showInstrumentCb').checked;
-  const allKeys = document.querySelectorAll('.key-white, .key-black');
-  allKeys.forEach(k => k.classList.remove('target', 'heard', 'wrong'));
+  const show = showInstrumentEnabled();
+  const heard = state.heardPitchClasses;
+  const chord = state.currentChord;
 
-  if (!showInstrument || !state.currentChord) return;
-
-  const targetPcs = state.currentChord.pitchClasses;
-  const voicing = buildVoicing(state.currentChord.orderedNotes);
-
-  allKeys.forEach(k => {
-    const pc = noteToPitchClass(k.dataset.note);
-    const midi = keyToMidi(k.dataset.note, k.dataset.octave);
-
-    if (voicing.has(midi)) {
-      k.classList.add('target');
+  if (!show || !chord) {
+    for (const k of pianoKeys) {
+      const cl = k.el.classList;
+      if (cl.length) cl.remove('target', 'heard', 'wrong');
     }
-    if (state.heardPitchClasses.has(pc)) {
-      k.classList.add('heard');
-      if (!targetPcs.has(pc)) {
-        k.classList.add('wrong');
-      }
-    }
-  });
+    return;
+  }
+
+  const targetPcs = chord.pitchClasses;
+  const voicing = buildVoicing(chord.orderedNotes);
+
+  for (const k of pianoKeys) {
+    const cl = k.el.classList;
+    const shouldTarget = voicing.has(k.midi);
+    const shouldHeard = heard.has(k.pc);
+    const shouldWrong = shouldHeard && !targetPcs.has(k.pc);
+
+    cl.toggle('target', shouldTarget);
+    cl.toggle('heard', shouldHeard);
+    cl.toggle('wrong', shouldWrong);
+  }
 }
 
 export function renderNextPreview() {
-  const el = document.getElementById('chordDisplayNext');
-  const degEl = document.getElementById('chordDegreeNext');
+  const el = $('chordDisplayNext');
+  const degEl = $('chordDegreeNext');
   if (!el) return;
   const next = state.chordQueue[0];
   el.innerHTML = next ? formatChordHtml(next) : '';
@@ -125,13 +155,18 @@ export function displayChord(chord) {
   state.currentChord = chord;
   state.heardPitchClasses = new Set();
   state.heardHistory = [];
+  // New chord = clean slate for the success-dedup window, otherwise playing the
+  // next chord within SUCCESS_DEDUP_MS of the previous success (common in MIDI)
+  // swallows the match and the advance only fires after the window elapses.
+  state.lastSuccessTime = 0;
 
-  const display = document.getElementById('chordDisplay');
-  const notesEl = document.getElementById('chordNotes');
+  const display = $('chordDisplay');
+  const notesEl = $('chordNotes');
 
   if (!chord) {
     display.textContent = '—';
     notesEl.innerHTML = '';
+    noteChipEls = [];
     renderNextPreview();
     return;
   }
@@ -141,13 +176,13 @@ export function displayChord(chord) {
 
   // Re-trigger fade-in animation.
   display.style.animation = 'none';
-  display.offsetHeight;
+  void display.offsetHeight;
   display.style.animation = '';
 
-  // Note chips are always shown now (the option was removed).
   notesEl.innerHTML = chord.orderedNotes.map(pc =>
     `<span class="note" data-pc="${pc}">${pitchClassToDisplay(pc)}</span>`
   ).join('');
+  noteChipEls = Array.from(notesEl.querySelectorAll('.note'));
 
   updatePianoHighlight();
   updateGuitarHighlight();
@@ -166,15 +201,20 @@ export function cheatCurrentChord() {
 export function applyHeardPitchClasses(stable) {
   state.heardPitchClasses = stable;
 
-  document.querySelectorAll('.chord-notes .note').forEach(el => {
-    const pc = parseInt(el.dataset.pc);
-    el.classList.remove('heard', 'wrong');
-    if (stable.has(pc)) el.classList.add('heard');
-  });
+  for (const el of noteChipEls) {
+    const pc = parseInt(el.dataset.pc, 10);
+    el.classList.toggle('heard', stable.has(pc));
+  }
 
-  const names = [...stable].sort((a, b) => a - b).map(pc => pitchClassToDisplay(pc));
-  const detected = document.getElementById('detectedNotes');
-  if (detected) detected.textContent = names.length > 0 ? names.join(' · ') : '—';
+  const detected = $('detectedNotes');
+  if (detected) {
+    if (stable.size === 0) {
+      detected.textContent = '—';
+    } else {
+      const names = [...stable].sort((a, b) => a - b).map(pitchClassToDisplay);
+      detected.textContent = names.join(' · ');
+    }
+  }
 
   updatePianoHighlight();
   updateGuitarHighlight();
@@ -186,7 +226,7 @@ function isAnyInputActive() {
 }
 
 export function updateStatus() {
-  const statusEl = document.getElementById('status');
+  const statusEl = $('status');
   if (!state.currentChord) {
     statusEl.textContent = '';
     return;
@@ -208,31 +248,26 @@ export function updateStatus() {
     statusEl.className = 'status success';
 
     const now = Date.now();
-    const fresh = now - state.lastSuccessTime > 1500;
+    const fresh = now - state.lastSuccessTime > SUCCESS_DEDUP_MS;
     if (fresh) {
       state.lastSuccessTime = now;
       triggerSuccess();
     }
 
     if (state.dynamic.running) {
-      // Metronome controls progression; just record success for the bar.
       state.dynamic.correctThisBar = true;
     } else if (fresh) {
-      // MIDI is deterministic — advance almost immediately. Mic gets a small
-      // delay to let the visual feedback land before the chord changes.
-      const delay = state.midiEnabled ? 200 : 700;
+      const delay = state.midiEnabled ? MIDI_SUCCESS_DELAY_MS : MIC_SUCCESS_DELAY_MS;
       setTimeout(() => advanceToNextChord(displayChord), delay);
     }
   } else if (heard.size === 0) {
     statusEl.innerHTML = '<span class="listening-dot"></span>Listening...';
     statusEl.className = 'status listening';
   } else if (extra.length > 0) {
-    const wrongNames = extra.map(pc => pitchClassToDisplay(pc)).join(', ');
-    statusEl.innerHTML = `Wrong notes: ${wrongNames}`;
+    statusEl.innerHTML = `Wrong notes: ${extra.map(pitchClassToDisplay).join(', ')}`;
     statusEl.className = 'status wrong';
   } else {
-    const missingNames = missing.map(pc => pitchClassToDisplay(pc)).join(', ');
-    statusEl.innerHTML = `Still missing: ${missingNames}`;
+    statusEl.innerHTML = `Still missing: ${missing.map(pitchClassToDisplay).join(', ')}`;
     statusEl.className = 'status listening';
   }
 }

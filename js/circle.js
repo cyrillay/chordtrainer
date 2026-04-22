@@ -1,20 +1,19 @@
 // Circle of fifths visualization (SVG).
 // Outer ring = 12 majors, inner ring = relative minors.
-// The current chord (root + maj/min mapping) is highlighted.
+// Slots are cached at build time so highlight updates are O(1) lookups
+// instead of a full querySelectorAll + classList.remove sweep per frame.
 
 import { state } from './state.js';
 import { NOTE_DISPLAY, NOTE_NAMES } from './theory.js';
+import { $, svgEl } from './dom.js';
 
-// Circle order, clockwise from 12 o'clock.
 const COF_ORDER_PC = [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5];
-
 const R_OUTER = 95;
-const R_MID = 65;       // boundary between major (outer) and minor (inner) rings
+const R_MID = 65;
 const R_INNER = 35;
 const R_OUTER_TEXT = (R_OUTER + R_MID) / 2;
 const R_INNER_TEXT = (R_MID + R_INNER) / 2;
 
-// Major qualities map to outer ring; minor-ish qualities map to inner ring.
 const OUTER_QUALITIES = new Set(['maj', 'maj7', 'dom7', 'aug']);
 const INNER_QUALITIES = new Set(['min', 'min7', 'dim', 'm7b5', 'mMaj7']);
 
@@ -23,7 +22,6 @@ function polar(angleDeg, radius) {
   return { x: radius * Math.cos(rad), y: radius * Math.sin(rad) };
 }
 
-// Build a donut sector SVG path between two angles and two radii.
 function wedgePath(startDeg, endDeg, rOuter, rInner) {
   const a = polar(startDeg, rOuter);
   const b = polar(endDeg, rOuter);
@@ -37,11 +35,31 @@ function wedgePath(startDeg, endDeg, rOuter, rInner) {
           Z`;
 }
 
+// Cached lookup: `${ring}-${pc}` → slot group element. Lets highlight updates
+// flip classes on known nodes directly.
+const slotByKey = new Map();
+const activeSlots = new Set();
+const HIGHLIGHT_CLASSES = ['active', 'upcoming-1', 'upcoming-2', 'upcoming-3'];
+
+function buildSlot(pc, ring, startDeg, endDeg, midDeg, labelText, textCls) {
+  const g = svgEl('g', { class: `cof-slot cof-${ring}`, 'data-pc': pc, 'data-ring': ring });
+  const [rOuter, rInner] = ring === 'outer' ? [R_OUTER, R_MID] : [R_MID, R_INNER];
+  const rText = ring === 'outer' ? R_OUTER_TEXT : R_INNER_TEXT;
+  g.appendChild(svgEl('path', { d: wedgePath(startDeg, endDeg, rOuter, rInner), class: 'cof-wedge' }));
+  const p = polar(midDeg, rText);
+  const textEl = svgEl('text', { x: p.x, y: p.y, class: `cof-label ${textCls}` });
+  textEl.textContent = labelText;
+  g.appendChild(textEl);
+  return g;
+}
+
 export function buildCircle() {
-  const container = document.getElementById('circleSvg');
+  const container = $('circleSvg');
   if (!container) return;
   container.setAttribute('viewBox', '-110 -110 220 220');
   container.innerHTML = '';
+  slotByKey.clear();
+  activeSlots.clear();
 
   for (let i = 0; i < 12; i++) {
     const startDeg = i * 30 - 15;
@@ -49,64 +67,41 @@ export function buildCircle() {
     const midDeg = startDeg + 15;
     const pc = COF_ORDER_PC[i];
 
-    // Outer ring (major)
-    const outerG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    outerG.classList.add('cof-slot', 'cof-outer');
-    outerG.dataset.pc = pc;
-    outerG.dataset.ring = 'outer';
-    const outerPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    outerPath.setAttribute('d', wedgePath(startDeg, endDeg, R_OUTER, R_MID));
-    outerPath.setAttribute('class', 'cof-wedge');
-    outerG.appendChild(outerPath);
-    const outerText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    const op = polar(midDeg, R_OUTER_TEXT);
-    outerText.setAttribute('x', op.x);
-    outerText.setAttribute('y', op.y);
-    outerText.setAttribute('class', 'cof-label cof-label-major');
-    outerText.textContent = NOTE_DISPLAY[NOTE_NAMES[pc]];
-    outerG.appendChild(outerText);
+    const majorLabel = NOTE_DISPLAY[NOTE_NAMES[pc]];
+    const outerG = buildSlot(pc, 'outer', startDeg, endDeg, midDeg, majorLabel, 'cof-label-major');
     container.appendChild(outerG);
+    slotByKey.set(`outer-${pc}`, outerG);
 
-    // Inner ring (minor) — relative minor sits 3 semitones below the major
     const minorPc = (pc + 9) % 12;
-    const innerG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    innerG.classList.add('cof-slot', 'cof-inner');
-    innerG.dataset.pc = minorPc;
-    innerG.dataset.ring = 'inner';
-    const innerPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    innerPath.setAttribute('d', wedgePath(startDeg, endDeg, R_MID, R_INNER));
-    innerPath.setAttribute('class', 'cof-wedge');
-    innerG.appendChild(innerPath);
-    const innerText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    const ip = polar(midDeg, R_INNER_TEXT);
-    innerText.setAttribute('x', ip.x);
-    innerText.setAttribute('y', ip.y);
-    innerText.setAttribute('class', 'cof-label cof-label-minor');
-    innerText.textContent = NOTE_DISPLAY[NOTE_NAMES[minorPc]] + 'm';
-    innerG.appendChild(innerText);
+    const minorLabel = NOTE_DISPLAY[NOTE_NAMES[minorPc]] + 'm';
+    const innerG = buildSlot(minorPc, 'inner', startDeg, endDeg, midDeg, minorLabel, 'cof-label-minor');
     container.appendChild(innerG);
+    slotByKey.set(`inner-${minorPc}`, innerG);
   }
 }
 
-function highlightSlot(chord, cls) {
-  if (!chord) return;
+function slotFor(chord) {
+  if (!chord) return null;
   const rootPc = NOTE_NAMES.indexOf(chord.root);
-  const quality = chord.quality;
-  const ring = INNER_QUALITIES.has(quality) ? 'inner'
-             : OUTER_QUALITIES.has(quality) ? 'outer'
-             : 'outer';
-  const match = document.querySelector(`.cof-slot[data-ring="${ring}"][data-pc="${rootPc}"]`);
-  if (match) match.classList.add(cls);
+  const ring = INNER_QUALITIES.has(chord.quality) ? 'inner' : 'outer';
+  return slotByKey.get(`${ring}-${rootPc}`) || null;
+}
+
+function applyHighlight(slot, cls) {
+  if (!slot) return;
+  slot.classList.add(cls);
+  activeSlots.add(slot);
 }
 
 export function updateCircleHighlight() {
-  document.querySelectorAll('.cof-slot').forEach(s => {
-    s.classList.remove('active', 'upcoming-1', 'upcoming-2', 'upcoming-3');
-  });
+  // Clear only the slots we previously touched — O(highlighted) instead of O(24).
+  for (const slot of activeSlots) slot.classList.remove(...HIGHLIGHT_CLASSES);
+  activeSlots.clear();
+
   if (!state.currentChord) return;
-  highlightSlot(state.currentChord, 'active');
+  applyHighlight(slotFor(state.currentChord), 'active');
   const queue = state.chordQueue;
-  if (queue[0]) highlightSlot(queue[0], 'upcoming-1');
-  if (queue[1]) highlightSlot(queue[1], 'upcoming-2');
-  if (queue[2]) highlightSlot(queue[2], 'upcoming-3');
+  if (queue[0]) applyHighlight(slotFor(queue[0]), 'upcoming-1');
+  if (queue[1]) applyHighlight(slotFor(queue[1]), 'upcoming-2');
+  if (queue[2]) applyHighlight(slotFor(queue[2]), 'upcoming-3');
 }
