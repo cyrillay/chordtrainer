@@ -4,8 +4,8 @@
 //   - progressions: walk through predefined chord progressions (see progressions.js)
 
 import { state } from './state.js';
-import { CHORD_FORMULAS, buildChord, formatChordHtml } from './theory.js';
-import { ProgressionStream } from './progressions.js';
+import { CHORD_FORMULAS, NOTE_DISPLAY, buildChord, formatChordHtml } from './theory.js';
+import { ProgressionStream, romanToChord } from './progressions.js';
 import { getActiveProgressions } from './progressionManager.js';
 
 export const QUEUE_SIZE = 3;
@@ -110,7 +110,36 @@ export function fillQueue() {
 export function renderQueue() {
   const container = document.getElementById('chordQueue');
   const items = document.getElementById('queueItems');
+  const progHeader = document.getElementById('queueProgHeader');
   if (!container || !items) return;
+
+  const meta = state.currentChord && state.currentChord.meta;
+
+  // Progression mode: show the full progression with all degrees + chords.
+  if (meta) {
+    container.classList.add('active');
+    const keyDisp = NOTE_DISPLAY[meta.key] || meta.key;
+    const cycleInfo = meta.targetCycles > 1
+      ? ` · cycle ${meta.cycle + 1}/${meta.targetCycles === Infinity ? '∞' : meta.targetCycles}`
+      : '';
+    if (progHeader) {
+      progHeader.innerHTML = `<em>${meta.progression}</em> · in ${keyDisp}${cycleInfo}`;
+      progHeader.style.display = '';
+    }
+
+    items.innerHTML = meta.tokens.map((token, i) => {
+      const chord = romanToChord(token, meta.key);
+      const cls = i === meta.position ? 'queue-item current' : 'queue-item dimmed';
+      return `<div class="${cls}">
+        <span class="queue-degree">${token}</span>
+        <span>${chord ? formatChordHtml(chord) : token}</span>
+      </div>`;
+    }).join('');
+    return;
+  }
+
+  // Random mode: show queued chords without degrees.
+  if (progHeader) progHeader.style.display = 'none';
 
   if (state.chordQueue.length === 0) {
     container.classList.remove('active');
@@ -118,9 +147,8 @@ export function renderQueue() {
   }
 
   container.classList.add('active');
-  items.innerHTML = state.chordQueue.map((chord, idx) => {
+  items.innerHTML = state.chordQueue.map((chord) => {
     return `<div class="queue-item">
-      <span class="position">${idx + 1}</span>
       <span>${formatChordHtml(chord)}</span>
     </div>`;
   }).join('');

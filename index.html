@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="favico.png">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -20,16 +21,15 @@
     <div class="chord-row">
       <div class="chord-col chord-col-current">
         <div class="chord-display" id="chordDisplay">—</div>
+        <div class="chord-notes" id="chordNotes"></div>
       </div>
       <span class="chord-sep" aria-hidden="true"></span>
       <div class="chord-col chord-col-next">
-        <div class="label">Next chord</div>
+        <div class="label">Next chord <span class="label-degree" id="chordDegreeNext"></span></div>
         <div class="chord-display chord-display-next" id="chordDisplayNext"></div>
       </div>
-      <div class="success-burst" id="successBurst" aria-hidden="true">◆</div>
+      <div class="success-burst" id="successBurst" aria-hidden="true">✓</div>
     </div>
-    <div class="chord-notes" id="chordNotes"></div>
-    <div class="progression-info" id="progressionInfo" style="display:none;"></div>
 
     <div class="status" id="status">Press <em>begin</em> to start</div>
 
@@ -43,6 +43,7 @@
     <div class="chord-queue" id="chordQueue">
       <div class="queue-label">Coming up</div>
       <div class="queue-items" id="queueItems"></div>
+      <div class="queue-prog-header" id="queueProgHeader" style="display:none;"></div>
     </div>
 
     <div class="piano-wrap" id="pianoWrap">
