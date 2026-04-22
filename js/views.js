@@ -112,9 +112,13 @@ export function updatePianoHighlight() {
 
 export function renderNextPreview() {
   const el = document.getElementById('chordDisplayNext');
+  const degEl = document.getElementById('chordDegreeNext');
   if (!el) return;
   const next = state.chordQueue[0];
   el.innerHTML = next ? formatChordHtml(next) : '';
+  if (degEl) {
+    degEl.textContent = (next && next.meta) ? `(${next.meta.tokens[next.meta.position]})` : '';
+  }
 }
 
 export function displayChord(chord) {
@@ -144,28 +148,6 @@ export function displayChord(chord) {
   notesEl.innerHTML = chord.orderedNotes.map(pc =>
     `<span class="note" data-pc="${pc}">${pitchClassToDisplay(pc)}</span>`
   ).join('');
-
-  // Progression metadata, if this chord came from a progression.
-  const progEl = document.getElementById('progressionInfo');
-  if (progEl) {
-    if (chord.meta) {
-      const m = chord.meta;
-      const keyDisp = NOTE_DISPLAY[m.key];
-      const tokens = m.tokens || [];
-      const degreesHtml = tokens.length > 0
-        ? tokens.map((t, i) =>
-            i === m.position
-              ? `<span class="prog-degree active">${t}</span>`
-              : `<span class="prog-degree">${t}</span>`
-          ).join(' ')
-        : m.token;
-      const cycleInfo = m.targetCycles > 1 ? ` · cycle ${m.cycle + 1}/${m.targetCycles === Infinity ? '∞' : m.targetCycles}` : '';
-      progEl.innerHTML = `<em>${m.progression}</em> · in ${keyDisp} · ${degreesHtml}${cycleInfo}`;
-      progEl.style.display = 'block';
-    } else {
-      progEl.style.display = 'none';
-    }
-  }
 
   updatePianoHighlight();
   updateGuitarHighlight();

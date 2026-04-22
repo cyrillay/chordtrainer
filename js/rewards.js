@@ -121,7 +121,6 @@ function buildDOM() {
   counter.className = 'streak-counter';
   counter.id = 'streakCounter';
   counter.innerHTML = `
-    <span class="streak-icon">\u{25C6}</span>
     <span class="streak-value" id="streakValue">0</span>
     <span class="streak-label">streak</span>
     <span class="streak-best" id="streakBest"></span>
