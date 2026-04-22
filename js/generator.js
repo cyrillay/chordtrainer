@@ -7,32 +7,26 @@ import { state } from './state.js';
 import { CHORD_FORMULAS, NOTE_DISPLAY, buildChord, formatChordHtml } from './theory.js';
 import { ProgressionStream, romanToChord } from './progressions.js';
 import { getActiveProgressions } from './progressionManager.js';
+import { QUEUE_SIZE } from './constants.js';
+import { $, $$ } from './dom.js';
 
-export const QUEUE_SIZE = 3;
+export { QUEUE_SIZE };
 
 const progressionStream = new ProgressionStream();
 
-export function getEnabledQualities() {
-  return Array.from(document.querySelectorAll('[data-quality]'))
-    .filter(c => c.checked)
-    .map(c => c.dataset.quality);
+function checkedValues(selector, attr) {
+  const out = [];
+  for (const el of $$(selector)) if (el.checked) out.push(el.dataset[attr]);
+  return out;
 }
 
-export function getEnabledRoots() {
-  return Array.from(document.querySelectorAll('[data-root]'))
-    .filter(c => c.checked)
-    .map(c => c.dataset.root);
-}
+export function getEnabledQualities() { return checkedValues('[data-quality]', 'quality'); }
+export function getEnabledRoots()     { return checkedValues('[data-root]', 'root'); }
 
-function progressionsModeOn() {
-  const cb = document.getElementById('progressionsCb');
-  return cb && cb.checked;
-}
-
-function smartPivotsOn() {
-  const cb = document.getElementById('smartPivotsCb');
-  return cb && cb.checked;
-}
+const isChecked = (id) => { const el = $(id); return !!(el && el.checked); };
+const progressionsModeOn = () => isChecked('progressionsCb');
+const smartPivotsOn      = () => isChecked('smartPivotsCb');
+const inversionsOn       = () => isChecked('inversionsCb');
 
 export function resetProgressionStream() {
   progressionStream.setAllProgressions(getActiveProgressions());
@@ -57,18 +51,13 @@ export function countUsableProgressions() {
   return progressionStream.usableCount();
 }
 
-function inversionsOn() {
-  const cb = document.getElementById('inversionsCb');
-  return cb && cb.checked;
-}
-
 function generateRandomFreeChord(avoidSymbols) {
   const qualities = getEnabledQualities();
   const roots = getEnabledRoots();
 
   if (qualities.length === 0 || roots.length === 0) {
-    document.getElementById('chordDisplay').textContent = '—';
-    document.getElementById('status').textContent = 'Select at least one root and quality';
+    $('chordDisplay').textContent = '—';
+    $('status').textContent = 'Select at least one root and quality';
     return null;
   }
 
@@ -108,9 +97,9 @@ export function fillQueue() {
 }
 
 export function renderQueue() {
-  const container = document.getElementById('chordQueue');
-  const items = document.getElementById('queueItems');
-  const progHeader = document.getElementById('queueProgHeader');
+  const container = $('chordQueue');
+  const items = $('queueItems');
+  const progHeader = $('queueProgHeader');
   if (!container || !items) return;
 
   const meta = state.currentChord && state.currentChord.meta;

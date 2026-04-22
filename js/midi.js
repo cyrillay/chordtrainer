@@ -1,6 +1,7 @@
 // Web MIDI input: detect notes from a connected MIDI keyboard.
 import { state } from './state.js';
 import { applyHeardPitchClasses } from './views.js';
+import { $ } from './dom.js';
 
 function refreshHeardFromHeld() {
   const pcs = new Set();
@@ -24,9 +25,7 @@ function handleMidiMessage(event) {
 }
 
 function attachInputs(access) {
-  for (const input of access.inputs.values()) {
-    input.onmidimessage = handleMidiMessage;
-  }
+  for (const input of access.inputs.values()) input.onmidimessage = handleMidiMessage;
 }
 
 function describeInputs(access) {
@@ -36,8 +35,10 @@ function describeInputs(access) {
 }
 
 export async function startMidi() {
+  const statusEl = $('midiStatus');
   if (!navigator.requestMIDIAccess) {
-    document.getElementById('midiStatus').textContent = 'Web MIDI not supported in this browser';
+    statusEl.textContent = 'Web MIDI not supported in this browser';
+    statusEl.style.display = 'block';
     return;
   }
   try {
@@ -49,18 +50,17 @@ export async function startMidi() {
     attachInputs(access);
     access.onstatechange = () => {
       attachInputs(access);
-      document.getElementById('midiStatus').textContent = describeInputs(access);
+      statusEl.textContent = describeInputs(access);
     };
 
-    const status = document.getElementById('midiStatus');
-    status.style.display = 'block';
-    status.textContent = describeInputs(access);
+    statusEl.style.display = 'block';
+    statusEl.textContent = describeInputs(access);
 
     refreshHeardFromHeld();
   } catch (err) {
     console.error(err);
-    document.getElementById('midiStatus').textContent = 'MIDI access denied';
-    document.getElementById('midiStatus').style.display = 'block';
+    statusEl.textContent = 'MIDI access denied';
+    statusEl.style.display = 'block';
   }
 }
 
@@ -73,7 +73,6 @@ export function stopMidi() {
   state.midiEnabled = false;
   state.midiHeldNotes = new Set();
 
-  document.getElementById('midiStatus').style.display = 'none';
-
+  $('midiStatus').style.display = 'none';
   applyHeardPitchClasses(new Set());
 }
