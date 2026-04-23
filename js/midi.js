@@ -47,14 +47,18 @@ export async function startMidi() {
     state.midiEnabled = true;
     state.midiHeldNotes = new Set();
 
-    attachInputs(access);
-    access.onstatechange = () => {
+    const updateStatus = () => {
       attachInputs(access);
       statusEl.textContent = describeInputs(access);
     };
 
+    access.onstatechange = updateStatus;
     statusEl.style.display = 'block';
-    statusEl.textContent = describeInputs(access);
+
+    // On mobile browsers, inputs may be enumerated asynchronously after
+    // requestMIDIAccess resolves — check immediately then retry after a short delay.
+    updateStatus();
+    setTimeout(updateStatus, 500);
 
     refreshHeardFromHeld();
   } catch (err) {
