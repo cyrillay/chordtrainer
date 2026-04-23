@@ -1953,14 +1953,18 @@ body.reward-shake {
    kills frame rates on mid-range phones. Fall back to a scrolling background
    under 900px — visually indistinguishable but much cheaper. */
 @media (max-width: 900px) {
-  body { background-attachment: scroll; }
+  body {
+    background-attachment: scroll;
+    position: relative; /* positioning context for ::before */
+  }
   /* Keep the grain — it dithers the radial gradients and prevents banding on
      cheap 8-bit mobile displays. Switch from `fixed` to `absolute` so it doesn't
-     force a repaint on every scroll frame. */
+     force a repaint on every scroll frame. Cover the full document height so
+     the background doesn't look black when scrolling past the first viewport. */
   body::before {
     position: absolute;
-    inset: 0 0 auto 0;
-    height: 100vh;
+    inset: 0;
+    height: auto;
   }
 }
 
