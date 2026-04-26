@@ -11,11 +11,11 @@ import { LS } from '../core/constants.js';
 import { updateCircleHighlight } from '../instruments/circle.js';
 
 const PRESETS = {
-  firstTimer:   { qualities: ['maj'],                                                                roots: ['C', 'F', 'G'],           inversions: false, showFingerings: true },
-  beginner:     { qualities: ['maj', 'min'],                                                         roots: ['C', 'G', 'D', 'A', 'F'], inversions: false },
-  intermediate: { qualities: ['maj', 'min'],                                                         roots: 'all',                     inversions: true,  inversionFreq: 33 },
-  advanced:     { qualities: ['maj', 'min', 'dom7', 'maj7', 'min7'],                                 roots: 'all',                     inversions: true,  inversionFreq: 33 },
-  expert:       { qualities: ['maj', 'min', 'dim', 'aug', 'dom7', 'maj7', 'min7', 'm7b5', 'mMaj7'], roots: 'all',                     inversions: true,  inversionFreq: 66, showCircle: true, showInstrument: false }
+  firstTimer:   { qualities: ['maj'],                                                                roots: ['C', 'F', 'G'],           inversions: false, showFingerings: true, showCircle: false, showInstrument: true },
+  beginner:     { qualities: ['maj', 'min'],                                                         roots: ['C', 'G', 'D', 'A', 'F'], inversions: false,                       showCircle: false, showInstrument: true },
+  intermediate: { qualities: ['maj', 'min'],                                                         roots: 'all',                     inversions: true,  inversionFreq: 33,    showCircle: false, showInstrument: true },
+  advanced:     { qualities: ['maj', 'min', 'dom7', 'maj7', 'min7'],                                 roots: 'all',                     inversions: true,  inversionFreq: 33,    showCircle: false, showInstrument: true },
+  expert:       { qualities: ['maj', 'min', 'dim', 'aug', 'dom7', 'maj7', 'min7', 'm7b5', 'mMaj7'], roots: 'all',                     inversions: true,  inversionFreq: 66,    showCircle: true,  showInstrument: false }
 };
 
 // ---- Inversion frequency selector ----
