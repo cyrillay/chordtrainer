@@ -14,7 +14,36 @@
 <div class="app">
   <header>
     <div class="wordmark">Étude <em>—</em> Chord Trainer</div>
-    <div class="meta">Op. 2 No 62 · <button type="button" id="inputModeBtn" class="mode-toggle">Listening Mode</button></div>
+    <div class="header-right">
+      <div class="meta">Op. 2 No 62 · Input Mode</div>
+      <div class="input-selector" id="inputSelector">
+        <button type="button" id="micBtn" class="input-mode-btn" aria-pressed="false">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z" fill="currentColor"/>
+            <path d="M19 11a1 1 0 0 0-2 0 5 5 0 0 1-10 0 1 1 0 0 0-2 0 7 7 0 0 0 6 6.92V20H8a1 1 0 0 0 0 2h8a1 1 0 0 0 0-2h-3v-2.08A7 7 0 0 0 19 11z" fill="currentColor"/>
+          </svg>
+          <span>Mic</span>
+        </button>
+        <button type="button" id="midiBtn" class="input-mode-btn" aria-pressed="false">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <rect x="2" y="6" width="20" height="12" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <circle cx="6.5" cy="14" r="1" fill="currentColor"/>
+            <circle cx="10" cy="14" r="1" fill="currentColor"/>
+            <circle cx="14" cy="14" r="1" fill="currentColor"/>
+            <circle cx="17.5" cy="14" r="1" fill="currentColor"/>
+            <path d="M7 6v3M17 6v3" stroke="currentColor" stroke-width="1.2"/>
+          </svg>
+          <span>MIDI</span>
+        </button>
+      </div>
+      <div class="input-overlay">
+        <div class="input-cta" id="inputCta" style="display:none;" aria-hidden="true">
+          <span class="input-cta-arrow">↑</span>
+          <span class="input-cta-text">activate to begin</span>
+        </div>
+        <div class="input-help" id="inputHelp" aria-live="polite"></div>
+      </div>
+    </div>
   </header>
 
   <main class="stage">
@@ -51,16 +80,44 @@
       <div class="queue-prog-header" id="queueProgHeader" style="display:none;"></div>
     </div>
 
-    <div class="piano-wrap" id="pianoWrap">
-      <div class="piano" id="piano"></div>
-    </div>
-
-    <div class="guitar-wrap" id="guitarWrap" style="display:none;">
-      <svg id="guitarSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="instrument-area" id="instrumentArea">
+      <div class="piano-wrap" id="pianoWrap">
+        <div class="piano" id="piano"></div>
+      </div>
+      <div class="guitar-wrap" id="guitarWrap">
+        <svg id="guitarSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+        <button type="button" id="altVoicingBtn" class="alt-voicing-btn" style="display:none;"></button>
+      </div>
     </div>
 
     <div class="instrument-actions" id="instrumentActions">
-      <button type="button" id="changeInstrumentBtn" class="instrument-toggle">Change instrument</button>
+      <div class="instrument-selector" id="instrumentSelector">
+        <button type="button" class="instrument-mode-btn" data-instrument="piano" aria-pressed="false" title="Piano">
+          <svg viewBox="0 0 32 16" width="36" height="18" aria-hidden="true">
+            <rect x="0.5" y="0.5" width="31" height="15" fill="none" stroke="currentColor" stroke-width="1"/>
+            <line x1="8" y1="0.5" x2="8" y2="15.5" stroke="currentColor" stroke-width="0.8"/>
+            <line x1="16" y1="0.5" x2="16" y2="15.5" stroke="currentColor" stroke-width="0.8"/>
+            <line x1="24" y1="0.5" x2="24" y2="15.5" stroke="currentColor" stroke-width="0.8"/>
+            <rect x="5.5" y="0.5" width="5" height="9" fill="currentColor"/>
+            <rect x="13.5" y="0.5" width="5" height="9" fill="currentColor"/>
+            <rect x="21.5" y="0.5" width="5" height="9" fill="currentColor"/>
+          </svg>
+          <span>Piano</span>
+        </button>
+        <button type="button" class="instrument-mode-btn" data-instrument="guitar" aria-pressed="false" title="Guitar">
+          <svg viewBox="0 0 32 16" width="36" height="18" aria-hidden="true">
+            <line x1="2" y1="3" x2="30" y2="3" stroke="currentColor" stroke-width="0.6"/>
+            <line x1="2" y1="6" x2="30" y2="6" stroke="currentColor" stroke-width="0.7"/>
+            <line x1="2" y1="9" x2="30" y2="9" stroke="currentColor" stroke-width="0.9"/>
+            <line x1="2" y1="12" x2="30" y2="12" stroke="currentColor" stroke-width="1.1"/>
+            <line x1="2" y1="1" x2="2" y2="14" stroke="currentColor" stroke-width="1.6"/>
+            <line x1="10" y1="1" x2="10" y2="14" stroke="currentColor" stroke-width="0.6"/>
+            <line x1="18" y1="1" x2="18" y2="14" stroke="currentColor" stroke-width="0.6"/>
+            <line x1="26" y1="1" x2="26" y2="14" stroke="currentColor" stroke-width="0.6"/>
+          </svg>
+          <span>Guitar</span>
+        </button>
+      </div>
     </div>
 
     <div class="circle-wrap" id="circleWrap" style="display:none;">
@@ -69,8 +126,6 @@
 
     <div class="controls">
       <button id="newChordBtn" class="primary">New chord</button>
-      <button id="micBtn">Enable microphone</button>
-      <button id="midiBtn">Connect MIDI</button>
       <button id="dynamicStartBtn">Start metronome</button>
       <div class="tempo-control">
         <label for="bpmSlider">Tempo</label>
@@ -90,22 +145,74 @@
   <section class="settings">
     <div class="settings-title">◆ Preferences</div>
     <div class="settings-grid">
-      <div class="setting-group">
-        <label>Chord qualities</label>
-        <label class="checkbox-item"><input type="checkbox" data-quality="maj" checked>Major</label>
-        <label class="checkbox-item"><input type="checkbox" data-quality="min" checked>Minor</label>
-        <label class="checkbox-item"><input type="checkbox" data-quality="dim">Diminished</label>
-        <label class="checkbox-item"><input type="checkbox" data-quality="aug">Augmented</label>
-        <label class="checkbox-item"><input type="checkbox" data-quality="maj7">Major 7th</label>
-        <label class="checkbox-item"><input type="checkbox" data-quality="min7">Minor 7th</label>
-        <label class="checkbox-item"><input type="checkbox" data-quality="dom7">Dominant 7th</label>
-        <label class="checkbox-item"><input type="checkbox" data-quality="m7b5">Half-diminished (ø)</label>
-        <label class="checkbox-item"><input type="checkbox" data-quality="mMaj7">Minor major 7th</label>
+      <div class="setting-group setting-group-selection">
+        <label>Chord selection</label>
+
+        <div class="preset-row" id="presetRow">
+          <span class="preset-label">Preset</span>
+          <div class="preset-btns">
+            <button type="button" class="preset-btn" data-preset="firstTimer">First timer</button>
+            <button type="button" class="preset-btn" data-preset="beginner">Beginner</button>
+            <button type="button" class="preset-btn" data-preset="intermediate">Intermediate</button>
+            <button type="button" class="preset-btn" data-preset="advanced">Advanced</button>
+            <button type="button" class="preset-btn" data-preset="expert">Expert</button>
+          </div>
+        </div>
+
+        <div class="selection-sub">
+          <div class="selection-sub-label">Chord qualities</div>
+          <div class="quality-grid">
+            <label class="checkbox-item"><input type="checkbox" data-quality="maj" checked>Major</label>
+            <label class="checkbox-item"><input type="checkbox" data-quality="min" checked>Minor</label>
+            <label class="checkbox-item"><input type="checkbox" data-quality="dim">Diminished</label>
+            <label class="checkbox-item"><input type="checkbox" data-quality="aug">Augmented</label>
+            <label class="checkbox-item"><input type="checkbox" data-quality="maj7">Major 7th</label>
+            <label class="checkbox-item"><input type="checkbox" data-quality="min7">Minor 7th</label>
+            <label class="checkbox-item"><input type="checkbox" data-quality="dom7">Dominant 7th</label>
+            <label class="checkbox-item"><input type="checkbox" data-quality="m7b5">Half-diminished (ø)</label>
+            <label class="checkbox-item"><input type="checkbox" data-quality="mMaj7">Minor major 7th</label>
+          </div>
+        </div>
+
+        <div class="selection-sub">
+          <details class="roots-details" id="rootsDetails">
+            <summary>
+              <span class="details-label">Roots</span>
+              <span class="details-summary" id="rootsSummary">12 selected</span>
+            </summary>
+            <div class="roots-actions">
+              <button type="button" id="toggleAllRootsBtn" class="toggle-all-btn">Unselect all</button>
+            </div>
+            <div class="roots-grid">
+              <label class="checkbox-item"><input type="checkbox" data-root="C" checked>C</label>
+              <label class="checkbox-item"><input type="checkbox" data-root="C#" checked>C♯ / D♭</label>
+              <label class="checkbox-item"><input type="checkbox" data-root="D" checked>D</label>
+              <label class="checkbox-item"><input type="checkbox" data-root="D#" checked>D♯ / E♭</label>
+              <label class="checkbox-item"><input type="checkbox" data-root="E" checked>E</label>
+              <label class="checkbox-item"><input type="checkbox" data-root="F" checked>F</label>
+              <label class="checkbox-item"><input type="checkbox" data-root="F#" checked>F♯ / G♭</label>
+              <label class="checkbox-item"><input type="checkbox" data-root="G" checked>G</label>
+              <label class="checkbox-item"><input type="checkbox" data-root="G#" checked>G♯ / A♭</label>
+              <label class="checkbox-item"><input type="checkbox" data-root="A" checked>A</label>
+              <label class="checkbox-item"><input type="checkbox" data-root="A#" checked>A♯ / B♭</label>
+              <label class="checkbox-item"><input type="checkbox" data-root="B" checked>B</label>
+            </div>
+          </details>
+        </div>
+
+        <div class="selection-inversions-row">
+          <label class="checkbox-item selection-inversions"><input type="checkbox" id="inversionsCb">Include inversions</label>
+          <div class="inversion-freq" id="inversionFreqWrap" style="display:none;">
+            <button type="button" class="inv-preset-btn" data-inv-freq="33">33%</button>
+            <button type="button" class="inv-preset-btn" data-inv-freq="66">66%</button>
+          </div>
+        </div>
       </div>
 
-      <div class="setting-group">
+      <div class="setting-group setting-group-options">
         <label>Options</label>
         <label class="checkbox-item"><input type="checkbox" id="showInstrumentCb" checked>Show instrument</label>
+        <label class="checkbox-item sub-option" id="showFingeringsLabel"><input type="checkbox" id="showFingeringsCb">Show fingerings</label>
         <label class="checkbox-item"><input type="checkbox" id="progressionsCb" checked>Chord progressions</label>
         <label class="checkbox-item sub-option" id="smartPivotsLabel">
           <input type="checkbox" id="smartPivotsCb" checked>Smart progressions (pivot keys)
@@ -124,34 +231,7 @@
           <button type="button" id="manageProgressionsBtn" class="manage-prog-btn">Manage progressions…</button>
         </div>
         <label class="checkbox-item"><input type="checkbox" id="rewardsCb" checked>Show streak &amp; rewards</label>
-        <label class="checkbox-item"><input type="checkbox" id="inversionsCb">Include inversions</label>
         <label class="checkbox-item"><input type="checkbox" id="circleCb">Show circle of fifths</label>
-      </div>
-
-      <div class="setting-group setting-group-wide">
-        <details class="roots-details" id="rootsDetails">
-          <summary>
-            <span class="details-label">Roots</span>
-            <span class="details-summary" id="rootsSummary">12 selected</span>
-          </summary>
-          <div class="roots-actions">
-            <button type="button" id="toggleAllRootsBtn" class="toggle-all-btn">Unselect all</button>
-          </div>
-          <div class="roots-grid">
-            <label class="checkbox-item"><input type="checkbox" data-root="C" checked>C</label>
-            <label class="checkbox-item"><input type="checkbox" data-root="C#" checked>C♯ / D♭</label>
-            <label class="checkbox-item"><input type="checkbox" data-root="D" checked>D</label>
-            <label class="checkbox-item"><input type="checkbox" data-root="D#" checked>D♯ / E♭</label>
-            <label class="checkbox-item"><input type="checkbox" data-root="E" checked>E</label>
-            <label class="checkbox-item"><input type="checkbox" data-root="F" checked>F</label>
-            <label class="checkbox-item"><input type="checkbox" data-root="F#" checked>F♯ / G♭</label>
-            <label class="checkbox-item"><input type="checkbox" data-root="G" checked>G</label>
-            <label class="checkbox-item"><input type="checkbox" data-root="G#" checked>G♯ / A♭</label>
-            <label class="checkbox-item"><input type="checkbox" data-root="A" checked>A</label>
-            <label class="checkbox-item"><input type="checkbox" data-root="A#" checked>A♯ / B♭</label>
-            <label class="checkbox-item"><input type="checkbox" data-root="B" checked>B</label>
-          </div>
-        </details>
       </div>
     </div>
   </section>
@@ -252,6 +332,15 @@
     </details>
   </section>
 
+  <section class="about-section">
+    <div class="about-title">◆ About</div>
+    <div class="about-body">
+      Thanks to <a href="https://www.pianochord.org/" target="_blank" rel="noopener">pianochord.org</a>
+      and <a href="https://www.all-guitar-chords.com/" target="_blank" rel="noopener">all-guitar-chords.com</a>
+      for fingerings.
+    </div>
+  </section>
+
   <footer>
     <div class="footer-tagline"><em>Ars longa, vita brevis</em> · Listen with your ears, play with your hands</div>
     <div class="footer-links">
@@ -264,6 +353,19 @@
 </div>
 
 <script type="module" src="js/main.js"></script>
+
+<!-- Onboarding overlay (first visit) -->
+<div id="onboardOverlay" class="onboard-overlay" style="display:none;">
+  <div class="onboard-card">
+    <div class="onboard-step" id="onboardStep">1 / 4</div>
+    <h2 class="onboard-title" id="onboardTitle">Welcome to Étude</h2>
+    <p class="onboard-body" id="onboardBody">A chord trainer that listens and validates your chords as you play them.</p>
+    <div class="onboard-actions">
+      <button type="button" id="onboardSkip" class="onboard-skip">Skip</button>
+      <button type="button" id="onboardNext" class="onboard-next">Next →</button>
+    </div>
+  </div>
+</div>
 
 <!-- Progression manager modal -->
 <div id="progModalOverlay" class="prog-modal-overlay" style="display:none;">

@@ -28,11 +28,23 @@ const progressionsModeOn = () => isChecked('progressionsCb');
 const smartPivotsOn      = () => isChecked('smartPivotsCb');
 const inversionsOn       = () => isChecked('inversionsCb');
 
+// 0–100. Probability that a generated chord is *actually* inverted (i.e. picks
+// a non-root inversion). When the checkbox is off, this is ignored. Reads the
+// active preset button (set by main.js) so the generator stays decoupled from
+// the chosen UI shape (slider vs presets).
+function inversionFrequency() {
+  const btn = document.querySelector('.inv-preset-btn.active');
+  const v = btn ? parseInt(btn.dataset.invFreq, 10) : 33;
+  return isNaN(v) ? 33 : v;
+}
+
 export function resetProgressionStream() {
   progressionStream.setAllProgressions(getActiveProgressions());
   progressionStream.setAllowedRoots(getEnabledRoots());
   progressionStream.setEnabledQualities(getEnabledQualities());
   progressionStream.setSmartPivots(smartPivotsOn());
+  progressionStream.setUseInversions(inversionsOn());
+  progressionStream.setInversionFrequency(inversionFrequency());
   progressionStream.advanceProgression();
 }
 
@@ -41,6 +53,8 @@ export function syncProgressionConfig() {
   progressionStream.setAllowedRoots(getEnabledRoots());
   progressionStream.setEnabledQualities(getEnabledQualities());
   progressionStream.setSmartPivots(smartPivotsOn());
+  progressionStream.setUseInversions(inversionsOn());
+  progressionStream.setInversionFrequency(inversionFrequency());
 }
 
 export function setProgressionCycles(n) {
@@ -62,13 +76,18 @@ function generateRandomFreeChord(avoidSymbols) {
   }
 
   const useInversions = inversionsOn();
+  const invFreq = inversionFrequency();
   let attempt = 0;
   let chord;
   do {
     const root = roots[Math.floor(Math.random() * roots.length)];
     const quality = qualities[Math.floor(Math.random() * qualities.length)];
     const numNotes = CHORD_FORMULAS[quality].intervals.length;
-    const inversion = useInversions ? Math.floor(Math.random() * numNotes) : 0;
+    // With probability invFreq%, force a non-root inversion (uniform among
+    // 1..numNotes-1). Otherwise root position. So the slider literally is
+    // "% of chords that come out inverted".
+    const invert = useInversions && numNotes > 1 && Math.random() * 100 < invFreq;
+    const inversion = invert ? 1 + Math.floor(Math.random() * (numNotes - 1)) : 0;
     chord = buildChord(root, quality, inversion);
     attempt++;
   } while (avoidSymbols.includes(chord.symbol) && attempt < 10);
@@ -117,7 +136,8 @@ export function renderQueue() {
     }
 
     items.innerHTML = meta.tokens.map((token, i) => {
-      const chord = romanToChord(token, meta.key);
+      const inv = (meta.inversions && meta.inversions[i]) || 0;
+      const chord = romanToChord(token, meta.key, inv);
       const cls = i === meta.position ? 'queue-item current' : 'queue-item dimmed';
       return `<div class="${cls}">
         <span class="queue-degree">${token}</span>

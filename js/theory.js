@@ -43,6 +43,37 @@ export function formatChordHtml(chord) {
   return `${formatRootHtml(rootDisplay)}<span class="accent">${suffix}</span>${bassNote ? '<span class="accent">' + bassNote + '</span>' : ''}`;
 }
 
+// Standard piano fingerings (right hand / left hand) per chord quality.
+// Numbering: 1 = thumb, 2 = index, 3 = middle, 4 = ring, 5 = pinky.
+//
+// Sourced by spot-checking pianochord.org pages: triads use 1-3-5 / 5-3-1 and
+// 7th chords use 1-2-3-5 / 5-3-2-1 across all roots and (with the same pattern
+// applied to the bass-up voicing) inversions. Exception: augmented triads use
+// 5-3-2 in the LH because the M3+M3 stretch makes the thumb on the top note
+// unreliable.
+//
+// orderedNotes is bass→top, so we return RH fingers in the same order.
+const FINGERINGS_RH = {
+  3: [1, 3, 5],
+  4: [1, 2, 3, 5]
+};
+const FINGERINGS_LH = {
+  3: [5, 3, 1],
+  4: [5, 3, 2, 1]
+};
+const FINGERING_OVERRIDES_LH = {
+  aug: [5, 3, 2]
+};
+
+// Returns { rh, lh } where each is an array of finger numbers indexed by
+// orderedNotes (bass = index 0, top = last).
+export function getFingering(chord) {
+  const n = chord.orderedNotes.length;
+  const lh = FINGERING_OVERRIDES_LH[chord.quality] || FINGERINGS_LH[n] || [];
+  const rh = FINGERINGS_RH[n] || [];
+  return { rh, lh };
+}
+
 export function buildChord(root, quality, inversion = 0) {
   const formula = CHORD_FORMULAS[quality];
   const rootPc = noteToPitchClass(root);

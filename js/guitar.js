@@ -1,7 +1,9 @@
 // Guitar fretboard visualization (SVG).
-// Shows a single reasonable voicing of the current chord on a 6-string guitar
-// in standard tuning. Uses a dictionary of standard shapes for common chords,
-// with an algorithmic fallback for uncommon ones.
+// Shows a voicing of the current chord on a 6-string guitar in standard
+// tuning. Voicings are loaded from data/guitar-voicings.json (scraped from
+// all-guitar-chords.com by scripts/scrape_voicings.py); an algorithmic
+// fallback handles chords missing from the dataset or the brief window
+// before the JSON has finished loading.
 //
 // The SVG skeleton (strings, nut/frets, fret numbers) is built once per
 // fret window and reused across chord changes; only the voicing dots are
@@ -15,90 +17,23 @@ import {
   HAND_SPAN_BACK, HAND_SPAN_FWD
 } from './constants.js';
 
-// Standard chord voicing dictionary.
-// Each entry: array of 6 values (low E to high e): fret number, 0 for open, null for muted.
-// Keyed by "root-quality". Root is pitch class (0-11).
-const STANDARD_VOICINGS = {
-  '0-maj':  [null, 3, 2, 0, 1, 0],
-  '0-min':  [null, 3, 1, 0, 1, 3],
-  '0-maj7': [null, 3, 2, 0, 0, 0],
-  '0-min7': [null, 3, 1, 3, 1, 3],
-  '0-dom7': [null, 3, 2, 3, 1, 0],
-  '0-dim':  [null, 3, 1, null, 1, null],
-  '0-aug':  [null, 3, 2, 1, 1, 0],
+// Voicings keyed `${rootPc}-${quality}` → array of [low_E..high_e] arrays.
+// Populated asynchronously; callers handle the empty case via the fallback.
+const voicingDataset = new Map();
 
-  '1-maj':  [null, 4, 3, 1, 2, 1],
-  '1-min':  [null, 4, 2, 1, 2, null],
-  '1-dom7': [null, 4, 3, 4, 2, 1],
+fetch('data/guitar-voicings.json')
+  .then(r => r.ok ? r.json() : Promise.reject(r.status))
+  .then(data => {
+    for (const [k, v] of Object.entries(data)) voicingDataset.set(k, v);
+    // Re-render so the freshly-loaded voicings replace the algorithmic
+    // fallback that may have rendered first.
+    if (state.currentChord) updateGuitarHighlight();
+  })
+  .catch(err => console.warn('guitar voicings dataset unavailable:', err));
 
-  '2-maj':  [null, null, 0, 2, 3, 2],
-  '2-min':  [null, null, 0, 2, 3, 1],
-  '2-maj7': [null, null, 0, 2, 2, 2],
-  '2-min7': [null, null, 0, 2, 1, 1],
-  '2-dom7': [null, null, 0, 2, 1, 2],
-  '2-dim':  [null, null, 0, 1, 3, 1],
-  '2-aug':  [null, null, 0, 3, 3, 2],
-
-  '3-maj':  [null, null, 1, 3, 4, 3],
-  '3-min':  [null, null, 1, 3, 4, 2],
-  '3-dom7': [null, null, 1, 3, 2, 3],
-
-  '4-maj':  [0, 2, 2, 1, 0, 0],
-  '4-min':  [0, 2, 2, 0, 0, 0],
-  '4-maj7': [0, 2, 1, 1, 0, 0],
-  '4-min7': [0, 2, 0, 0, 0, 0],
-  '4-dom7': [0, 2, 0, 1, 0, 0],
-  '4-dim':  [null, 2, null, 0, null, 0],
-  '4-aug':  [0, 3, 2, 1, 1, 0],
-
-  '5-maj':  [1, 3, 3, 2, 1, 1],
-  '5-min':  [1, 3, 3, 1, 1, 1],
-  '5-maj7': [null, null, 3, 2, 1, 0],
-  '5-min7': [1, 3, 1, 1, 1, 1],
-  '5-dom7': [1, 3, 1, 2, 1, 1],
-  '5-dim':  [null, null, 3, 1, 0, 1],
-  '5-aug':  [null, null, 3, 2, 2, 1],
-
-  '6-maj':  [2, 4, 4, 3, 2, 2],
-  '6-min':  [2, 4, 4, 2, 2, 2],
-  '6-dom7': [2, 4, 2, 3, 2, 2],
-
-  '7-maj':  [3, 2, 0, 0, 0, 3],
-  '7-min':  [3, 5, 5, 3, 3, 3],
-  '7-maj7': [3, 2, 0, 0, 0, 2],
-  '7-min7': [3, 5, 3, 3, 3, 3],
-  '7-dom7': [3, 2, 0, 0, 0, 1],
-  '7-dim':  [null, null, 5, 3, 2, 3],
-  '7-aug':  [3, 2, 1, 0, 0, 3],
-
-  '8-maj':  [4, 6, 6, 5, 4, 4],
-  '8-min':  [4, 6, 6, 4, 4, 4],
-  '8-dom7': [4, 6, 4, 5, 4, 4],
-
-  '9-maj':  [null, 0, 2, 2, 2, 0],
-  '9-min':  [null, 0, 2, 2, 1, 0],
-  '9-maj7': [null, 0, 2, 1, 2, 0],
-  '9-min7': [null, 0, 2, 0, 1, 0],
-  '9-dom7': [null, 0, 2, 0, 2, 0],
-  '9-dim':  [null, 0, 1, 2, 1, null],
-  '9-aug':  [null, 0, 3, 2, 2, 1],
-
-  '10-maj': [null, 1, 3, 3, 3, 1],
-  '10-min': [null, 1, 3, 3, 2, 1],
-  '10-dom7':[null, 1, 3, 1, 3, 1],
-  '10-maj7':[null, 1, 3, 2, 3, 1],
-  '10-min7':[null, 1, 3, 1, 2, 1],
-
-  '11-maj': [null, 2, 4, 4, 4, 2],
-  '11-min': [null, 2, 4, 4, 3, 2],
-  '11-dom7':[null, 2, 1, 2, 0, 2],
-  '11-maj7':[null, 2, 4, 3, 4, 2],
-  '11-min7':[null, 2, 0, 2, 0, 2],
-  '11-dim': [null, 2, 3, 4, 3, null],
-};
-
-function lookupVoicing(rootPc, quality) {
-  return STANDARD_VOICINGS[`${rootPc}-${quality}`] || null;
+function lookupVoicings(rootPc, quality) {
+  const list = voicingDataset.get(`${rootPc}-${quality}`);
+  return (list && list.length) ? list : null;
 }
 
 function voicingFromDict(dictEntry) {
@@ -110,6 +45,23 @@ function voicingFromDict(dictEntry) {
     else positions.push({ string: s, fret, pc: (TUNING[s] + fret) % 12 });
   }
   return { positions, muted };
+}
+
+// Detect a barre: when 3+ strings share the same fretted (>0) note AND that fret
+// is the lowest fretted note in the chord (so the index finger holds them all
+// down). Returns { fret, fromString, toString } or null.
+function detectBarre(positions) {
+  if (positions.length < 3) return null;
+  const fretted = positions.filter(p => p.fret > 0);
+  if (fretted.length < 3) return null;
+  const minFret = Math.min(...fretted.map(p => p.fret));
+
+  // Group by fret to find the bar candidate.
+  const onMinFret = fretted.filter(p => p.fret === minFret);
+  if (onMinFret.length < 3) return null;
+
+  const stringIdxs = onMinFret.map(p => p.string).sort((a, b) => a - b);
+  return { fret: minFret, fromString: stringIdxs[0], toString: stringIdxs[stringIdxs.length - 1] };
 }
 
 // Algorithmic fallback for chords without a dictionary entry.
@@ -243,12 +195,45 @@ function renderSkeleton(startFret, endFret) {
     t.textContent = fretNum;
     skeletonLayer.appendChild(t);
   }
+
+  // Inlay markers (single dot at 3/5/7/9/15, double dot at 12/24).
+  // Centered between strings 3-4 (single) or strings 2-3 + 4-5 (double).
+  const SINGLE_MARKERS = new Set([3, 5, 7, 9, 15, 17, 19, 21]);
+  const DOUBLE_MARKERS = new Set([12, 24]);
+  const yMid = PAD_Y + 2.5 * STRING_SPACING;
+  const yUpper = PAD_Y + 1.5 * STRING_SPACING;
+  const yLower = PAD_Y + 3.5 * STRING_SPACING;
+  for (let f = 0; f < numFrets; f++) {
+    const fretNum = startFret + f + 1;
+    const cx = PAD_X + (f + 0.5) * fretSpacing;
+    if (DOUBLE_MARKERS.has(fretNum)) {
+      skeletonLayer.appendChild(svgEl('circle', { cx, cy: yUpper, r: 3, class: 'gtr-inlay' }));
+      skeletonLayer.appendChild(svgEl('circle', { cx, cy: yLower, r: 3, class: 'gtr-inlay' }));
+    } else if (SINGLE_MARKERS.has(fretNum)) {
+      skeletonLayer.appendChild(svgEl('circle', { cx, cy: yMid, r: 3, class: 'gtr-inlay' }));
+    }
+  }
 }
 
-function renderDots(positions, muted, startFret, endFret) {
+function renderDots(positions, muted, startFret, endFret, barre) {
   const numFrets = endFret - startFret + 1;
   const fretSpacing = FB_W / numFrets;
   dotsLayer.textContent = '';
+
+  // Draw the barre underlay first so dots sit on top.
+  if (barre) {
+    const xCenter = PAD_X + (barre.fret - startFret) * fretSpacing - (fretSpacing * 0.5) - 8;
+    const yFrom = PAD_Y + (5 - barre.toString) * STRING_SPACING;
+    const yTo = PAD_Y + (5 - barre.fromString) * STRING_SPACING;
+    dotsLayer.appendChild(svgEl('rect', {
+      x: xCenter - 11,
+      y: yFrom - 11,
+      width: 22,
+      height: (yTo - yFrom) + 22,
+      rx: 11,
+      class: 'gtr-barre'
+    }));
+  }
 
   for (const p of positions) {
     const rowFromTop = 5 - p.string;
@@ -283,6 +268,24 @@ function renderDots(positions, muted, startFret, endFret) {
   }
 }
 
+// ---- Voicing index per chord (for the "alt voicing" cycle button) ----
+let voicingIndex = 0;
+let voicingKey = '';
+
+export function getVoicingCount() {
+  if (!state.currentChord) return 0;
+  const rootPc = NOTE_NAMES.indexOf(state.currentChord.root);
+  const list = lookupVoicings(rootPc, state.currentChord.quality);
+  return list ? list.length : 0;
+}
+
+export function cycleVoicing() {
+  const count = getVoicingCount();
+  if (count <= 1) return;
+  voicingIndex = (voicingIndex + 1) % count;
+  updateGuitarHighlight();
+}
+
 export function updateGuitarHighlight() {
   const svg = $('guitarSvg');
   if (!svg || !skeletonLayer) return;
@@ -294,12 +297,39 @@ export function updateGuitarHighlight() {
   }
 
   const rootPc = NOTE_NAMES.indexOf(state.currentChord.root);
-  const dict = lookupVoicing(rootPc, state.currentChord.quality);
+  const list = lookupVoicings(rootPc, state.currentChord.quality);
+
+  // Reset the alternative-voicing cursor when the chord changes; otherwise
+  // an "alt" picked for the previous chord persists into the next one and
+  // confuses users (and may exceed the new chord's voicing count).
+  const key = `${rootPc}-${state.currentChord.quality}`;
+  if (key !== voicingKey) { voicingKey = key; voicingIndex = 0; }
+
+  const dict = list ? list[Math.min(voicingIndex, list.length - 1)] : null;
   const { positions, muted } = dict
     ? voicingFromDict(dict)
     : buildGuitarVoicing(state.currentChord.orderedNotes);
   const [startFret, endFret] = fretWindow(positions);
+  const barre = detectBarre(positions);
 
   renderSkeleton(startFret, endFret);
-  renderDots(positions, muted, startFret, endFret);
+  renderDots(positions, muted, startFret, endFret, barre);
+  updateAltVoicingButton();
+}
+
+// Exported so main.js can refresh the button when guitar visibility flips
+// (switching to piano, or hiding the instrument entirely). displayChord calls
+// updateGuitarHighlight unconditionally, so without the guitar-visibility check
+// here the button would re-appear in piano mode the moment a new chord is set.
+export function updateAltVoicingButton() {
+  const btn = document.getElementById('altVoicingBtn');
+  if (!btn) return;
+  const wrap = document.getElementById('guitarWrap');
+  // Wrap stays in flow (only its .is-hidden class fades it out), so we check
+  // that class rather than display/visibility.
+  const guitarVisible = wrap && !wrap.classList.contains('is-hidden');
+  const count = getVoicingCount();
+  const show = guitarVisible && count > 1;
+  btn.style.display = show ? '' : 'none';
+  if (show) btn.textContent = `Alt voicing (${voicingIndex + 1}/${count})`;
 }
