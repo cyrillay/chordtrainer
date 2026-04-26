@@ -2,9 +2,7 @@
 // Hooks into feedback.js via onSuccess() and onChordChange().
 
 import { onSuccess, onChordChange } from './feedback.js';
-
-const LS_KEY = 'chordTrainer.rewards';
-const LS_ENABLED_KEY = 'chordTrainer.rewardsEnabled';
+import { LS } from '../core/constants.js';
 
 // ---- State ----
 
@@ -14,27 +12,27 @@ let enabled = true;
 
 function load() {
   try {
-    const raw = localStorage.getItem(LS_KEY);
+    const raw = localStorage.getItem(LS.REWARDS);
     if (raw) {
       const d = JSON.parse(raw);
       best = d.best || 0;
     }
   } catch { /* ignore */ }
   try {
-    const v = localStorage.getItem(LS_ENABLED_KEY);
+    const v = localStorage.getItem(LS.REWARDS_ENABLED);
     if (v !== null) enabled = v !== 'false';
   } catch { /* ignore */ }
 }
 
 function saveBest() {
-  localStorage.setItem(LS_KEY, JSON.stringify({ best }));
+  localStorage.setItem(LS.REWARDS, JSON.stringify({ best }));
 }
 
 // ---- Enable / disable ----
 
 export function setRewardsEnabled(on) {
   enabled = on;
-  localStorage.setItem(LS_ENABLED_KEY, String(on));
+  localStorage.setItem(LS.REWARDS_ENABLED, String(on));
   const counter = document.getElementById('streakCounter');
   if (counter) counter.style.display = on ? '' : 'none';
   if (!on) hideReward();

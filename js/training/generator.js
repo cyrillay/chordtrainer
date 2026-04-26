@@ -3,14 +3,12 @@
 //   - random (default): pick any allowed root + quality + inversion
 //   - progressions: walk through predefined chord progressions (see progressions.js)
 
-import { state } from './state.js';
-import { CHORD_FORMULAS, NOTE_DISPLAY, buildChord, formatChordHtml } from './theory.js';
+import { state } from '../core/state.js';
+import { CHORD_FORMULAS, NOTE_DISPLAY, buildChord, formatChordHtml, pickInversion } from '../core/theory.js';
 import { ProgressionStream, romanToChord } from './progressions.js';
 import { getActiveProgressions } from './progressionManager.js';
-import { QUEUE_SIZE } from './constants.js';
-import { $, $$ } from './dom.js';
-
-export { QUEUE_SIZE };
+import { QUEUE_SIZE } from '../core/constants.js';
+import { $, $$ } from '../core/dom.js';
 
 const progressionStream = new ProgressionStream();
 
@@ -61,10 +59,6 @@ export function setProgressionCycles(n) {
   progressionStream.setCycles(n);
 }
 
-export function countUsableProgressions() {
-  return progressionStream.usableCount();
-}
-
 function generateRandomFreeChord(avoidSymbols) {
   const qualities = getEnabledQualities();
   const roots = getEnabledRoots();
@@ -83,12 +77,7 @@ function generateRandomFreeChord(avoidSymbols) {
     const root = roots[Math.floor(Math.random() * roots.length)];
     const quality = qualities[Math.floor(Math.random() * qualities.length)];
     const numNotes = CHORD_FORMULAS[quality].intervals.length;
-    // With probability invFreq%, force a non-root inversion (uniform among
-    // 1..numNotes-1). Otherwise root position. So the slider literally is
-    // "% of chords that come out inverted".
-    const invert = useInversions && numNotes > 1 && Math.random() * 100 < invFreq;
-    const inversion = invert ? 1 + Math.floor(Math.random() * (numNotes - 1)) : 0;
-    chord = buildChord(root, quality, inversion);
+    chord = buildChord(root, quality, pickInversion(numNotes, useInversions, invFreq));
     attempt++;
   } while (avoidSymbols.includes(chord.symbol) && attempt < 10);
 

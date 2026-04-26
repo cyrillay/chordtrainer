@@ -20,6 +20,13 @@ html, body {
   overflow-x: hidden;
 }
 
+/* Shrink the desktop layout 10% by scaling the rem base — clean cascade since
+   nearly every size in this stylesheet is in rem. Mobile keeps the default
+   16px so touch targets and readable text don't get sub-44px. */
+@media (min-width: 900px) {
+  html { font-size: 90%; }
+}
+
 body {
   background:
     radial-gradient(ellipse at 20% 0%, rgba(200, 164, 100, 0.08), transparent 50%),
@@ -690,14 +697,16 @@ header {
   letter-spacing: 0.1em;
 }
 
-/* MIDI status */
+/* MIDI status — lives in the .input-overlay below the mic/midi buttons.
+   Stacks under .input-cta and .input-help via flex column gap. */
 .midi-status {
-  margin: 0.8rem auto 0;
-  text-align: center;
-  font-family: 'Cormorant Garamond', serif;
-  font-style: italic;
-  font-size: 0.95rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-align: right;
   color: var(--ivory-dim);
+  max-width: 220px;
+  line-height: 1.4;
 }
 
 button {
@@ -1892,7 +1901,9 @@ footer em {
 }
 
 .onboard-card {
-  max-width: 460px;
+  /* Cap at 460px on desktop, but never wider than viewport - 32px so the right
+     edge isn't clipped on phones when the JS placement clamps to the edge. */
+  max-width: min(460px, calc(100vw - 32px));
   width: 100%;
   background: var(--paper);
   border: 1px solid var(--gold);

@@ -2,8 +2,8 @@
 // Sound output shares the tones.js AudioContext so we don't leak one context
 // per module (the previous setup created two that were never closed).
 
-import { playArpeggio } from './tones.js';
-import { $ } from './dom.js';
+import { playArpeggio } from '../audio/tones.js';
+import { $ } from '../core/dom.js';
 
 // Observer pattern: other modules (e.g. rewards) can react to events.
 const successObservers = [];

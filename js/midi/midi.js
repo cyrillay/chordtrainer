@@ -1,7 +1,7 @@
 // Web MIDI input: detect notes from a connected MIDI keyboard.
-import { state } from './state.js';
-import { applyHeardPitchClasses } from './views.js';
-import { $ } from './dom.js';
+import { state } from '../core/state.js';
+import { applyHeardPitchClasses } from '../instruments/chordDisplay.js';
+import { $ } from '../core/dom.js';
 
 function refreshHeardFromHeld() {
   const pcs = new Set();

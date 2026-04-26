@@ -8,7 +8,7 @@
 // key (V, IV, relative minor/major, parallel) instead of a random key,
 // which makes the modulation feel like a natural pivot.
 
-import { NOTE_NAMES, noteToPitchClass, buildChord } from './theory.js';
+import { NOTE_NAMES, noteToPitchClass, buildChord, pickInversion } from '../core/theory.js';
 
 // All progressions transcribed verbatim from the user's reference.
 export const PROGRESSIONS = [
@@ -251,8 +251,6 @@ export class ProgressionStream {
   }
   setCycles(n) { this.targetCycles = n; }
 
-  usableCount() { return this.usable.length; }
-
   advanceProgression() {
     this.position = 0;
     this.currentCycle = 0;
@@ -277,14 +275,9 @@ export class ProgressionStream {
   // varied rather than locking in one shape for the whole progression run.
   rollInversions() {
     this.inversions = this.currentProgression.tokens.map(token => {
-      if (!this.useInversions) return 0;
       const chord = romanToChord(token, this.currentKey);
       if (!chord) return 0;
-      const n = chord.orderedNotes.length;
-      // Same logic as the random generator: with proba inversionFreq% pick a
-      // non-root inversion, else root position. Keeps slider semantics aligned.
-      if (n <= 1 || Math.random() * 100 >= this.inversionFreq) return 0;
-      return 1 + Math.floor(Math.random() * (n - 1));
+      return pickInversion(chord.orderedNotes.length, this.useInversions, this.inversionFreq);
     });
   }
 

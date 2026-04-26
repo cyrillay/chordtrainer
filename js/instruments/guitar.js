@@ -9,13 +9,13 @@
 // fret window and reused across chord changes; only the voicing dots are
 // re-rendered. This keeps chord transitions cheap on mobile.
 
-import { state } from './state.js';
-import { pitchClassToDisplay, NOTE_NAMES } from './theory.js';
-import { $, svgEl } from './dom.js';
+import { state } from '../core/state.js';
+import { pitchClassToDisplay, NOTE_NAMES } from '../core/theory.js';
+import { $, svgEl } from '../core/dom.js';
 import {
   TUNING, STRING_LABELS, NUM_FRETS_VISIBLE, MAX_FRET,
   HAND_SPAN_BACK, HAND_SPAN_FWD
-} from './constants.js';
+} from '../core/constants.js';
 
 // Voicings keyed `${rootPc}-${quality}` → array of [low_E..high_e] arrays.
 // Populated asynchronously; callers handle the empty case via the fallback.

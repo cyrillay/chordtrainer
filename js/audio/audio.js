@@ -1,13 +1,14 @@
 // Microphone capture, FFT-based polyphonic pitch detection, sensitivity sliders.
-import { state, DEFAULT_SENSITIVITY } from './state.js';
-import { pitchClassToDisplay } from './theory.js';
-import { updatePianoHighlight, updateStatus, applyHeardPitchClasses } from './views.js';
-import { $ } from './dom.js';
+import { state, DEFAULT_SENSITIVITY } from '../core/state.js';
+import { pitchClassToDisplay } from '../core/theory.js';
+import { updatePianoHighlight } from '../instruments/piano.js';
+import { updateStatus, applyHeardPitchClasses } from '../instruments/chordDisplay.js';
+import { $ } from '../core/dom.js';
 import {
   SAMPLE_RATE, FFT_SIZE, FFT_SMOOTHING, ANALYSIS_FRAME_STRIDE,
   PIANO_LOW_HZ, PIANO_HIGH_HZ, PITCH_IGNORE_LOW_HZ, PITCH_IGNORE_HIGH_HZ,
   PEAK_TOP_N, HARMONIC_MAX, LS
-} from './constants.js';
+} from '../core/constants.js';
 
 function freqToPitchClass(freq) {
   if (freq < PITCH_IGNORE_LOW_HZ || freq > PITCH_IGNORE_HIGH_HZ) return null;

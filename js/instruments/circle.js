@@ -3,9 +3,9 @@
 // Slots are cached at build time so highlight updates are O(1) lookups
 // instead of a full querySelectorAll + classList.remove sweep per frame.
 
-import { state } from './state.js';
-import { NOTE_DISPLAY, NOTE_NAMES } from './theory.js';
-import { $, svgEl } from './dom.js';
+import { state } from '../core/state.js';
+import { NOTE_DISPLAY, NOTE_NAMES } from '../core/theory.js';
+import { $, svgEl } from '../core/dom.js';
 
 const COF_ORDER_PC = [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5];
 const R_OUTER = 95;
