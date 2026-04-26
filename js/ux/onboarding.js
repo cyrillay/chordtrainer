@@ -23,7 +23,7 @@ const STEPS = [
   },
   {
     title: 'New chord, anytime',
-    body: 'Click <strong>New chord</strong> (or hit Space) to skip ahead. Play the displayed chord on your instrument and the app does the rest.',
+    body: 'Click <strong>New chord</strong> (or hit <strong>Space</strong> on desktop, <strong>triple-tap</strong> on mobile) to skip ahead. Play the displayed chord on your instrument and the app does the rest.',
     target: 'newChordBtn'
   }
 ];
