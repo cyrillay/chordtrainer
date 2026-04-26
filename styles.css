@@ -8,6 +8,8 @@
   --sage: #6b8e6b;
   --paper: #1a1614;
   --line: #2a2420;
+  --font-display: 'Playfair Display', 'Cormorant Garamond', serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -35,13 +37,15 @@ body {
   background-attachment: fixed;
 }
 
-/* Grain overlay */
+/* Grain overlay — disabled by default (was a high-frequency noise that
+   read as pixelation). Re-enabled only for the Urtext theme where the
+   multiply blend on light paper turns it into a printing texture. */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
-  opacity: 0.35;
+  opacity: 0;
   z-index: 1;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
 }
@@ -86,7 +90,7 @@ header {
 }
 
 .meta {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.7rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -110,7 +114,7 @@ header {
   border: none;
   border-right: 1px solid var(--line);
   color: var(--ivory-dim);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.85rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -147,7 +151,7 @@ header {
   align-items: center;
   justify-content: flex-end;
   gap: 0.4rem;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.65rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -169,7 +173,7 @@ header {
 }
 
 .input-help {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.6rem;
   letter-spacing: 0.06em;
   text-transform: none;
@@ -193,7 +197,7 @@ header {
 }
 
 .label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.65rem;
   letter-spacing: 0.35em;
   text-transform: uppercase;
@@ -352,7 +356,7 @@ header {
 }
 
 .chord-notes {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.85rem;
   letter-spacing: 0.12em;
   color: var(--ivory-dim);
@@ -407,7 +411,7 @@ header {
 }
 
 .status {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.8rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -469,12 +473,16 @@ header {
   background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
   border: 1px solid var(--line);
   border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .piano {
   position: relative;
   display: flex;
-  height: 140px;
+  width: 100%;
+  height: 200px;
   user-select: none;
 }
 
@@ -513,7 +521,7 @@ header {
   bottom: 0.5rem;
   left: 50%;
   transform: translateX(-50%);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.55rem;
   color: #1a1614;
   opacity: 0.4;
@@ -531,7 +539,7 @@ header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.6rem;
   line-height: 1.05;
   pointer-events: none;
@@ -572,7 +580,7 @@ header {
   top: 0;
   left: 0;
   right: 0;
-  height: 85px;
+  height: 120px;
   pointer-events: none;
 }
 
@@ -629,7 +637,7 @@ header {
 }
 
 .controls .tempo-control label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.65rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -648,7 +656,7 @@ header {
 }
 
 .controls .tempo-control .accent-option {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.65rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -657,7 +665,7 @@ header {
 }
 
 .controls .tempo-control .accent-select {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.8rem;
   background: var(--paper);
   color: var(--gold);
@@ -668,7 +676,7 @@ header {
 }
 
 .controls .tempo-control .bpm-value {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.8rem;
   color: var(--gold);
   min-width: 5em;
@@ -705,7 +713,7 @@ header {
 .input-readout {
   margin: 1.2rem auto 0;
   text-align: center;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.7rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -720,7 +728,7 @@ header {
 /* MIDI status — lives in the .input-overlay below the mic/midi buttons.
    Stacks under .input-cta and .input-help via flex column gap. */
 .midi-status {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.6rem;
   letter-spacing: 0.06em;
   text-align: right;
@@ -781,7 +789,7 @@ button:disabled {
 }
 
 .settings-title {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.7rem;
   letter-spacing: 0.3em;
   text-transform: uppercase;
@@ -824,7 +832,7 @@ button:disabled {
 }
 
 .selection-sub-label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.62rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -862,7 +870,7 @@ button:disabled {
 }
 
 .inv-preset-btn {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.62rem;
   padding: 0.22rem 0.55rem;
   border: 1px solid var(--line);
@@ -887,7 +895,7 @@ button:disabled {
 }
 
 .preset-label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.7rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
@@ -904,7 +912,7 @@ button:disabled {
 }
 
 .preset-btn {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.62rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -934,7 +942,7 @@ button:disabled {
    also direct children) — that bug used to render "Manage progressions",
    "Show fingerings", etc. as huge mono caps. */
 .setting-group > label:not(.checkbox-item) {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.65rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -988,13 +996,12 @@ button:disabled {
   align-items: center;
   gap: 0.8rem;
   border-top: 1px dotted var(--line);
-  border-bottom: 1px dotted var(--line);
 }
 
 .chord-queue.active { display: flex; }
 
 .queue-label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.6rem;
   letter-spacing: 0.25em;
   text-transform: uppercase;
@@ -1061,8 +1068,6 @@ button:disabled {
   font-size: 0.9rem;
   color: var(--ivory-dim);
   letter-spacing: 0.02em;
-  border-top: 1px dotted var(--line);
-  padding-top: 0.6rem;
   margin-top: 0.2rem;
 }
 
@@ -1072,18 +1077,23 @@ button:disabled {
   font-weight: 500;
 }
 
-/* Collapsible roots section (<details>) */
-.roots-details {
+/* Collapsible <details> sections — used by both the roots picker and the
+   theme switcher. Same dotted card, same chevron, same label/summary type
+   pairing. */
+.roots-details,
+.theme-details {
   border: 1px dotted var(--line);
   border-radius: 2px;
   padding: 0.6rem 0.9rem;
 }
 
-.roots-details[open] {
+.roots-details[open],
+.theme-details[open] {
   border-style: solid;
 }
 
-.roots-details summary {
+.roots-details summary,
+.theme-details summary {
   cursor: pointer;
   list-style: none;
   display: flex;
@@ -1093,9 +1103,11 @@ button:disabled {
   outline: none;
 }
 
-.roots-details summary::-webkit-details-marker { display: none; }
+.roots-details summary::-webkit-details-marker,
+.theme-details summary::-webkit-details-marker { display: none; }
 
-.roots-details summary::after {
+.roots-details summary::after,
+.theme-details summary::after {
   content: '▾';
   color: var(--gold);
   font-size: 0.9rem;
@@ -1103,24 +1115,51 @@ button:disabled {
   margin-left: auto;
 }
 
-.roots-details[open] summary::after {
+.roots-details[open] summary::after,
+.theme-details[open] summary::after {
   transform: rotate(180deg);
 }
 
-.roots-details .details-label {
-  font-family: 'JetBrains Mono', monospace;
+.roots-details .details-label,
+.theme-details .details-label {
+  font-family: var(--font-display);
   font-size: 0.65rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--ivory-dim);
 }
 
-.roots-details .details-summary {
+.roots-details .details-summary,
+.theme-details .details-summary {
   font-family: 'Cormorant Garamond', serif;
   font-style: italic;
   font-size: 0.95rem;
   color: var(--gold);
   margin-left: 0.8rem;
+}
+
+/* The theme picker pops out as an absolute panel so opening / closing it
+   never reflows the surrounding settings grid. The summary row stays in
+   place; the option list overlays content below until a pick or a second
+   click on the summary closes it. */
+.theme-details {
+  position: relative;
+}
+
+.theme-options {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
 }
 
 .roots-actions {
@@ -1130,7 +1169,7 @@ button:disabled {
 }
 
 .toggle-all-btn {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.6rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -1169,7 +1208,7 @@ button:disabled {
 }
 
 .advanced-toggle button {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.7rem;
   letter-spacing: 0.25em;
   text-transform: uppercase;
@@ -1236,7 +1275,7 @@ button:disabled {
 }
 
 .panel-title {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.7rem;
   letter-spacing: 0.3em;
   text-transform: uppercase;
@@ -1244,7 +1283,7 @@ button:disabled {
 }
 
 .reset-link {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.65rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -1278,7 +1317,7 @@ button:disabled {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.65rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -1345,7 +1384,7 @@ input[type="range"]::-moz-range-thumb {
   background: rgba(0,0,0,0.3);
   border: 1px solid var(--line);
   border-radius: 2px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.7rem;
   color: var(--ivory-dim);
   max-height: 120px;
@@ -1375,7 +1414,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .meter-label {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.65rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -1429,7 +1468,7 @@ input[type="range"]::-moz-range-thumb {
 .info-toggle {
   cursor: pointer;
   list-style: none;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.65rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -1490,7 +1529,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .about-title {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.65rem;
   letter-spacing: 0.25em;
   text-transform: uppercase;
@@ -1519,7 +1558,7 @@ footer {
   padding-top: 2rem;
   border-top: 1px solid var(--line);
   text-align: center;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.65rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -1546,7 +1585,7 @@ footer em {
 .footer-link {
   color: var(--ivory-dim);
   text-decoration: none;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.7rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -1587,8 +1626,8 @@ footer em {
 @media (max-width: 600px) {
   .controls { grid-template-columns: 1fr; }
   header { flex-direction: column; gap: 0.5rem; align-items: flex-start; }
-  .piano { height: 100px; }
-  .black-keys { height: 60px; }
+  .piano { height: 140px; }
+  .black-keys { height: 85px; }
   .chord-queue { gap: 0.6rem; padding: 0.6rem 0.5rem; }
   .queue-items { gap: clamp(0.4rem, 2vw, 1.5rem); }
   .queue-item { font-size: clamp(1rem, 4.5vw, 2rem); gap: 0.15rem; }
@@ -1620,7 +1659,7 @@ footer em {
   border: none;
   border-right: 1px solid var(--line);
   color: var(--ivory-dim);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.8rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1655,7 +1694,7 @@ footer em {
 }
 
 .cycle-btn {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.7rem;
   padding: 0.25rem 0.55rem;
   border: 1px solid var(--line);
@@ -1708,7 +1747,7 @@ footer em {
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.55rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1753,7 +1792,7 @@ footer em {
 
 .gtr-fret-num {
   fill: var(--ivory-dim);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   text-anchor: middle;
   opacity: 0.6;
@@ -1767,7 +1806,7 @@ footer em {
 
 .gtr-string-label {
   fill: var(--ivory-dim);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   text-anchor: middle;
   opacity: 0.7;
@@ -1807,7 +1846,7 @@ footer em {
 
 .gtr-mute-label {
   fill: var(--gold);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 18px;
   text-anchor: middle;
   pointer-events: none;
@@ -1873,18 +1912,41 @@ footer em {
 }
 
 .cof-slot.upcoming-1 .cof-wedge {
-  fill: rgba(200, 164, 100, 0.18);
+  fill: rgba(200, 164, 100, 0.38);
+  stroke: rgba(200, 164, 100, 0.55);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
 }
 
 .cof-slot.upcoming-2 .cof-wedge {
-  fill: rgba(200, 164, 100, 0.10);
+  fill: rgba(200, 164, 100, 0.14);
 }
 
 .cof-slot.upcoming-3 .cof-wedge {
-  fill: rgba(200, 164, 100, 0.05);
+  fill: rgba(200, 164, 100, 0.06);
 }
 
 .cof-slot.active .cof-label {
+  fill: var(--ink);
+  font-weight: 600;
+}
+
+.cof-slot.upcoming-1 .cof-label {
+  fill: var(--gold-bright);
+}
+
+/* Active chord that's also queue[0] (chord repeats next): keep the active
+   gold fill + glow but overlay the dashed outline so the repeat is
+   readable. Combined selector outranks the single-class rules above. */
+.cof-slot.active.upcoming-1 .cof-wedge {
+  fill: var(--gold);
+  stroke: rgba(0, 0, 0, 0.55);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+  filter: drop-shadow(0 0 8px rgba(200, 164, 100, 0.5));
+}
+
+.cof-slot.active.upcoming-1 .cof-label {
   fill: var(--ink);
   font-weight: 600;
 }
@@ -1937,7 +1999,7 @@ footer em {
 }
 
 .onboard-step {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.6rem;
   letter-spacing: 0.25em;
   text-transform: uppercase;
@@ -1974,7 +2036,7 @@ footer em {
 }
 
 .onboard-skip {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.65rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -1988,7 +2050,7 @@ footer em {
 .onboard-skip:hover { color: var(--gold); background: transparent; }
 
 .onboard-next {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.7rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -2063,7 +2125,7 @@ footer em {
 }
 
 .prog-toolbar-btn {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.68rem;
   letter-spacing: 0.04em;
   padding: 0.28rem 0.7rem;
@@ -2132,7 +2194,7 @@ footer em {
 }
 
 .prog-item-tokens {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.62rem;
   color: var(--ivory-dim);
   letter-spacing: 0.04em;
@@ -2182,7 +2244,7 @@ footer em {
 .prog-edit-cancel:hover { opacity: 1; color: var(--crimson); }
 
 .prog-section-header {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.62rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -2212,7 +2274,7 @@ footer em {
   background: transparent;
   border: 1px solid var(--line);
   color: var(--ivory);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.72rem;
   padding: 0.32rem 0.6rem;
   outline: none;
@@ -2224,7 +2286,7 @@ footer em {
 .prog-input-wide { flex: 1; }
 
 .prog-add-btn {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 0.68rem;
   padding: 0.32rem 0.7rem;
   border: 1px solid var(--gold);
@@ -2257,7 +2319,7 @@ footer em {
   opacity: 0;
   transform: translateY(-5px);
   transition: opacity 0.3s ease, transform 0.3s ease;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.75rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -2359,7 +2421,7 @@ footer em {
 }
 
 .reward-tier {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.65rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -2447,7 +2509,7 @@ body.reward-shake {
 }
 
 .manage-prog-btn {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-display);
   font-size: 0.65rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -2527,4 +2589,147 @@ body.reward-shake {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ============================================================
+   THEME VARIANTS — toggle via [data-theme] on <body>.
+   The base palette in :root is the original "Ink" theme; each
+   variant overrides the same tokens and lets the cascade flow.
+   Piano keys remain skeuomorphic across themes (real keys are
+   always ivory/black).
+   ============================================================ */
+
+/* — Urtext — Henle-style ivory paper, charcoal ink, deep gold. */
+body[data-theme="urtext"] {
+  --ink: #ede2ca;
+  --paper: #e3d6b8;
+  --ivory: #1a1410;
+  --ivory-dim: #5a4f42;
+  --gold: #8a6a2c;
+  --gold-bright: #a8843a;
+  --crimson: #7a2828;
+  --sage: #4a6b4a;
+  --line: #c4b69a;
+  background-image:
+    radial-gradient(ellipse at 50% -10%, rgba(138, 106, 44, 0.10), transparent 60%),
+    radial-gradient(ellipse at 50% 110%, rgba(26, 20, 16, 0.06), transparent 50%);
+  background-color: var(--ink);
+  background-attachment: fixed;
+}
+body[data-theme="urtext"]::before {
+  opacity: 0.18;
+  mix-blend-mode: multiply;
+}
+/* On a paper background, black-translucent panel surfaces darken nicely.
+   But the rgba(255,255,255,X) lighten gradients vanish — replace those
+   spots with a faint warm-paper tint via a sibling override. */
+body[data-theme="urtext"] .piano-wrap,
+body[data-theme="urtext"] .guitar-wrap,
+body[data-theme="urtext"] .chord-queue {
+  background: rgba(26, 20, 16, 0.04);
+}
+/* Guitar dot strokes/labels reference --ink (the page background colour,
+   which is cream in Urtext). On a dark theme that gives a dark outline;
+   on cream paper it dissolves. Re-anchor to --ivory (the ink colour). */
+body[data-theme="urtext"] .gtr-dot {
+  stroke: var(--ivory);
+}
+body[data-theme="urtext"] .gtr-dot.open {
+  stroke: var(--ivory);
+}
+body[data-theme="urtext"] .gtr-dot-label {
+  fill: var(--ivory);
+}
+
+/* — Boudoir — library/lounge: warm reading-lamp pool, leather-corner
+   vignettes, vertical curtain fall (subtle velvet ribbing). No grain. */
+body[data-theme="boudoir"] {
+  --ink: #1a1410;
+  --paper: #25201a;
+  --line: #3a302a;
+  background-image:
+    /* warm reading-lamp pool, top-center */
+    radial-gradient(ellipse 90% 55% at 50% -10%, rgba(200, 164, 100, 0.10), transparent 60%),
+    /* secondary pool, bottom for balance */
+    radial-gradient(ellipse 70% 40% at 50% 100%, rgba(200, 164, 100, 0.04), transparent 60%),
+    /* leather darkening at the four corners */
+    radial-gradient(ellipse 60% 60% at 0% 0%, rgba(0, 0, 0, 0.45), transparent 55%),
+    radial-gradient(ellipse 60% 60% at 100% 0%, rgba(0, 0, 0, 0.45), transparent 55%),
+    radial-gradient(ellipse 70% 70% at 0% 100%, rgba(0, 0, 0, 0.55), transparent 55%),
+    radial-gradient(ellipse 70% 70% at 100% 100%, rgba(0, 0, 0, 0.55), transparent 55%),
+    /* vertical "curtain" — soft dark folds spaced like velvet pleats */
+    repeating-linear-gradient(
+      to right,
+      transparent 0,
+      rgba(0, 0, 0, 0.13) 70px,
+      transparent 140px
+    ),
+    /* vertical fall — top brighter, mid pooled, bottom darker */
+    linear-gradient(180deg,
+      rgba(0, 0, 0, 0) 0%,
+      rgba(0, 0, 0, 0.10) 45%,
+      rgba(0, 0, 0, 0.25) 100%);
+  background-color: var(--ink);
+  background-attachment: fixed;
+}
+
+/* — Marble — real black-marble photograph with gold veins. */
+body[data-theme="marble"] {
+  --ink: #07070a;
+  --paper: #14141a;
+  --line: #2a2a30;
+  --gold: #d4a85e;
+  --gold-bright: #f0c878;
+  background-image: url("./marble-background.png");
+  background-color: var(--ink);
+  background-attachment: fixed;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+/* — Marble · Musical — same black marble but with an engraved gold
+   treble clef and staves photographed into the surface. */
+body[data-theme="marble-musical"] {
+  --ink: #07070a;
+  --paper: #14141a;
+  --line: #2a2a30;
+  --gold: #d4a85e;
+  --gold-bright: #f0c878;
+  background-image: url("./marble-background-musical.png");
+  background-color: var(--ink);
+  background-attachment: fixed;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+/* — Theme switcher — buttons inside the .theme-details collapsible. The
+   wrapper styling (dotted card, label, chevron) comes from the shared
+   .roots-details / .theme-details rules above. */
+.theme-switcher-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ivory-dim);
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  padding: 0.5rem 0.7rem;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  text-align: left;
+  white-space: nowrap;
+}
+.theme-switcher-btn:hover {
+  color: var(--ivory);
+  border-color: var(--line);
+}
+/* .active and .active:hover share styling so hovering the selected
+   theme keeps it readable (specificity bumps past plain :hover). */
+.theme-switcher-btn.active,
+.theme-switcher-btn.active:hover {
+  color: var(--gold-bright);
+  border-color: var(--gold);
+  background: rgba(200, 164, 100, 0.10);
 }

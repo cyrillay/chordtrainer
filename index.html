@@ -6,11 +6,21 @@
 <title>Étude · Chord Trainer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="favico.png">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<script>
+  /* Apply saved theme before paint to avoid a flash of the default palette.
+     First-visit users (no key set yet) get the Boudoir default; anyone who
+     has explicitly picked Ink (saved as '') keeps the bare :root palette. */
+  (function () {
+    var saved = localStorage.getItem('etude.theme');
+    if (saved === null) document.body.dataset.theme = 'boudoir';
+    else if (saved) document.body.dataset.theme = saved;
+  })();
+</script>
 <div class="app">
   <header>
     <div class="wordmark">Étude <em>—</em> Chord Trainer</div>
@@ -185,18 +195,18 @@
               <button type="button" id="toggleAllRootsBtn" class="toggle-all-btn">Unselect all</button>
             </div>
             <div class="roots-grid">
-              <label class="checkbox-item"><input type="checkbox" data-root="C" checked>C</label>
-              <label class="checkbox-item"><input type="checkbox" data-root="C#" checked>C♯ / D♭</label>
-              <label class="checkbox-item"><input type="checkbox" data-root="D" checked>D</label>
-              <label class="checkbox-item"><input type="checkbox" data-root="D#" checked>D♯ / E♭</label>
-              <label class="checkbox-item"><input type="checkbox" data-root="E" checked>E</label>
-              <label class="checkbox-item"><input type="checkbox" data-root="F" checked>F</label>
-              <label class="checkbox-item"><input type="checkbox" data-root="F#" checked>F♯ / G♭</label>
-              <label class="checkbox-item"><input type="checkbox" data-root="G" checked>G</label>
-              <label class="checkbox-item"><input type="checkbox" data-root="G#" checked>G♯ / A♭</label>
-              <label class="checkbox-item"><input type="checkbox" data-root="A" checked>A</label>
-              <label class="checkbox-item"><input type="checkbox" data-root="A#" checked>A♯ / B♭</label>
-              <label class="checkbox-item"><input type="checkbox" data-root="B" checked>B</label>
+              <label class="checkbox-item"><input type="checkbox" data-root="C" checked><span>C</span></label>
+              <label class="checkbox-item"><input type="checkbox" data-root="C#" checked><span>C<span class="accidental">♯</span> / D<span class="accidental">♭</span></span></label>
+              <label class="checkbox-item"><input type="checkbox" data-root="D" checked><span>D</span></label>
+              <label class="checkbox-item"><input type="checkbox" data-root="D#" checked><span>D<span class="accidental">♯</span> / E<span class="accidental">♭</span></span></label>
+              <label class="checkbox-item"><input type="checkbox" data-root="E" checked><span>E</span></label>
+              <label class="checkbox-item"><input type="checkbox" data-root="F" checked><span>F</span></label>
+              <label class="checkbox-item"><input type="checkbox" data-root="F#" checked><span>F<span class="accidental">♯</span> / G<span class="accidental">♭</span></span></label>
+              <label class="checkbox-item"><input type="checkbox" data-root="G" checked><span>G</span></label>
+              <label class="checkbox-item"><input type="checkbox" data-root="G#" checked><span>G<span class="accidental">♯</span> / A<span class="accidental">♭</span></span></label>
+              <label class="checkbox-item"><input type="checkbox" data-root="A" checked><span>A</span></label>
+              <label class="checkbox-item"><input type="checkbox" data-root="A#" checked><span>A<span class="accidental">♯</span> / B<span class="accidental">♭</span></span></label>
+              <label class="checkbox-item"><input type="checkbox" data-root="B" checked><span>B</span></label>
             </div>
           </details>
         </div>
@@ -233,6 +243,19 @@
         </div>
         <label class="checkbox-item"><input type="checkbox" id="rewardsCb" checked>Show streak &amp; rewards</label>
         <label class="checkbox-item"><input type="checkbox" id="circleCb">Show circle of fifths</label>
+        <details class="theme-details sub-option">
+          <summary>
+            <span class="details-label">Theme</span>
+            <span class="details-summary" id="themeCurrentLabel">Op. 1 · Boudoir</span>
+          </summary>
+          <div class="theme-options" id="themeSwitcher" aria-label="Visual theme">
+            <button type="button" class="theme-switcher-btn" data-theme-name="boudoir">Op. 1 · Boudoir</button>
+            <button type="button" class="theme-switcher-btn" data-theme-name="">Op. 2 · Ink</button>
+            <button type="button" class="theme-switcher-btn" data-theme-name="urtext">Op. 3 · Urtext</button>
+            <button type="button" class="theme-switcher-btn" data-theme-name="marble">Op. 4 · Marble</button>
+            <button type="button" class="theme-switcher-btn" data-theme-name="marble-musical">Op. 5 · Marble · Musical</button>
+          </div>
+        </details>
       </div>
     </div>
   </section>
@@ -352,6 +375,36 @@
     </div>
   </footer>
 </div>
+
+<script>
+  (function () {
+    var KEY = 'etude.theme';
+    var sw = document.getElementById('themeSwitcher');
+    if (!sw) return;
+    var buttons = sw.querySelectorAll('[data-theme-name]');
+    var currentLabel = document.getElementById('themeCurrentLabel');
+    var details = sw.closest('details');
+    function sync() {
+      var cur = document.body.dataset.theme || '';
+      buttons.forEach(function (b) {
+        var isActive = b.dataset.themeName === cur;
+        b.classList.toggle('active', isActive);
+        if (isActive && currentLabel) currentLabel.textContent = b.textContent;
+      });
+    }
+    buttons.forEach(function (b) {
+      b.addEventListener('click', function () {
+        var name = b.dataset.themeName;
+        if (name) document.body.dataset.theme = name;
+        else delete document.body.dataset.theme;
+        localStorage.setItem(KEY, name);
+        sync();
+        if (details) details.open = false;
+      });
+    });
+    sync();
+  })();
+</script>
 
 <script type="module" src="js/main.js"></script>
 

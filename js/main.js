@@ -142,6 +142,30 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// Mobile triple-tap = Space. Three taps within TRIPLE_TAP_WINDOW_MS, each
+// landing on non-interactive page area, advance to the next chord. We skip
+// taps inside controls (button/input/label/etc.) so toggling a checkbox or
+// pressing a button three times in a row doesn't accidentally skip ahead,
+// and skip taps inside open modals so the gesture only acts on the main UI.
+const TRIPLE_TAP_WINDOW_MS = 600;
+const INTERACTIVE_SEL = 'button, input, select, textarea, a, label, [role="button"]';
+const MODAL_SEL = '.onboard-overlay, .prog-modal-overlay';
+const tapTimes = [];
+document.addEventListener('touchstart', (e) => {
+  if (state.dynamic.running) return;
+  const t = e.target;
+  if (!t || !t.closest) return;
+  if (t.closest(INTERACTIVE_SEL)) return;
+  if (t.closest(MODAL_SEL)) return;
+  const now = performance.now();
+  tapTimes.push(now);
+  while (tapTimes.length && now - tapTimes[0] > TRIPLE_TAP_WINDOW_MS) tapTimes.shift();
+  if (tapTimes.length >= 3) {
+    tapTimes.length = 0;
+    advanceToNextChord(displayChord);
+  }
+}, { passive: true });
+
 // ---- Settings checkboxes ----
 // Each handler updates its own UI concern then asks for a regenerate.
 // The regenerate is debounced so toggling several in quick succession (e.g.

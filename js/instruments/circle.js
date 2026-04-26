@@ -39,7 +39,11 @@ function wedgePath(startDeg, endDeg, rOuter, rInner) {
 // flip classes on known nodes directly.
 const slotByKey = new Map();
 const activeSlots = new Set();
+const slotByClass = new Map();
 const HIGHLIGHT_CLASSES = ['active', 'upcoming-1', 'upcoming-2', 'upcoming-3'];
+// Reverse paint order: last entry is drawn on top. Active outranks every
+// upcoming-N, upcoming-1 outranks 2 outranks 3.
+const RAISE_ORDER = ['upcoming-3', 'upcoming-2', 'upcoming-1', 'active'];
 
 function buildSlot(pc, ring, startDeg, endDeg, midDeg, labelText, textCls) {
   const g = svgEl('g', { class: `cof-slot cof-${ring}`, 'data-pc': pc, 'data-ring': ring });
@@ -48,9 +52,33 @@ function buildSlot(pc, ring, startDeg, endDeg, midDeg, labelText, textCls) {
   g.appendChild(svgEl('path', { d: wedgePath(startDeg, endDeg, rOuter, rInner), class: 'cof-wedge' }));
   const p = polar(midDeg, rText);
   const textEl = svgEl('text', { x: p.x, y: p.y, class: `cof-label ${textCls}` });
-  textEl.textContent = labelText;
+  setLabelWithAccidental(textEl, labelText);
   g.appendChild(textEl);
   return g;
+}
+
+// Mirrors the HTML `.accidental { margin-left: -0.15em }` kerning fix in SVG:
+// splits "C♯m" into letter / accidental tspan / suffix tspan and pulls the
+// accidental left via dx so ♯ and ♭ tuck against the note letter instead of
+// floating in their own glyph box.
+function setLabelWithAccidental(textEl, labelText) {
+  const m = labelText.match(/^([A-G])([\u266F\u266D])?(.*)$/);
+  if (!m || !m[2]) {
+    textEl.textContent = labelText;
+    return;
+  }
+  textEl.textContent = '';
+  const letter = svgEl('tspan');
+  letter.textContent = m[1];
+  textEl.appendChild(letter);
+  const acc = svgEl('tspan', { dx: '-0.18em', class: 'cof-accidental' });
+  acc.textContent = m[2];
+  textEl.appendChild(acc);
+  if (m[3]) {
+    const sfx = svgEl('tspan');
+    sfx.textContent = m[3];
+    textEl.appendChild(sfx);
+  }
 }
 
 export function buildCircle() {
@@ -89,14 +117,25 @@ function slotFor(chord) {
 
 function applyHighlight(slot, cls) {
   if (!slot) return;
+  // Earliest highlight wins: if a chord recurs in the queue (I-IV-V-I), the
+  // soonest occurrence keeps its class instead of being overwritten by a
+  // weaker upcoming-N class on the same slot. Exception: when the active
+  // chord is also queue[0], we layer upcoming-1 on top so the user still
+  // sees the dashed "next" outline signaling the repeat.
+  if (activeSlots.has(slot)) {
+    const isRepeatNext = cls === 'upcoming-1' && slot.classList.contains('active');
+    if (!isRepeatNext) return;
+  }
   slot.classList.add(cls);
   activeSlots.add(slot);
+  slotByClass.set(cls, slot);
 }
 
 export function updateCircleHighlight() {
   // Clear only the slots we previously touched — O(highlighted) instead of O(24).
   for (const slot of activeSlots) slot.classList.remove(...HIGHLIGHT_CLASSES);
   activeSlots.clear();
+  slotByClass.clear();
 
   if (!state.currentChord) return;
   applyHighlight(slotFor(state.currentChord), 'active');
@@ -104,4 +143,14 @@ export function updateCircleHighlight() {
   if (queue[0]) applyHighlight(slotFor(queue[0]), 'upcoming-1');
   if (queue[1]) applyHighlight(slotFor(queue[1]), 'upcoming-2');
   if (queue[2]) applyHighlight(slotFor(queue[2]), 'upcoming-3');
+
+  // SVG paints in DOM order: a wedge's radial edges sit on the boundary it
+  // shares with its neighbor, so a later-drawn neighbor will cover one of the
+  // edges and the upcoming-1 stroke reads as 3 sides instead of 4. Re-append
+  // the highlighted slots in reverse priority so each lands above its
+  // neighbors, with the active slot ending on top.
+  for (const cls of RAISE_ORDER) {
+    const slot = slotByClass.get(cls);
+    if (slot) slot.parentNode.appendChild(slot);
+  }
 }
