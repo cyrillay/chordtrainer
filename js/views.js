@@ -5,7 +5,7 @@
 // likewise tracked after each displayChord().
 
 import { state } from './state.js';
-import { noteToPitchClass, pitchClassToDisplay, formatChordHtml } from './theory.js';
+import { noteToPitchClass, pitchClassToDisplay, formatChordHtml, getFingering } from './theory.js';
 import { advanceToNextChord } from './generator.js';
 import { updateCircleHighlight } from './circle.js';
 import { updateGuitarHighlight } from './guitar.js';
@@ -103,13 +103,22 @@ function buildVoicing(orderedNotes) {
 }
 
 let showInstrumentCache = null;
-export function invalidateShowInstrument() { showInstrumentCache = null; }
+let showFingeringsCache = null;
+export function invalidateShowInstrument() { showInstrumentCache = null; showFingeringsCache = null; }
 
 function showInstrumentEnabled() {
   if (showInstrumentCache === null) {
     showInstrumentCache = $('showInstrumentCb').checked;
   }
   return showInstrumentCache;
+}
+
+export function showFingeringsEnabled() {
+  if (showFingeringsCache === null) {
+    const cb = $('showFingeringsCb');
+    showFingeringsCache = !!(cb && cb.checked);
+  }
+  return showFingeringsCache;
 }
 
 export function updatePianoHighlight() {
@@ -121,12 +130,25 @@ export function updatePianoHighlight() {
     for (const k of pianoKeys) {
       const cl = k.el.classList;
       if (cl.length) cl.remove('target', 'heard', 'wrong');
+      clearFingerLabel(k.el);
     }
     return;
   }
 
   const targetPcs = chord.pitchClasses;
   const voicing = buildVoicing(chord.orderedNotes);
+
+  // Build a midi → finger map for the current voicing if fingerings are on.
+  // Voicing notes are bass→top, so we can pair them with the fingering arrays.
+  let fingerByMidi = null;
+  if (showFingeringsEnabled()) {
+    const { rh, lh } = getFingering(chord);
+    const sortedVoicing = [...voicing].sort((a, b) => a - b);
+    fingerByMidi = new Map();
+    for (let i = 0; i < sortedVoicing.length; i++) {
+      fingerByMidi.set(sortedVoicing[i], { rh: rh[i], lh: lh[i] });
+    }
+  }
 
   for (const k of pianoKeys) {
     const cl = k.el.classList;
@@ -137,7 +159,30 @@ export function updatePianoHighlight() {
     cl.toggle('target', shouldTarget);
     cl.toggle('heard', shouldHeard);
     cl.toggle('wrong', shouldWrong);
+
+    if (fingerByMidi && shouldTarget) {
+      const f = fingerByMidi.get(k.midi);
+      setFingerLabel(k.el, f && f.rh, f && f.lh);
+    } else {
+      clearFingerLabel(k.el);
+    }
   }
+}
+
+function setFingerLabel(keyEl, rh, lh) {
+  let lbl = keyEl.querySelector('.finger-label');
+  if (!lbl) {
+    lbl = document.createElement('div');
+    lbl.className = 'finger-label';
+    keyEl.appendChild(lbl);
+  }
+  // Compact "RH / LH" badge — shown only on target keys.
+  lbl.innerHTML = `<span class="finger-rh">${rh ?? '·'}</span><span class="finger-sep">·</span><span class="finger-lh">${lh ?? '·'}</span>`;
+}
+
+function clearFingerLabel(keyEl) {
+  const lbl = keyEl.querySelector('.finger-label');
+  if (lbl) lbl.remove();
 }
 
 export function renderNextPreview() {

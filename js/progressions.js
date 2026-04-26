@@ -167,14 +167,14 @@ export function getUsableProgressions(enabledQualities, pool = PROGRESSIONS) {
   });
 }
 
-export function romanToChord(token, keyRoot) {
+export function romanToChord(token, keyRoot, inversion = 0) {
   const { accidental, degree, isUpper, suffix } = parseRoman(token);
   if (!degree) return null;
   const keyPc = noteToPitchClass(keyRoot);
   const pc = (keyPc + SCALE_INTERVALS[degree - 1] + accidental + 12) % 12;
   const root = NOTE_NAMES[pc];
   const quality = suffixToQuality(suffix, isUpper);
-  return buildChord(root, quality, 0); // root position keeps progressions clear
+  return buildChord(root, quality, inversion);
 }
 
 function pickRandomKey(allowedRoots) {
@@ -214,10 +214,23 @@ export class ProgressionStream {
     this.position = 0;
     this.targetCycles = 1;
     this.currentCycle = 0;
+    this.useInversions = false;
+    this.inversionFreq = 50; // 0–100, ignored when useInversions is false
+    this.inversions = this.currentProgression.tokens.map(() => 0);
   }
 
   setSmartPivots(on) { this.smartPivots = on; }
   setAllowedRoots(roots) { this.allowedRoots = roots; }
+  setUseInversions(on) {
+    if (this.useInversions === on) return;
+    this.useInversions = on;
+    this.rollInversions();
+  }
+  setInversionFrequency(pct) {
+    if (this.inversionFreq === pct) return;
+    this.inversionFreq = pct;
+    this.rollInversions();
+  }
   setAllProgressions(pool) {
     this.allProgressions = pool;
     this.usable = getUsableProgressions(this.enabledQualities, pool);
@@ -256,6 +269,23 @@ export class ProgressionStream {
       tries++;
     } while (next === this.currentProgression && tries < 5);
     this.currentProgression = next;
+    this.rollInversions();
+  }
+
+  // Pick an inversion per token so the "coming up" view and the actual chord
+  // for each position agree. Re-rolled per cycle so repeated cycles keep things
+  // varied rather than locking in one shape for the whole progression run.
+  rollInversions() {
+    this.inversions = this.currentProgression.tokens.map(token => {
+      if (!this.useInversions) return 0;
+      const chord = romanToChord(token, this.currentKey);
+      if (!chord) return 0;
+      const n = chord.orderedNotes.length;
+      // Same logic as the random generator: with proba inversionFreq% pick a
+      // non-root inversion, else root position. Keeps slider semantics aligned.
+      if (n <= 1 || Math.random() * 100 >= this.inversionFreq) return 0;
+      return 1 + Math.floor(Math.random() * (n - 1));
+    });
   }
 
   next() {
@@ -265,15 +295,21 @@ export class ProgressionStream {
         this.advanceProgression();
       } else {
         this.position = 0;
+        this.rollInversions();
       }
     }
     const token = this.currentProgression.tokens[this.position];
-    const chord = romanToChord(token, this.currentKey);
+    let chord = romanToChord(token, this.currentKey);
+    const inv = this.inversions[this.position] || 0;
+    if (chord && inv > 0) {
+      chord = buildChord(chord.root, chord.quality, inv);
+    }
     const meta = {
       progression: this.currentProgression.name,
       key: this.currentKey,
       token,
       tokens: this.currentProgression.tokens,
+      inversions: this.inversions.slice(),
       position: this.position,
       total: this.currentProgression.tokens.length,
       cycle: this.currentCycle,

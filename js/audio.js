@@ -20,6 +20,10 @@ function freqToPitchClass(freq) {
 let freqBuffer = null;
 let frameCounter = 0;
 
+// Returns one of:
+//   'ok'           — listening successfully
+//   'denied'       — permission denied (or dismissed); browser may have remembered it
+//   'unsupported'  — Web Audio unavailable
 export async function startMicrophone() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -30,7 +34,7 @@ export async function startMicrophone() {
     const Ctor = window.AudioContext || window.webkitAudioContext;
     if (!Ctor) {
       $('status').textContent = 'Web Audio is not supported in this browser';
-      return;
+      return 'unsupported';
     }
     state.audioContext = new Ctor({ sampleRate: SAMPLE_RATE });
     const source = state.audioContext.createMediaStreamSource(stream);
@@ -48,9 +52,11 @@ export async function startMicrophone() {
 
     analyzeLoop();
     updateStatus();
+    return 'ok';
   } catch (err) {
     console.error(err);
     $('status').textContent = 'Microphone access denied';
+    return 'denied';
   }
 }
 
