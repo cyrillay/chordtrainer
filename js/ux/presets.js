@@ -14,7 +14,7 @@ const PRESETS = {
   firstTimer:   { qualities: ['maj'],                                                                roots: ['C', 'F', 'G'],           inversions: false, showFingerings: true },
   beginner:     { qualities: ['maj', 'min'],                                                         roots: ['C', 'G', 'D', 'A', 'F'], inversions: false },
   intermediate: { qualities: ['maj', 'min'],                                                         roots: 'all',                     inversions: true,  inversionFreq: 33 },
-  advanced:     { qualities: ['maj', 'min', 'dom7', 'maj7', 'min7'],                                 roots: 'all',                     inversions: true,  inversionFreq: 66 },
+  advanced:     { qualities: ['maj', 'min', 'dom7', 'maj7', 'min7'],                                 roots: 'all',                     inversions: true,  inversionFreq: 33 },
   expert:       { qualities: ['maj', 'min', 'dim', 'aug', 'dom7', 'maj7', 'min7', 'm7b5', 'mMaj7'], roots: 'all',                     inversions: true,  inversionFreq: 66, showCircle: true, showInstrument: false }
 };
 
@@ -42,6 +42,7 @@ function setInversionFreq(pct, opts = {}) {
 
 let onChangeRegenerate = () => {};
 let onChangeApplyInstrument = () => {};
+let onChangeRefreshRoots = () => {};
 
 function applyPreset(name) {
   const p = PRESETS[name];
@@ -78,6 +79,9 @@ function applyPreset(name) {
     }
   }
   onChangeApplyInstrument();
+  // Programmatic checkbox changes above don't fire change events, so the
+  // roots "N selected" / Select-all readouts must be refreshed explicitly.
+  onChangeRefreshRoots();
   setActivePresetButton(name);
   onChangeRegenerate();
 }
@@ -122,9 +126,10 @@ function setsEqual(a, b) {
 
 // ---- Init ----
 
-export function initPresets({ regenerate, applyInstrumentVisibility }) {
+export function initPresets({ regenerate, applyInstrumentVisibility, refreshRoots }) {
   onChangeRegenerate = regenerate;
   onChangeApplyInstrument = applyInstrumentVisibility;
+  onChangeRefreshRoots = refreshRoots || (() => {});
 
   const stored = parseInt(localStorage.getItem(LS.INVERSION_FREQ), 10);
   const initial = INVERSION_FREQ_OPTIONS.includes(stored) ? stored : 33;

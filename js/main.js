@@ -235,7 +235,11 @@ syncSlidersFromState();
 buildPiano();
 buildCircle();
 buildGuitar();
-initPresets({ regenerate, applyInstrumentVisibility });
+initPresets({
+  regenerate,
+  applyInstrumentVisibility,
+  refreshRoots: () => { updateRootsSummary(); updateToggleAllRootsBtn(); },
+});
 bindInputMode();
 updateRootsSummary();
 refreshActivePreset();

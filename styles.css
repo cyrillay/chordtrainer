@@ -868,10 +868,13 @@ button:disabled {
 
 .preset-label {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6rem;
-  letter-spacing: 0.18em;
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--ivory-dim);
+  color: var(--gold);
+  font-weight: 600;
+  padding-right: 0.6rem;
+  border-right: 1px solid var(--line);
 }
 
 .preset-btns {
