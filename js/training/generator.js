@@ -8,18 +8,12 @@ import { CHORD_FORMULAS, NOTE_DISPLAY, buildChord, formatChordHtml, pickInversio
 import { ProgressionStream, romanToChord } from './progressions.js';
 import { getActiveProgressions } from './progressionManager.js';
 import { QUEUE_SIZE } from '../core/constants.js';
-import { $, $$ } from '../core/dom.js';
+import { $, checkedDataValues } from '../core/dom.js';
 
 const progressionStream = new ProgressionStream();
 
-function checkedValues(selector, attr) {
-  const out = [];
-  for (const el of $$(selector)) if (el.checked) out.push(el.dataset[attr]);
-  return out;
-}
-
-export function getEnabledQualities() { return checkedValues('[data-quality]', 'quality'); }
-export function getEnabledRoots()     { return checkedValues('[data-root]', 'root'); }
+export function getEnabledQualities() { return checkedDataValues('[data-quality]', 'quality'); }
+export function getEnabledRoots()     { return checkedDataValues('[data-root]', 'root'); }
 
 const isChecked = (id) => { const el = $(id); return !!(el && el.checked); };
 const progressionsModeOn = () => isChecked('progressionsCb');
@@ -36,16 +30,6 @@ function inversionFrequency() {
   return isNaN(v) ? 33 : v;
 }
 
-export function resetProgressionStream() {
-  progressionStream.setAllProgressions(getActiveProgressions());
-  progressionStream.setAllowedRoots(getEnabledRoots());
-  progressionStream.setEnabledQualities(getEnabledQualities());
-  progressionStream.setSmartPivots(smartPivotsOn());
-  progressionStream.setUseInversions(inversionsOn());
-  progressionStream.setInversionFrequency(inversionFrequency());
-  progressionStream.advanceProgression();
-}
-
 export function syncProgressionConfig() {
   progressionStream.setAllProgressions(getActiveProgressions());
   progressionStream.setAllowedRoots(getEnabledRoots());
@@ -53,6 +37,13 @@ export function syncProgressionConfig() {
   progressionStream.setSmartPivots(smartPivotsOn());
   progressionStream.setUseInversions(inversionsOn());
   progressionStream.setInversionFrequency(inversionFrequency());
+}
+
+// Push the current settings into the stream and jump to a fresh progression
+// — used when the user re-enables progression mode mid-session.
+export function resetProgressionStream() {
+  syncProgressionConfig();
+  progressionStream.advanceProgression();
 }
 
 export function setProgressionCycles(n) {

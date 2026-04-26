@@ -6,7 +6,7 @@
 // optionally inversion settings, fingerings, circle, instrument visibility.
 // Applying a preset wipes the current selection and replaces it.
 
-import { $, $$, setDisplay } from '../core/dom.js';
+import { $, $$, setDisplay, checkedDataValues } from '../core/dom.js';
 import { LS } from '../core/constants.js';
 import { updateCircleHighlight } from '../instruments/circle.js';
 
@@ -93,8 +93,8 @@ function setActivePresetButton(name) {
 // After any manual change, recompute which preset (if any) matches the current
 // selection — so toggling settings can promote or clear the preset highlight.
 export function refreshActivePreset() {
-  const currentQs = new Set(checkedAttrValues('[data-quality]', 'quality'));
-  const currentRs = new Set(checkedAttrValues('[data-root]', 'root'));
+  const currentQs = new Set(checkedDataValues('[data-quality]', 'quality'));
+  const currentRs = new Set(checkedDataValues('[data-root]', 'root'));
   const inv = $('inversionsCb').checked;
   const invFreq = currentInversionFreq;
   let match = null;
@@ -110,12 +110,6 @@ export function refreshActivePreset() {
     break;
   }
   setActivePresetButton(match);
-}
-
-function checkedAttrValues(sel, attr) {
-  const out = [];
-  for (const el of $$(sel)) if (el.checked) out.push(el.dataset[attr]);
-  return out;
 }
 
 function setsEqual(a, b) {

@@ -45,18 +45,16 @@ function regenerateAndAdvance() {
 }
 
 // ---- Roots summary & "select all" toggle ----
+// Both readouts depend on the same checkbox state; refresh together so callers
+// don't have to remember the pair.
 
-function updateRootsSummary() {
-  const checked = $$('[data-root]:checked').length;
+function refreshRootsUi() {
+  const rootCbs = Array.from($$('[data-root]'));
+  const checkedCount = rootCbs.reduce((n, cb) => n + (cb.checked ? 1 : 0), 0);
   const summary = $('rootsSummary');
-  if (summary) summary.textContent = `${checked} selected`;
-}
-
-function updateToggleAllRootsBtn() {
+  if (summary) summary.textContent = `${checkedCount} selected`;
   const btn = $('toggleAllRootsBtn');
-  const rootCbs = $$('[data-root]');
-  const allChecked = Array.from(rootCbs).every(cb => cb.checked);
-  btn.textContent = allChecked ? 'Unselect all' : 'Select all';
+  if (btn) btn.textContent = checkedCount === rootCbs.length ? 'Unselect all' : 'Select all';
 }
 
 // ---- Instrument display (piano vs guitar) ----
@@ -204,8 +202,7 @@ $$('input[type="checkbox"]').forEach(cb => {
       return;
     }
     if (cb.dataset.root) {
-      updateRootsSummary();
-      updateToggleAllRootsBtn();
+      refreshRootsUi();
       refreshActivePreset();
       regenerate();
     } else if (cb.dataset.quality) {
@@ -221,8 +218,7 @@ $('toggleAllRootsBtn').addEventListener('click', () => {
   const rootCbs = $$('[data-root]');
   const allChecked = Array.from(rootCbs).every(cb => cb.checked);
   rootCbs.forEach(cb => cb.checked = !allChecked);
-  updateRootsSummary();
-  updateToggleAllRootsBtn();
+  refreshRootsUi();
   refreshActivePreset();
   regenerate();
 });
@@ -263,10 +259,10 @@ buildGuitar();
 initPresets({
   regenerate,
   applyInstrumentVisibility,
-  refreshRoots: () => { updateRootsSummary(); updateToggleAllRootsBtn(); },
+  refreshRoots: refreshRootsUi,
 });
 bindInputMode();
-updateRootsSummary();
+refreshRootsUi();
 refreshActivePreset();
 applyInstrumentVisibility();
 syncProgressionConfig();

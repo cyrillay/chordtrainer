@@ -58,6 +58,10 @@ body::before {
   padding: 3rem 2rem 6rem;
 }
 
+@media (max-width: 600px) {
+  .app { padding: 1.5rem 0.75rem 4rem; }
+}
+
 header {
   display: flex;
   justify-content: space-between;
@@ -478,6 +482,13 @@ header {
   justify-content: center;
 }
 
+/* On narrow viewports, the .app side padding plus .piano-wrap padding ate
+   ~30% of the screen width and squashed the keyboard. Slim both down so the
+   piano can spread across the full visible width. */
+@media (max-width: 600px) {
+  .piano-wrap { padding: 0.5rem; margin: 1rem auto; }
+}
+
 .piano {
   position: relative;
   display: flex;
@@ -684,7 +695,16 @@ header {
 }
 
 @media (max-width: 700px) {
-  .controls .tempo-control { grid-column: span 1; }
+  .controls .tempo-control {
+    grid-column: span 1;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    padding: 0.8rem;
+  }
+  /* Slider keeps a full row; the BPM/accent/mute trio drops below it instead
+     of overflowing horizontally. */
+  .controls .tempo-control input[type="range"] { flex-basis: 100%; min-width: 0; }
+  .controls .tempo-control .bpm-value { min-width: 0; }
 }
 
 /* Beat indicator (4 dots that flash with the metronome) */
@@ -1077,23 +1097,19 @@ button:disabled {
   font-weight: 500;
 }
 
-/* Collapsible <details> sections — used by both the roots picker and the
-   theme switcher. Same dotted card, same chevron, same label/summary type
-   pairing. */
-.roots-details,
-.theme-details {
+/* Collapsible <details> sections — used by the roots picker.
+   Dotted card, chevron, label/summary type pairing. */
+.roots-details {
   border: 1px dotted var(--line);
   border-radius: 2px;
   padding: 0.6rem 0.9rem;
 }
 
-.roots-details[open],
-.theme-details[open] {
+.roots-details[open] {
   border-style: solid;
 }
 
-.roots-details summary,
-.theme-details summary {
+.roots-details summary {
   cursor: pointer;
   list-style: none;
   display: flex;
@@ -1103,11 +1119,9 @@ button:disabled {
   outline: none;
 }
 
-.roots-details summary::-webkit-details-marker,
-.theme-details summary::-webkit-details-marker { display: none; }
+.roots-details summary::-webkit-details-marker { display: none; }
 
-.roots-details summary::after,
-.theme-details summary::after {
+.roots-details summary::after {
   content: '▾';
   color: var(--gold);
   font-size: 0.9rem;
@@ -1115,13 +1129,11 @@ button:disabled {
   margin-left: auto;
 }
 
-.roots-details[open] summary::after,
-.theme-details[open] summary::after {
+.roots-details[open] summary::after {
   transform: rotate(180deg);
 }
 
-.roots-details .details-label,
-.theme-details .details-label {
+.roots-details .details-label {
   font-family: var(--font-display);
   font-size: 0.65rem;
   letter-spacing: 0.2em;
@@ -1129,8 +1141,7 @@ button:disabled {
   color: var(--ivory-dim);
 }
 
-.roots-details .details-summary,
-.theme-details .details-summary {
+.roots-details .details-summary {
   font-family: 'Cormorant Garamond', serif;
   font-style: italic;
   font-size: 0.95rem;
@@ -1138,28 +1149,36 @@ button:disabled {
   margin-left: 0.8rem;
 }
 
-/* The theme picker pops out as an absolute panel so opening / closing it
-   never reflows the surrounding settings grid. The summary row stays in
-   place; the option list overlays content below until a pick or a second
-   click on the summary closes it. */
-.theme-details {
-  position: relative;
+/* Theme picker — plain native <select>, styled to match the rest of the
+   settings card. Stays inline with neighboring controls so it never
+   overlays the Advanced toggle below. */
+.theme-select-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px dotted var(--line);
+  border-radius: 2px;
 }
 
-.theme-options {
-  position: absolute;
-  top: calc(100% + 0.4rem);
-  left: 0;
-  right: 0;
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.5rem;
+.theme-select-row .theme-select-label {
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+}
+
+.theme-select {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--gold);
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 3px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  padding: 0.35rem 0.5rem;
+  cursor: pointer;
 }
 
 .roots-actions {
@@ -1738,6 +1757,12 @@ footer em {
   background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
   border: 1px solid var(--line);
   border-radius: 3px;
+}
+
+/* Match the piano-wrap mobile slimming so the SVG fretboard isn't squeezed
+   between two layers of padding. */
+@media (max-width: 600px) {
+  .guitar-wrap { padding: 0.5rem; margin: 1rem auto; }
 }
 
 /* Anchored inside the guitar-wrap, top-right corner. Deliberately small and
@@ -2704,32 +2729,3 @@ body[data-theme="marble-musical"] {
   background-repeat: no-repeat;
 }
 
-/* — Theme switcher — buttons inside the .theme-details collapsible. The
-   wrapper styling (dotted card, label, chevron) comes from the shared
-   .roots-details / .theme-details rules above. */
-.theme-switcher-btn {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--ivory-dim);
-  font-family: var(--font-mono);
-  font-size: 0.95rem;
-  letter-spacing: 0.05em;
-  padding: 0.5rem 0.7rem;
-  cursor: pointer;
-  border-radius: 2px;
-  transition: color 0.15s ease, border-color 0.15s ease;
-  text-align: left;
-  white-space: nowrap;
-}
-.theme-switcher-btn:hover {
-  color: var(--ivory);
-  border-color: var(--line);
-}
-/* .active and .active:hover share styling so hovering the selected
-   theme keeps it readable (specificity bumps past plain :hover). */
-.theme-switcher-btn.active,
-.theme-switcher-btn.active:hover {
-  color: var(--gold-bright);
-  border-color: var(--gold);
-  background: rgba(200, 164, 100, 0.10);
-}

@@ -345,9 +345,9 @@ export function updateGuitarHighlight() {
 // updateGuitarHighlight unconditionally, so without the guitar-visibility check
 // here the button would re-appear in piano mode the moment a new chord is set.
 export function updateAltVoicingButton() {
-  const btn = document.getElementById('altVoicingBtn');
+  const btn = $('altVoicingBtn');
   if (!btn) return;
-  const wrap = document.getElementById('guitarWrap');
+  const wrap = $('guitarWrap');
   // Wrap stays in flow (only its .is-hidden class fades it out), so we check
   // that class rather than display/visibility.
   const guitarVisible = wrap && !wrap.classList.contains('is-hidden');

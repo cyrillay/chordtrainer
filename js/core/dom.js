@@ -3,6 +3,14 @@
 export const $ = (id) => document.getElementById(id);
 export const $$ = (sel, root = document) => root.querySelectorAll(sel);
 
+// Collect the data-{attr} value of every *checked* element matching `selector`.
+// Used by chord-quality / chord-root pickers and the preset-match check.
+export function checkedDataValues(selector, attr) {
+  const out = [];
+  for (const el of $$(selector)) if (el.checked) out.push(el.dataset[attr]);
+  return out;
+}
+
 export function debounce(fn, wait) {
   let t = null;
   const debounced = (...args) => {

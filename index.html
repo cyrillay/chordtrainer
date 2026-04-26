@@ -243,19 +243,16 @@
         </div>
         <label class="checkbox-item"><input type="checkbox" id="rewardsCb" checked>Show streak &amp; rewards</label>
         <label class="checkbox-item"><input type="checkbox" id="circleCb">Show circle of fifths</label>
-        <details class="theme-details sub-option">
-          <summary>
-            <span class="details-label">Theme</span>
-            <span class="details-summary" id="themeCurrentLabel">Op. 1 · Boudoir</span>
-          </summary>
-          <div class="theme-options" id="themeSwitcher" aria-label="Visual theme">
-            <button type="button" class="theme-switcher-btn" data-theme-name="boudoir">Op. 1 · Boudoir</button>
-            <button type="button" class="theme-switcher-btn" data-theme-name="">Op. 2 · Ink</button>
-            <button type="button" class="theme-switcher-btn" data-theme-name="urtext">Op. 3 · Urtext</button>
-            <button type="button" class="theme-switcher-btn" data-theme-name="marble">Op. 4 · Marble</button>
-            <button type="button" class="theme-switcher-btn" data-theme-name="marble-musical">Op. 5 · Marble · Musical</button>
-          </div>
-        </details>
+        <label class="theme-select-row sub-option">
+          <span class="theme-select-label">Theme</span>
+          <select id="themeSelect" class="theme-select" aria-label="Visual theme">
+            <option value="boudoir">Op. 1 · Boudoir</option>
+            <option value="">Op. 2 · Ink</option>
+            <option value="urtext">Op. 3 · Urtext</option>
+            <option value="marble">Op. 4 · Marble</option>
+            <option value="marble-musical">Op. 5 · Marble · Musical</option>
+          </select>
+        </label>
       </div>
     </div>
   </section>
@@ -379,30 +376,15 @@
 <script>
   (function () {
     var KEY = 'etude.theme';
-    var sw = document.getElementById('themeSwitcher');
-    if (!sw) return;
-    var buttons = sw.querySelectorAll('[data-theme-name]');
-    var currentLabel = document.getElementById('themeCurrentLabel');
-    var details = sw.closest('details');
-    function sync() {
-      var cur = document.body.dataset.theme || '';
-      buttons.forEach(function (b) {
-        var isActive = b.dataset.themeName === cur;
-        b.classList.toggle('active', isActive);
-        if (isActive && currentLabel) currentLabel.textContent = b.textContent;
-      });
-    }
-    buttons.forEach(function (b) {
-      b.addEventListener('click', function () {
-        var name = b.dataset.themeName;
-        if (name) document.body.dataset.theme = name;
-        else delete document.body.dataset.theme;
-        localStorage.setItem(KEY, name);
-        sync();
-        if (details) details.open = false;
-      });
+    var sel = document.getElementById('themeSelect');
+    if (!sel) return;
+    sel.value = document.body.dataset.theme || '';
+    sel.addEventListener('change', function () {
+      var name = sel.value;
+      if (name) document.body.dataset.theme = name;
+      else delete document.body.dataset.theme;
+      localStorage.setItem(KEY, name);
     });
-    sync();
   })();
 </script>
 

@@ -268,7 +268,8 @@ function spawnConfetti(count, tier) {
 }
 
 function animateConfetti() {
-  if (!confettiCtx || confettiParticles.length === 0) {
+  if (!confettiCtx) { confettiRaf = null; return; }
+  if (confettiParticles.length === 0) {
     confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
     confettiCanvas.style.display = 'none';
     confettiRaf = null;
