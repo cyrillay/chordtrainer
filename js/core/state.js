@@ -22,10 +22,12 @@ export const state = {
     enabled: false,
     bpm: 80,
     running: false,
-    beatIndex: 0,             // 0..3 within the current bar
+    beatIndex: 0,             // 0..barBeats-1 within the current bar
     intervalId: null,
     correctThisBar: false,
-    muted: false
+    muted: false,
+    barBeats: 4,              // beats per bar — also chord-change interval
+    accent: true              // whether to play an accent on beat 0
   },
 
   sensitivity: {

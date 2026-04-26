@@ -12,7 +12,7 @@ import {
   displayChord, updateStatus, renderNextPreview, cheatCurrentChord
 } from './instruments/chordDisplay.js';
 import { loadSensitivity, syncSlidersFromState, bindSensitivityControls } from './audio/audio.js';
-import { startDynamic, stopDynamic, setBpm, setMetronomeMuted } from './training/dynamic.js';
+import { startDynamic, stopDynamic, setBpm, setMetronomeMuted, setMetronomeAccent } from './training/dynamic.js';
 import { buildCircle, updateCircleHighlight } from './instruments/circle.js';
 import { buildGuitar, updateGuitarHighlight, cycleVoicing, updateAltVoicingButton } from './instruments/guitar.js';
 import { initProgressionModal } from './training/progressionManager.js';
@@ -124,6 +124,7 @@ $('dynamicStartBtn').addEventListener('click', () => {
 });
 
 $('muteMetronomeCb').addEventListener('change', (e) => setMetronomeMuted(e.target.checked));
+$('accentSelect').addEventListener('change', (e) => setMetronomeAccent(e.target.value));
 
 // Keyboard shortcuts:
 //   Space — advance (disabled during dynamic mode)

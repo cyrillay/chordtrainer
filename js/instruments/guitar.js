@@ -47,21 +47,41 @@ function voicingFromDict(dictEntry) {
   return { positions, muted };
 }
 
-// Detect a barre: when 3+ strings share the same fretted (>0) note AND that fret
-// is the lowest fretted note in the chord (so the index finger holds them all
-// down). Returns { fret, fromString, toString } or null.
+// Detect a barre on the lowest fretted fret (the index-finger position).
+// Two cases:
+//  1. Classic — 3+ strings share that fret.
+//  2. Inferred — exactly 2 strings on that fret, and they are the outermost
+//     played strings of the voicing, separated by ≥3 strings. The middle
+//     strings are typically fingered higher up, but the index finger still
+//     bars across the whole span (e.g. e/A, e/E, e/D, B/E, G/E pairs).
+// Returns { fret, fromString, toString } or null.
 function detectBarre(positions) {
   if (positions.length < 3) return null;
   const fretted = positions.filter(p => p.fret > 0);
   if (fretted.length < 3) return null;
   const minFret = Math.min(...fretted.map(p => p.fret));
-
-  // Group by fret to find the bar candidate.
   const onMinFret = fretted.filter(p => p.fret === minFret);
-  if (onMinFret.length < 3) return null;
+  if (onMinFret.length < 2) return null;
 
-  const stringIdxs = onMinFret.map(p => p.string).sort((a, b) => a - b);
-  return { fret: minFret, fromString: stringIdxs[0], toString: stringIdxs[stringIdxs.length - 1] };
+  const onMinStrings = onMinFret.map(p => p.string).sort((a, b) => a - b);
+  const lowestOnMin = onMinStrings[0];
+  const highestOnMin = onMinStrings[onMinStrings.length - 1];
+
+  if (onMinFret.length >= 3) {
+    return { fret: minFret, fromString: lowestOnMin, toString: highestOnMin };
+  }
+
+  const playedStrings = positions.map(p => p.string).sort((a, b) => a - b);
+  const lowestPlayed = playedStrings[0];
+  const highestPlayed = playedStrings[playedStrings.length - 1];
+  if (
+    lowestOnMin === lowestPlayed &&
+    highestOnMin === highestPlayed &&
+    (highestOnMin - lowestOnMin) >= 3
+  ) {
+    return { fret: minFret, fromString: lowestOnMin, toString: highestOnMin };
+  }
+  return null;
 }
 
 // Algorithmic fallback for chords without a dictionary entry.
@@ -125,7 +145,10 @@ function fretWindow(positions) {
     if (p.fret > maxF) maxF = p.fret;
   }
   if (positions.length === 0) { minF = 0; maxF = NUM_FRETS_VISIBLE - 1; }
-  const start = Math.max(0, minF === 0 ? 0 : minF - 1);
+  // Always include the 1st fret when the lowest note sits in the first three
+  // frets — keeps open-position chords visually grounded instead of starting
+  // mid-neck on fret 2.
+  const start = minF <= 2 ? 0 : minF - 1;
   const end = Math.max(start + NUM_FRETS_VISIBLE - 1, maxF + 1);
   return [start, end];
 }
@@ -222,7 +245,7 @@ function renderDots(positions, muted, startFret, endFret, barre) {
 
   // Draw the barre underlay first so dots sit on top.
   if (barre) {
-    const xCenter = PAD_X + (barre.fret - startFret) * fretSpacing - (fretSpacing * 0.5) - 8;
+    const xCenter = PAD_X + (barre.fret - startFret - 0.5) * fretSpacing;
     const yFrom = PAD_Y + (5 - barre.toString) * STRING_SPACING;
     const yTo = PAD_Y + (5 - barre.fromString) * STRING_SPACING;
     dotsLayer.appendChild(svgEl('rect', {
@@ -241,7 +264,7 @@ function renderDots(positions, muted, startFret, endFret, barre) {
     const isOpen = p.fret === 0;
     const cx = isOpen
       ? PAD_X - 28
-      : PAD_X + (p.fret - startFret) * fretSpacing - (fretSpacing * 0.5) - 8;
+      : PAD_X + (p.fret - startFret - 0.5) * fretSpacing;
 
     const heard = state.heardPitchClasses.has(p.pc);
     const cls = `gtr-dot${heard ? ' heard' : ''}${isOpen ? ' open' : ''}`;

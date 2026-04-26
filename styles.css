@@ -12,19 +12,19 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Shrink the desktop layout 20% by scaling the rem base — clean cascade since
+   nearly every size in this stylesheet is in rem. Mobile keeps the default
+   16px so touch targets and readable text don't get sub-44px. */
+@media (min-width: 900px) {
+  html { font-size: 80%; }
+}
+
 html, body {
   background: var(--ink);
   color: var(--ivory);
   font-family: 'Cormorant Garamond', serif;
   min-height: 100vh;
   overflow-x: hidden;
-}
-
-/* Shrink the desktop layout 10% by scaling the rem base — clean cascade since
-   nearly every size in this stylesheet is in rem. Mobile keeps the default
-   16px so touch targets and readable text don't get sub-44px. */
-@media (min-width: 900px) {
-  html { font-size: 90%; }
 }
 
 body {
@@ -645,6 +645,26 @@ header {
   font-size: 0.85rem;
   padding: 0;
   white-space: nowrap;
+}
+
+.controls .tempo-control .accent-option {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+  white-space: nowrap;
+}
+
+.controls .tempo-control .accent-select {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  background: var(--paper);
+  color: var(--gold);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0.2rem 0.4rem;
+  cursor: pointer;
 }
 
 .controls .tempo-control .bpm-value {
@@ -1740,8 +1760,8 @@ footer em {
 }
 
 .gtr-inlay {
-  fill: var(--ivory-dim);
-  opacity: 0.18;
+  fill: var(--ivory);
+  opacity: 0.5;
   pointer-events: none;
 }
 

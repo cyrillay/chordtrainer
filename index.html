@@ -68,12 +68,7 @@
       </div>
     </div>
 
-    <div class="beat-indicator" id="beatIndicator" style="display:none;">
-      <span class="beat-dot"></span>
-      <span class="beat-dot"></span>
-      <span class="beat-dot"></span>
-      <span class="beat-dot"></span>
-    </div>
+    <div class="beat-indicator" id="beatIndicator" style="display:none;"></div>
 
     <div class="chord-queue" id="chordQueue">
       <div class="queue-label">Coming up</div>
@@ -132,6 +127,13 @@
         <label for="bpmSlider">Tempo</label>
         <input type="range" id="bpmSlider" min="40" max="200" step="1" value="80">
         <span class="bpm-value" id="bpmValue">80 BPM</span>
+        <label class="accent-option" for="accentSelect">Accent</label>
+        <select id="accentSelect" class="accent-select">
+          <option value="off">Off</option>
+          <option value="3">3</option>
+          <option value="4" selected>4</option>
+          <option value="6">6</option>
+        </select>
         <label class="checkbox-item mute-option"><input type="checkbox" id="muteMetronomeCb">Mute</label>
       </div>
     </div>

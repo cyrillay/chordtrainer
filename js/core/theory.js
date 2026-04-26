@@ -37,10 +37,10 @@ export function formatChordHtml(chord) {
   const formula = CHORD_FORMULAS[chord.quality];
   const rootDisplay = NOTE_DISPLAY[chord.root];
   const suffix = formula.suffix;
-  const bassNote = chord.orderedNotes[0] !== noteToPitchClass(chord.root)
-    ? '/' + pitchClassToDisplay(chord.orderedNotes[0])
+  const bassHtml = chord.orderedNotes[0] !== noteToPitchClass(chord.root)
+    ? '/' + formatRootHtml(pitchClassToDisplay(chord.orderedNotes[0]))
     : '';
-  return `${formatRootHtml(rootDisplay)}<span class="accent">${suffix}</span>${bassNote ? '<span class="accent">' + bassNote + '</span>' : ''}`;
+  return `${formatRootHtml(rootDisplay)}<span class="accent">${suffix}</span>${bassHtml ? '<span class="accent">' + bassHtml + '</span>' : ''}`;
 }
 
 // Standard piano fingerings (right hand / left hand) per chord quality.

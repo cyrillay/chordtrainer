@@ -29,9 +29,6 @@ export const MAX_FRET = 14;
 export const HAND_SPAN_BACK = 2;
 export const HAND_SPAN_FWD = 4;
 
-// ---- Metronome / dynamic mode ----
-export const BAR_BEATS = 4;
-
 // ---- Timing ----
 export const MIC_SUCCESS_DELAY_MS = 700;
 export const MIDI_SUCCESS_DELAY_MS = 200;
