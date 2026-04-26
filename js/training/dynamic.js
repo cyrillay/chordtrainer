@@ -1,10 +1,10 @@
 // Dynamic mode: metronome ticks at a tempo, chord changes every 4 beats.
-import { state } from './state.js';
+import { state } from '../core/state.js';
 import { advanceToNextChord } from './generator.js';
-import { displayChord } from './views.js';
-import { playClick } from './tones.js';
-import { $, $$ } from './dom.js';
-import { BAR_BEATS } from './constants.js';
+import { displayChord } from '../instruments/chordDisplay.js';
+import { playClick } from '../audio/tones.js';
+import { $, $$ } from '../core/dom.js';
+import { BAR_BEATS } from '../core/constants.js';
 
 let beatDots = null;
 
@@ -78,8 +78,3 @@ export function setBpm(bpm) {
 }
 
 export function setMetronomeMuted(muted) { state.dynamic.muted = muted; }
-
-export function setDynamicEnabled(enabled) {
-  state.dynamic.enabled = enabled;
-  if (!enabled && state.dynamic.running) stopDynamic();
-}

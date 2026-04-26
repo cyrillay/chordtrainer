@@ -26,7 +26,7 @@ export function pitchClassToDisplay(pc) {
   return NOTE_DISPLAY[NOTE_NAMES[pc]];
 }
 
-// HTML rendering helpers for chord names — shared by views.js and generator.js.
+// HTML rendering helpers for chord names — shared by chord display + generator.
 export function formatRootHtml(rootDisplay) {
   const match = rootDisplay.match(/^([A-G])([\u266F\u266D])$/);
   if (match) return `${match[1]}<span class="accidental">${match[2]}</span>`;
@@ -72,6 +72,16 @@ export function getFingering(chord) {
   const lh = FINGERING_OVERRIDES_LH[chord.quality] || FINGERINGS_LH[n] || [];
   const rh = FINGERINGS_RH[n] || [];
   return { rh, lh };
+}
+
+// Pick an inversion index for a chord with `numNotes` notes. With probability
+// `freqPct` (0–100) returns a non-root inversion uniformly in 1..numNotes-1;
+// otherwise returns 0 (root position). Shared by random + progression generators
+// so the "% of chords inverted" semantics stay aligned.
+export function pickInversion(numNotes, useInversions, freqPct) {
+  if (!useInversions || numNotes <= 1) return 0;
+  if (Math.random() * 100 >= freqPct) return 0;
+  return 1 + Math.floor(Math.random() * (numNotes - 1));
 }
 
 export function buildChord(root, quality, inversion = 0) {

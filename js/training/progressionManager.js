@@ -2,27 +2,26 @@
 // Persists to localStorage.
 
 import { PROGRESSIONS } from './progressions.js';
+import { LS } from '../core/constants.js';
 
-const LS_DISABLED = 'chordTrainer.disabledProgressions';
-const LS_CUSTOM   = 'chordTrainer.customProgressions';
-const MAX_CUSTOM  = 10;
+const MAX_CUSTOM = 10;
 
 function loadDisabled() {
-  try { return new Set(JSON.parse(localStorage.getItem(LS_DISABLED) || '[]')); }
+  try { return new Set(JSON.parse(localStorage.getItem(LS.DISABLED_PROGS) || '[]')); }
   catch { return new Set(); }
 }
 
 function saveDisabled(set) {
-  localStorage.setItem(LS_DISABLED, JSON.stringify([...set]));
+  localStorage.setItem(LS.DISABLED_PROGS, JSON.stringify([...set]));
 }
 
 function loadCustom() {
-  try { return JSON.parse(localStorage.getItem(LS_CUSTOM) || '[]'); }
+  try { return JSON.parse(localStorage.getItem(LS.CUSTOM_PROGS) || '[]'); }
   catch { return []; }
 }
 
 function saveCustom(arr) {
-  localStorage.setItem(LS_CUSTOM, JSON.stringify(arr));
+  localStorage.setItem(LS.CUSTOM_PROGS, JSON.stringify(arr));
 }
 
 export function getActiveProgressions() {
