@@ -21,6 +21,7 @@
 import { state } from '../core/state.js';
 import { onSuccess } from './feedback.js';
 import { LS } from '../core/constants.js';
+import { escapeHtml } from '../core/dom.js';
 
 const ACH = [
   // ---- Beginner journey ----
@@ -86,6 +87,10 @@ const ACH = [
   { id: 'metroStart1',   vis: 'visible', icon: '\u{23F1}',  name: 'Tick Tock',            desc: 'Start the metronome for the first time',    target: 1,  metric: 'action.metroStart' },
   { id: 'metroSucc20',   vis: 'visible', icon: '\u{1F941}', name: 'In the Pocket',        desc: 'Validate 20 chords with the metronome on',  target: 20, metric: 'metro.success' },
   { id: 'metroSucc60',   vis: 'visible', icon: '\u{1F941}', name: 'Locked In',            desc: 'Validate 60 chords with the metronome on',  target: 60, metric: 'metro.success' },
+
+  // ---- Streaks ----
+  { id: 'streak50',      vis: 'visible', icon: '\u{1F3AF}', name: "Maestro's Run",        desc: 'Reach a 50-chord streak',                   target: 50,  metric: 'streak.best' },
+  { id: 'streak100',     vis: 'secret',  icon: '\u{1F4AF}', name: 'Centurion',            desc: 'Reach a 100-chord streak',                  hint: 'A hundred clean takes. No flinches.',                   target: 100, metric: 'streak.best' },
 
   // ---- Ultra — placeholder tile shows only a cryptic riddle ----
   { id: 'allRootsMmaj7', vis: 'ultra', icon: '\u{1F31A}', name: 'Lunar Alignment',       desc: 'Play mMaj7 on all 12 roots',               hint: 'Twelve gates. One agent.',                              target: 12, metric: 'rootSet.mMaj7' },
@@ -275,12 +280,6 @@ function handleSuccess() {
 
 // ---- Modal rendering ----
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
-}
-
 function renderTile(a) {
   const unlocked = !!store.unlocked[a.id];
   const value = metricValue(a.metric);
@@ -416,6 +415,16 @@ function handleResetClick() {
 export function recordAction(actionId) {
   if (!actionId) return;
   bump(`action.${actionId}`);
+  save();
+  checkUnlocks();
+}
+
+// Streak high-water mark, fed by rewards.js so streak achievements unlock
+// without each module duplicating the streak counter.
+export function recordStreak(value) {
+  const prev = store.counters['streak.best'] || 0;
+  if (value <= prev) return;
+  store.counters['streak.best'] = value;
   save();
   checkUnlocks();
 }

@@ -25,7 +25,7 @@ export function renderNextPreview() {
   const next = state.chordQueue[0];
   el.innerHTML = next ? formatChordHtml(next) : '';
   if (degEl) {
-    degEl.textContent = (next && next.meta) ? `(${next.meta.tokens[next.meta.position]})` : '';
+    degEl.textContent = next?.meta ? `(${next.meta.tokens[next.meta.position]})` : '';
   }
 }
 

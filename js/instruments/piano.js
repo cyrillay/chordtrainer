@@ -26,7 +26,7 @@ export function buildPiano() {
   pianoKeys.length = 0;
 
   const frag = document.createDocumentFragment();
-  let whiteKeyCount = 0;
+  const whiteKeyCount = PIANO_OCTAVES * WHITE_KEY_NOTES.length;
 
   for (let o = 0; o < PIANO_OCTAVES; o++) {
     const octave = PIANO_START_OCTAVE + o;
@@ -45,7 +45,6 @@ export function buildPiano() {
         pc: noteToPitchClass(n),
         midi: (octave + 1) * 12 + noteToPitchClass(n),
       });
-      whiteKeyCount++;
     }
   }
 
@@ -159,7 +158,7 @@ export function updatePianoHighlight() {
 
     if (fingerByMidi && shouldTarget) {
       const f = fingerByMidi.get(k.midi);
-      setFingerLabel(k.el, f && f.rh, f && f.lh);
+      setFingerLabel(k.el, f?.rh, f?.lh);
     } else {
       clearFingerLabel(k.el);
     }

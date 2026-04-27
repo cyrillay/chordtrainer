@@ -252,8 +252,11 @@ $('advancedBtn').addEventListener('click', () => {
 
 // ---- Init ----
 
-initRewards();
+// Achievements must init before rewards: rewards seeds streak.best into the
+// achievements store on init and would otherwise be overwritten when
+// achievements later loads its own state from localStorage.
 initAchievements();
+initRewards();
 const rewardsCb = $('rewardsCb');
 if (rewardsCb) rewardsCb.checked = isRewardsEnabled();
 

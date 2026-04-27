@@ -941,13 +941,7 @@ button:disabled {
   gap: 0.5rem;
 }
 
-.setting-group-selection {
-  border: 1px dotted var(--line);
-  padding: 1rem 1.2rem;
-  border-radius: 3px;
-  background: rgba(255,255,255,0.015);
-}
-
+.setting-group-selection,
 .setting-group-options {
   border: 1px dotted var(--line);
   padding: 1rem 1.2rem;
@@ -1159,10 +1153,6 @@ button:disabled {
   gap: 0.25rem;
   min-width: 0;
   flex-shrink: 1;
-}
-
-.queue-item .position {
-  display: none;
 }
 
 .queue-item .accent {
@@ -1847,17 +1837,6 @@ footer em {
   border-color: var(--gold);
 }
 
-.progressions-warning {
-  margin: 0.4rem 0 0.6rem;
-  padding: 0.6rem 0.8rem;
-  background: rgba(160, 59, 59, 0.1);
-  border-left: 2px solid var(--crimson);
-  color: var(--ivory-dim);
-  font-size: 0.78rem;
-  line-height: 1.4;
-  letter-spacing: 0.02em;
-}
-
 /* Guitar visualization */
 .guitar-wrap {
   position: relative;
@@ -2470,11 +2449,6 @@ footer em {
   transform: translateY(0);
 }
 
-.streak-icon {
-  color: var(--gold);
-  font-size: 0.6rem;
-}
-
 .streak-value {
   color: var(--gold);
   font-size: 1.3rem;
@@ -2521,8 +2495,6 @@ footer em {
   pointer-events: auto;
   cursor: pointer;
 }
-
-.reward-backdrop { display: none; }
 
 .reward-content {
   text-align: center;
