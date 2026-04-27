@@ -1,6 +1,6 @@
-// First-visit walkthrough: a skippable 4-step pointer at the controls a brand-new
-// user needs (chord display, input mode, presets, new-chord button). Persisted via
-// LS.ONBOARDED so it never re-fires.
+// First-visit walkthrough: a skippable pointer tour at the controls a brand-new
+// user needs (chord display, input mode, instrument, presets, new-chord button).
+// Persisted via LS.ONBOARDED so it never re-fires.
 
 import { $ } from '../core/dom.js';
 import { LS } from '../core/constants.js';
@@ -13,8 +13,13 @@ const STEPS = [
   },
   {
     title: 'Pick how you play',
-    body: 'Pick the <strong>microphone</strong> (default) or <strong>MIDI</strong> if you have a keyboard plugged in. You can switch any time.',
+    body: 'Pick the <strong>microphone</strong> (default) or <strong>MIDI</strong> if you have a keyboard plugged in (also works in bluetooth)',
     target: 'inputSelector'
+  },
+  {
+    title: 'Choose your instrument',
+    body: 'Switch between <strong>piano</strong> and <strong>guitar</strong>, the fingerings update to match.',
+    target: 'instrumentSelector'
   },
   {
     title: 'Match your level',

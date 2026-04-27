@@ -12,11 +12,11 @@ import { updateCircleHighlight } from '../instruments/circle.js';
 import { recordAction } from './achievements.js';
 
 const PRESETS = {
-  firstTimer:   { qualities: ['maj'],                                                                roots: ['C', 'F', 'G'],           inversions: false, showFingerings: true, showCircle: false, showInstrument: true },
-  beginner:     { qualities: ['maj', 'min'],                                                         roots: ['C', 'G', 'D', 'A', 'F'], inversions: false,                       showCircle: false, showInstrument: true },
-  intermediate: { qualities: ['maj', 'min'],                                                         roots: 'all',                     inversions: true,  inversionFreq: 33,    showCircle: false, showInstrument: true },
-  advanced:     { qualities: ['maj', 'min', 'dom7', 'maj7', 'min7'],                                 roots: 'all',                     inversions: true,  inversionFreq: 33,    showCircle: false, showInstrument: true },
-  expert:       { qualities: ['maj', 'min', 'dim', 'aug', 'dom7', 'maj7', 'min7', 'm7b5', 'mMaj7'], roots: 'all',                     inversions: true,  inversionFreq: 66,    showCircle: true,  showInstrument: false }
+  firstTimer:   { qualities: ['maj'],                                                                roots: ['C', 'F', 'G'],           inversions: false, showFingerings: true, showCircle: false, showInstrument: true,  progressions: false },
+  beginner:     { qualities: ['maj', 'min'],                                                         roots: ['C', 'G', 'D', 'A', 'F'], inversions: false,                       showCircle: false, showInstrument: true,  progressions: false },
+  intermediate: { qualities: ['maj', 'min'],                                                         roots: 'all',                     inversions: true,  inversionFreq: 33,    showCircle: false, showInstrument: true,  progressions: true  },
+  advanced:     { qualities: ['maj', 'min', 'dom7', 'maj7', 'min7'],                                 roots: 'all',                     inversions: true,  inversionFreq: 33,    showCircle: false, showInstrument: true,  progressions: true  },
+  expert:       { qualities: ['maj', 'min', 'dim', 'aug', 'dom7', 'maj7', 'min7', 'm7b5', 'mMaj7'], roots: 'all',                     inversions: true,  inversionFreq: 66,    showCircle: true,  showInstrument: false, progressions: true  }
 };
 
 // ---- Inversion frequency selector ----
@@ -77,6 +77,15 @@ function applyPreset(name) {
       cb.checked = p.showCircle;
       setDisplay('circleWrap', p.showCircle, 'flex');
       if (p.showCircle) updateCircleHighlight();
+    }
+  }
+  if ('progressions' in p) {
+    const cb = $('progressionsCb');
+    if (cb && cb.checked !== p.progressions) {
+      cb.checked = p.progressions;
+      // Dispatch so main.js's handleProgressionsToggle runs (visibility +
+      // resetProgressionStream + immediate chord refresh).
+      cb.dispatchEvent(new Event('change'));
     }
   }
   onChangeApplyInstrument();

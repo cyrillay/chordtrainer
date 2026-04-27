@@ -75,13 +75,14 @@ const ACH = [
   { id: 'expert15min', vis: 'secret',  icon: '\u{1F9D8}', name: 'Iron Pianist',          desc: '15 minutes of active practice in Expert',  hint: 'Pull up a chair. The hardest sessions run the longest.', target: 15 * 60, metric: 'time.expert', unit: 'sec' },
   { id: 'speed4',      vis: 'secret',  icon: '\u{26A1}',  name: 'Allegro Furioso',       desc: '4 chords validated within 10 seconds',     hint: 'Quick fingers. Quick wins.',                            target: 1,  metric: 'event.speed4',     window: { preset: 'any',          count: 4,  ms: 10 * 1000 } },
   { id: 'rushInter',   vis: 'secret',  icon: '\u{1F4A8}', name: 'Caffeine Spike',        desc: '8 chords within 30 s in Intermediate',     hint: 'A thirty-second espresso, served at the midpoint.',     target: 1,  metric: 'event.rushInter',  window: { preset: 'intermediate', count: 8,  ms: 30 * 1000 } },
-  { id: 'rushAdv',     vis: 'secret',  icon: '\u{2615}',  name: 'Espresso Shot',         desc: '25 chords within 2 minutes in Advanced',   hint: 'Strong, dense \u2014 gone in two minutes.',             target: 1,  metric: 'event.rushAdv',    window: { preset: 'advanced',     count: 25, ms: 2 * 60 * 1000 } },
+  { id: 'rushAdv',     vis: 'secret',  icon: '\u{2615}',  name: 'Espresso Shot',         desc: '25 chords within 2 minutes in Advanced',   hint: 'Strong, dense, gone in two minutes.',             target: 1,  metric: 'event.rushAdv',    window: { preset: 'advanced',     count: 25, ms: 2 * 60 * 1000 } },
+  { id: 'midiConnect', vis: 'secret',  icon: '\u{1F50C}', name: 'Plug & Play',           desc: 'Successfully connect a MIDI device',       hint: 'A keyboard speaks. The computer understands.',               target: 1,  metric: 'action.midiConnect' },
 
   // ---- Exploration / non-performance actions ----
   { id: 'expertOpen',    vis: 'visible', icon: '\u{1F3AF}', name: 'Bold Move',            desc: 'Open the Expert preset for the first time', target: 1,  metric: 'action.expertOpen' },
   { id: 'noFingerings',  vis: 'visible', icon: '\u{1F441}', name: 'By Ear',               desc: 'Turn off fingerings and trust your hands',  target: 1,  metric: 'action.fingeringsOff' },
   { id: 'themeChange1',  vis: 'visible', icon: '\u{1F3AD}', name: 'Costume Drama',        desc: 'Change the visual theme for the first time', target: 1,  metric: 'action.themeChange' },
-  { id: 'themeChange10', vis: 'visible', icon: '\u{1F58C}',  name: 'Style Council',        desc: 'Change theme 10 times \u2014 a true aesthete', target: 10, metric: 'action.themeChange' },
+  { id: 'themeChange10', vis: 'visible', icon: '\u{1F58C}',  name: 'Style Council',        desc: 'Change theme 10 times', target: 10, metric: 'action.themeChange' },
 
   // ---- Metronome ----
   { id: 'metroStart1',   vis: 'visible', icon: '\u{23F1}',  name: 'Tick Tock',            desc: 'Start the metronome for the first time',    target: 1,  metric: 'action.metroStart' },
