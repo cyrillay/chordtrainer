@@ -2,6 +2,7 @@
 import { state } from '../core/state.js';
 import { applyHeardPitchClasses } from '../instruments/chordDisplay.js';
 import { $ } from '../core/dom.js';
+import { recordAction } from '../ux/achievements.js';
 
 function refreshHeardFromHeld() {
   const pcs = new Set();
@@ -57,6 +58,7 @@ export async function startMidi() {
     const updateStatus = () => {
       attachInputs(access);
       statusEl.textContent = describeInputs(access);
+      if (access.inputs.size > 0) recordAction('midiConnect');
     };
 
     access.onstatechange = updateStatus;

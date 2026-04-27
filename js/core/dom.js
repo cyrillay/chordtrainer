@@ -32,6 +32,13 @@ export function toggleClass(el, cls, on) {
   el.classList.toggle(cls, on);
 }
 
+// HTML-escape for safe insertion into innerHTML strings. Used wherever we build
+// markup as a string (modals, list rows) and need user-supplied text inside it.
+const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+export function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => HTML_ESCAPES[c]);
+}
+
 // SVG node helpers (building SVG with createElementNS is verbose).
 const SVG_NS = 'http://www.w3.org/2000/svg';
 export function svgEl(tag, attrs = {}) {

@@ -32,8 +32,7 @@ function updateInputModeButton() {
 
 function refreshInputReadout() {
   const active = state.isListening || state.midiEnabled;
-  const el = $('inputReadout');
-  if (el) el.style.display = active ? 'block' : 'none';
+  setDisplay('inputReadout', active, 'block');
 }
 
 export function showInputHelp(message) {

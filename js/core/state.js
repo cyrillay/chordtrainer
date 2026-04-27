@@ -27,7 +27,8 @@ export const state = {
     correctThisBar: false,
     muted: false,
     barBeats: 4,              // beats per bar — also chord-change interval
-    accent: true              // whether to play an accent on beat 0
+    accent: true,             // whether to play an accent on beat 0
+    barStarted: false         // skips the first downbeat so the chord doesn't change instantly on start
   },
 
   sensitivity: {

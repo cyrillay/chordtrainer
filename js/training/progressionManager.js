@@ -3,6 +3,7 @@
 
 import { PROGRESSIONS } from './progressions.js';
 import { LS } from '../core/constants.js';
+import { escapeHtml as esc } from '../core/dom.js';
 
 const MAX_CUSTOM = 10;
 
@@ -236,8 +237,3 @@ function handleAddCustom(e) {
   updateCustomCount(custom.length);
 }
 
-function esc(str) {
-  return String(str)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}

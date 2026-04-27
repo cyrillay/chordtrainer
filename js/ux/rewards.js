@@ -2,7 +2,8 @@
 // Hooks into feedback.js via onSuccess() and onChordChange().
 
 import { onSuccess, onChordChange } from './feedback.js';
-import { LS } from '../core/constants.js';
+import { recordStreak } from './achievements.js';
+import { LS, STREAK_RESET_MS } from '../core/constants.js';
 
 // ---- State ----
 
@@ -314,6 +315,7 @@ function handleSuccess() {
     best = streak;
     saveBest();
   }
+  recordStreak(streak);
 
   updateStreakDisplay();
 
@@ -325,9 +327,9 @@ function handleSuccess() {
 }
 
 // ---- Streak reset via timeout ----
-// When a new chord appears, a 10s timer starts. If the user doesn't nail
-// the chord within that window, the streak resets. Success cancels the timer.
-// This avoids false resets from mic noise between chords.
+// When a new chord appears, a STREAK_RESET_MS timer starts. If the user doesn't
+// nail the chord within that window, the streak resets. Success cancels the
+// timer. This avoids false resets from mic noise between chords.
 
 let resetTimer = null;
 let succeededThisChord = false;
@@ -342,7 +344,7 @@ function handleChordChange() {
         streak = 0;
         updateStreakDisplay();
       }
-    }, 10000);
+    }, STREAK_RESET_MS);
   }
 }
 
@@ -351,6 +353,9 @@ function handleChordChange() {
 export function initRewards() {
   load();
   buildDOM();
+  // Seed streak achievements from the persisted `best` so a returning user
+  // who already passed 50/100 before these unlocks existed still gets credit.
+  if (best > 0) recordStreak(best);
   onSuccess(handleSuccess);
   onChordChange(handleChordChange);
 }

@@ -20,7 +20,7 @@
    Supported in Chromium/Safari for years and in Firefox since 126.
    Mobile keeps the default 16px so touch targets stay above 44px. */
 @media (min-width: 900px) {
-  html { font-size: 85%; zoom: 0.9; }
+  html { font-size: 110.5%; zoom: 0.9; }
 }
 
 html, body {
@@ -80,6 +80,26 @@ header {
   align-items: flex-end;
   gap: 0.55rem;
   position: relative;
+}
+
+/* Above the mobile breakpoint, keep the meta line ("Op. 2 No 62") and the
+   Achievements button on the same row to compact the header vertically.
+   Achievements sits to the left of the meta label. */
+@media (min-width: 601px) {
+  .header-right {
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-template-areas:
+      "ach  meta"
+      "input input";
+    align-items: center;
+    justify-items: end;
+    column-gap: 0.8rem;
+    row-gap: 0.55rem;
+  }
+  .header-right .ach-btn        { grid-area: ach; }
+  .header-right .meta           { grid-area: meta; }
+  .header-right .input-selector { grid-area: input; justify-self: end; }
 }
 
 .wordmark {
@@ -941,13 +961,7 @@ button:disabled {
   gap: 0.5rem;
 }
 
-.setting-group-selection {
-  border: 1px dotted var(--line);
-  padding: 1rem 1.2rem;
-  border-radius: 3px;
-  background: rgba(255,255,255,0.015);
-}
-
+.setting-group-selection,
 .setting-group-options {
   border: 1px dotted var(--line);
   padding: 1rem 1.2rem;
@@ -1159,10 +1173,6 @@ button:disabled {
   gap: 0.25rem;
   min-width: 0;
   flex-shrink: 1;
-}
-
-.queue-item .position {
-  display: none;
 }
 
 .queue-item .accent {
@@ -1847,17 +1857,6 @@ footer em {
   border-color: var(--gold);
 }
 
-.progressions-warning {
-  margin: 0.4rem 0 0.6rem;
-  padding: 0.6rem 0.8rem;
-  background: rgba(160, 59, 59, 0.1);
-  border-left: 2px solid var(--crimson);
-  color: var(--ivory-dim);
-  font-size: 0.78rem;
-  line-height: 1.4;
-  letter-spacing: 0.02em;
-}
-
 /* Guitar visualization */
 .guitar-wrap {
   position: relative;
@@ -2470,11 +2469,6 @@ footer em {
   transform: translateY(0);
 }
 
-.streak-icon {
-  color: var(--gold);
-  font-size: 0.6rem;
-}
-
 .streak-value {
   color: var(--gold);
   font-size: 1.3rem;
@@ -2521,8 +2515,6 @@ footer em {
   pointer-events: auto;
   cursor: pointer;
 }
-
-.reward-backdrop { display: none; }
 
 .reward-content {
   text-align: center;
@@ -3120,6 +3112,19 @@ body[data-theme="marble-musical"] {
   padding: 0.8rem 1.2rem 1rem;
   border-top: 1px solid var(--line);
   opacity: 0.7;
+}
+
+/* Desktop: nudge achievement typography up so the modal reads more comfortably
+   on a wide monitor without changing the tile grid. */
+@media (min-width: 900px) {
+  .ach-tile-name          { font-size: 1.2rem; }
+  .ach-tile-desc          { font-size: 0.86rem; }
+  .ach-tile-icon          { font-size: 1.9rem; width: 2.1rem; }
+  .ach-tile-progress-text { font-size: 0.74rem; }
+  .ach-section-label      { font-size: 0.85rem; }
+  .ach-section-blurb      { font-size: 0.92rem; }
+  .ach-section-count      { font-size: 0.74rem; }
+  .ach-count              { font-size: 0.85rem; }
 }
 
 .ach-modal-footer {
