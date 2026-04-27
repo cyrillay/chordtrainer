@@ -348,6 +348,16 @@ function handleChordChange() {
   }
 }
 
+// ---- Public celebration hook ----
+// Lets other modules (e.g. daily goals) reuse the confetti engine without
+// firing a streak milestone. Tier maps to the same 1..8 scale as MILESTONES,
+// driving particle velocity + intensity.
+export function celebrate({ count = 60, tier = 3 } = {}) {
+  if (!enabled) return;
+  if (!confettiCanvas) return;
+  spawnConfetti(count, tier);
+}
+
 // ---- Public init ----
 
 export function initRewards() {

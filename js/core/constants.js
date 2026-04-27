@@ -47,4 +47,5 @@ export const LS = {
   ONBOARDED: 'chordTrainer.onboarded',
   INVERSION_FREQ: 'chordTrainer.inversionFrequency',
   ACHIEVEMENTS: 'chordTrainer.achievements',
+  DAILY_GOAL: 'chordTrainer.dailyGoal',
 };

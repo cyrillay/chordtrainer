@@ -411,6 +411,13 @@ header {
   margin-left: -0.15em;
 }
 
+/* Firefox renders sharp/flat glyphs with tighter native kerning than WebKit,
+   so the negative margin above pulls them too close to the letter. Reset it
+   inside Firefox only via the @-moz-document scope. */
+@-moz-document url-prefix() {
+  .accidental { margin-left: 0; }
+}
+
 @media (max-width: 600px) {
   .accidental { margin-left: 0; }
   .chord-stage {

@@ -18,6 +18,7 @@ import { buildGuitar, updateGuitarHighlight, cycleVoicing, updateAltVoicingButto
 import { initProgressionModal } from './training/progressionManager.js';
 import { initRewards, setRewardsEnabled, isRewardsEnabled } from './ux/rewards.js';
 import { initAchievements, recordAction } from './ux/achievements.js';
+import { initDailyGoal } from './ux/dailyGoal.js';
 import { bindInputMode, autoStartMicrophone } from './ux/inputMode.js';
 import { initPresets, refreshActivePreset, syncInversionFreqVisibility } from './ux/presets.js';
 import { startOnboarding } from './ux/onboarding.js';
@@ -258,6 +259,7 @@ $('advancedBtn').addEventListener('click', () => {
 initAchievements();
 initRewards();
 initAchievements();
+initDailyGoal();
 const rewardsCb = $('rewardsCb');
 if (rewardsCb) rewardsCb.checked = isRewardsEnabled();
 
