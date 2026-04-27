@@ -280,6 +280,12 @@ function handleSuccess() {
 
 // ---- Modal rendering ----
 
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
 function renderTile(a) {
   const unlocked = !!store.unlocked[a.id];
   const value = metricValue(a.metric);

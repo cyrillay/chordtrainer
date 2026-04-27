@@ -257,6 +257,7 @@ $('advancedBtn').addEventListener('click', () => {
 // achievements later loads its own state from localStorage.
 initAchievements();
 initRewards();
+initAchievements();
 const rewardsCb = $('rewardsCb');
 if (rewardsCb) rewardsCb.checked = isRewardsEnabled();
 
