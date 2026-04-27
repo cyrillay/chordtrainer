@@ -99,7 +99,10 @@ function analyzeLoop() {
 
   // Run the analysis every N frames so we don't block the main thread at 60 Hz.
   // Chord detection is already stabilised over several frames, so ~30 Hz is ample.
-  frameCounter = (frameCounter + 1) % ANALYSIS_FRAME_STRIDE;
+  // While scrolling, throttle further to ~7 Hz — keeps detection alive but
+  // reduces audio-thread + JS contention enough to unstick Chrome mobile scroll.
+  const stride = isScrolling ? ANALYSIS_FRAME_STRIDE * 4 : ANALYSIS_FRAME_STRIDE;
+  frameCounter = (frameCounter + 1) % stride;
   if (frameCounter !== 0) return;
 
   const sens = state.sensitivity;
