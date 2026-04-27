@@ -48,4 +48,5 @@ export const LS = {
   INVERSION_FREQ: 'chordTrainer.inversionFrequency',
   ACHIEVEMENTS: 'chordTrainer.achievements',
   DAILY_GOAL: 'chordTrainer.dailyGoal',
+  SHEET_MUSIC: 'chordTrainer.sheetMusic',
 };

@@ -9,8 +9,9 @@ import {
 } from './training/generator.js';
 import { buildPiano, updatePianoHighlight, invalidatePianoCaches } from './instruments/piano.js';
 import {
-  displayChord, updateStatus, renderNextPreview, cheatCurrentChord
+  displayChord, updateStatus, renderNextPreview, cheatCurrentChord, renderNotesView
 } from './instruments/chordDisplay.js';
+import { getSheetMode, setSheetMode } from './instruments/sheetMusic.js';
 import { loadSensitivity, syncSlidersFromState, bindSensitivityControls } from './audio/audio.js';
 import { startDynamic, stopDynamic, setBpm, setMetronomeMuted, setMetronomeAccent } from './training/dynamic.js';
 import { buildCircle, updateCircleHighlight } from './instruments/circle.js';
@@ -105,6 +106,16 @@ $$('.instrument-mode-btn').forEach(btn => {
 });
 
 $('altVoicingBtn').addEventListener('click', () => cycleVoicing());
+
+// ---- Sheet music mode (replaces the C/E/G letter chips with a staff) ----
+const sheetMusicSelect = $('sheetMusicSelect');
+if (sheetMusicSelect) {
+  sheetMusicSelect.value = getSheetMode();
+  sheetMusicSelect.addEventListener('change', () => {
+    setSheetMode(sheetMusicSelect.value);
+    renderNotesView();
+  });
+}
 
 // ---- Standard event wiring ----
 

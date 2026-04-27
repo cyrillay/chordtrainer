@@ -562,6 +562,42 @@ header {
   color: var(--crimson);
 }
 
+.staff-svg {
+  display: block;
+  margin: 0.4rem auto 0;
+  height: clamp(120px, 22vw, 160px);
+  width: auto;
+  overflow: visible;
+}
+.staff-svg .staff-line,
+.staff-svg .ledger-line {
+  stroke: var(--ivory-dim);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+  opacity: 0.55;
+}
+.staff-svg .clef {
+  fill: var(--gold);
+  font-family: 'Bravura', 'Noto Music', 'Segoe UI Symbol', 'Apple Symbols', serif;
+  dominant-baseline: alphabetic;
+}
+.staff-svg .accidental {
+  fill: var(--ivory);
+  font-family: 'Bravura', 'Noto Music', 'Segoe UI Symbol', 'Apple Symbols', serif;
+  font-size: 19px;
+}
+.staff-svg .notehead {
+  fill: var(--ivory);
+  stroke: none;
+  transition: fill 0.2s ease;
+}
+.staff-svg .staff-note.heard .notehead {
+  fill: var(--sage);
+}
+.staff-svg .staff-note.heard .accidental {
+  fill: var(--sage);
+}
+
 /* (progression info is now integrated into the chord queue) */
 
 /* Sub-option (indented element shown under a parent toggle) */

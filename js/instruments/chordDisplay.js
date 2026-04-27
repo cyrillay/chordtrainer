@@ -17,6 +17,7 @@ import { advanceToNextChord } from '../training/generator.js';
 import { updatePianoHighlight } from './piano.js';
 import { updateCircleHighlight } from './circle.js';
 import { updateGuitarHighlight } from './guitar.js';
+import { isSheetActive, renderSheet, updateSheetHighlight } from './sheetMusic.js';
 import { triggerSuccess, notifyChordChange } from '../ux/feedback.js';
 import { $ } from '../core/dom.js';
 import {
@@ -193,6 +194,39 @@ export function renderStage() {
 // regeneration paths) that want to nudge the upcoming preview.
 export function renderNextPreview() { renderStage(); }
 
+// Renders the notes section under the current chord — either the letter chips
+// or a staff, depending on the sheet-music mode. Called on chord change and
+// whenever the user flips the mode in Options. Also re-applies the heard
+// highlights so a flip mid-chord doesn't lose the already-played notes.
+export function renderNotesView() {
+  const notesEl = $('chordNotes');
+  const chord = state.currentChord;
+  if (!notesEl) {
+    noteChipEls = [];
+    return;
+  }
+  if (!chord) {
+    notesEl.innerHTML = '';
+    noteChipEls = [];
+    return;
+  }
+  if (isSheetActive()) {
+    renderSheet(chord, notesEl);
+    noteChipEls = [];
+    updateSheetHighlight(notesEl);
+  } else {
+    notesEl.innerHTML = chord.orderedNotes.map(pc =>
+      `<span class="note" data-pc="${pc}">${pitchClassToDisplay(pc)}</span>`
+    ).join('');
+    noteChipEls = Array.from(notesEl.querySelectorAll('.note'));
+    const heard = state.heardPitchClasses;
+    for (const el of noteChipEls) {
+      const pc = parseInt(el.dataset.pc, 10);
+      el.classList.toggle('heard', heard.has(pc));
+    }
+  }
+}
+
 export function displayChord(chord) {
   state.previousChord = state.currentChord;
   state.currentChord = chord;
@@ -214,14 +248,7 @@ export function displayChord(chord) {
 
   renderStage();
 
-  if (notesEl) {
-    notesEl.innerHTML = chord.orderedNotes.map(pc =>
-      `<span class="note" data-pc="${pc}">${pitchClassToDisplay(pc)}</span>`
-    ).join('');
-    noteChipEls = Array.from(notesEl.querySelectorAll('.note'));
-  } else {
-    noteChipEls = [];
-  }
+  renderNotesView();
 
   updatePianoHighlight();
   updateGuitarHighlight();
@@ -240,9 +267,13 @@ export function cheatCurrentChord() {
 export function applyHeardPitchClasses(stable) {
   state.heardPitchClasses = stable;
 
-  for (const el of noteChipEls) {
-    const pc = parseInt(el.dataset.pc, 10);
-    el.classList.toggle('heard', stable.has(pc));
+  if (isSheetActive()) {
+    updateSheetHighlight($('chordNotes'));
+  } else {
+    for (const el of noteChipEls) {
+      const pc = parseInt(el.dataset.pc, 10);
+      el.classList.toggle('heard', stable.has(pc));
+    }
   }
 
   const detected = $('detectedNotes');
