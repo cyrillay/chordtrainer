@@ -2666,15 +2666,14 @@ body.reward-shake {
 
 /* ---- Mobile perf & touch polish ---- */
 
-/* `background-attachment: fixed` forces a full-page repaint on scroll and
-   kills frame rates on mid-range phones. Fall back to a scrolling background
-   under 900px — visually indistinguishable but much cheaper. Theme overrides
-   below re-apply `fixed` with higher specificity, so they need their own
-   mobile reset (especially marble, which is a large PNG). */
+/* `background-attachment: fixed` on body forces full-document repaints on
+   scroll and kills frame rates on mid-range phones. Marble themes still rely
+   on it (single PNG, cheap to sample) — fall back to scrolling under 900px.
+   Boudoir/Urtext don't appear here anymore: their gradients moved to a
+   fixed `::after` pseudo with `translateZ(0)`, which gets its own compositor
+   layer and isn't affected by scroll. */
 @media (max-width: 900px) {
   body,
-  body[data-theme="urtext"],
-  body[data-theme="boudoir"],
   body[data-theme="marble"],
   body[data-theme="marble-musical"] {
     background-attachment: scroll;
@@ -2687,11 +2686,10 @@ body.reward-shake {
     opacity: 0;
     mix-blend-mode: normal;
   }
-  /* Boudoir: 8 stacked gradient layers (4 corners + curtain repeating pattern
-     + vertical fall) make every scroll tile expensive on mobile GPUs. Strip
-     down to just the warm pool + vertical fall — the look is preserved, the
-     painting cost drops dramatically. */
-  body[data-theme="boudoir"] {
+  /* Boudoir: even on the GPU-composited layer, 8 gradients are heavier to
+     rasterize once than 2. Strip to just the warm pool + vertical fall —
+     the look is preserved, the initial paint is cheaper. */
+  body[data-theme="boudoir"]::after {
     background-image:
       radial-gradient(ellipse 90% 55% at 50% -10%, rgba(200, 164, 100, 0.10), transparent 60%),
       linear-gradient(180deg,
@@ -2766,11 +2764,21 @@ body[data-theme="urtext"] {
   --crimson: #7a2828;
   --sage: #4a6b4a;
   --line: #c4b69a;
+  background: var(--ink);
+}
+/* Gradients live on a viewport-sized fixed pseudo with `translateZ(0)` so Chrome
+   promotes them to their own compositor layer. Scroll doesn't tile-rasterize the
+   gradient across the full document height — that was the source of mobile jank. */
+body[data-theme="urtext"]::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  transform: translateZ(0);
   background-image:
     radial-gradient(ellipse at 50% -10%, rgba(138, 106, 44, 0.10), transparent 60%),
     radial-gradient(ellipse at 50% 110%, rgba(26, 20, 16, 0.06), transparent 50%);
-  background-color: var(--ink);
-  background-attachment: fixed;
 }
 body[data-theme="urtext"]::before {
   opacity: 0.18;
@@ -2803,6 +2811,18 @@ body[data-theme="boudoir"] {
   --ink: #1a1410;
   --paper: #25201a;
   --line: #3a302a;
+  background: var(--ink);
+}
+/* Same trick as Urtext — gradients on a fixed, GPU-composited pseudo so the
+   8-layer stack is rasterized once at viewport size, not tiled across the
+   full body height on every scroll. */
+body[data-theme="boudoir"]::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  transform: translateZ(0);
   background-image:
     /* warm reading-lamp pool, top-center */
     radial-gradient(ellipse 90% 55% at 50% -10%, rgba(200, 164, 100, 0.10), transparent 60%),
@@ -2825,8 +2845,6 @@ body[data-theme="boudoir"] {
       rgba(0, 0, 0, 0) 0%,
       rgba(0, 0, 0, 0.10) 45%,
       rgba(0, 0, 0, 0.25) 100%);
-  background-color: var(--ink);
-  background-attachment: fixed;
 }
 
 /* — Marble — real black-marble photograph with gold veins. */
