@@ -21,6 +21,19 @@ function freqToPitchClass(freq) {
 let freqBuffer = null;
 let frameCounter = 0;
 
+// Skip the level-meter DOM write while the user is scrolling. The meter is the
+// only per-tick paint trigger (chord detection is pure JS; piano highlights
+// only fire on change). On Chrome mobile this style.width write inside an
+// active scroll frame produces visible jank; pausing it for ~150ms after each
+// scroll event removes the stutter without affecting detection.
+let scrollIdleTimer = null;
+let isScrolling = false;
+window.addEventListener('scroll', () => {
+  isScrolling = true;
+  clearTimeout(scrollIdleTimer);
+  scrollIdleTimer = setTimeout(() => { isScrolling = false; }, 150);
+}, { passive: true });
+
 // Returns one of:
 //   'ok'           — listening successfully
 //   'denied'       — permission denied (or dismissed); browser may have remembered it
@@ -102,8 +115,10 @@ function analyzeLoop() {
     if (freqBuffer[i] > maxDb) maxDb = freqBuffer[i];
   }
 
-  const level = Math.max(0, Math.min(100, (maxDb + 80) * 1.66));
-  $('meterFill').style.width = level + '%';
+  if (!isScrolling) {
+    const level = Math.max(0, Math.min(100, (maxDb + 80) * 1.66));
+    $('meterFill').style.width = level + '%';
+  }
 
   if (maxDb < sens.silenceGate) {
     state.heardHistory.push(new Set());
