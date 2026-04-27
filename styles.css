@@ -2680,6 +2680,25 @@ body.reward-shake {
     background-attachment: scroll;
     position: relative; /* positioning context for ::before */
   }
+  /* Urtext: the SVG turbulence grain blended with `mix-blend-mode: multiply`
+     across the full document height repaints every scroll tile — drop it on
+     mobile, the paper texture is barely noticeable on phone screens anyway. */
+  body[data-theme="urtext"]::before {
+    opacity: 0;
+    mix-blend-mode: normal;
+  }
+  /* Boudoir: 8 stacked gradient layers (4 corners + curtain repeating pattern
+     + vertical fall) make every scroll tile expensive on mobile GPUs. Strip
+     down to just the warm pool + vertical fall — the look is preserved, the
+     painting cost drops dramatically. */
+  body[data-theme="boudoir"] {
+    background-image:
+      radial-gradient(ellipse 90% 55% at 50% -10%, rgba(200, 164, 100, 0.10), transparent 60%),
+      linear-gradient(180deg,
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0.10) 45%,
+        rgba(0, 0, 0, 0.25) 100%);
+  }
   /* Keep the grain — it dithers the radial gradients and prevents banding on
      cheap 8-bit mobile displays. Switch from `fixed` to `absolute` so it doesn't
      force a repaint on every scroll frame. Cover the full document height so
