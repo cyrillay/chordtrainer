@@ -21,10 +21,13 @@ function updateInputModeButton() {
     midiBtn.setAttribute('aria-pressed', state.midiEnabled ? 'true' : 'false');
     midiBtn.title = state.midiEnabled ? 'Disconnect MIDI' : 'Connect MIDI';
   }
-  // CTA arrow: visible only when no input is active so a brand-new user who
-  // skipped the mic prompt during onboarding gets a clear nudge.
+  // CTA arrow: visible whenever no input is active so a brand-new user gets
+  // a clear nudge. Stays visible even when the "Mic blocked" help is showing
+  // — clicking the mic button re-triggers the browser's permission prompt,
+  // so the CTA still has a real action to invite.
   const noInput = !state.isListening && !state.midiEnabled;
   setDisplay('inputCta', noInput, 'flex');
+  if (micBtn) micBtn.classList.toggle('cta-pulse', noInput);
 }
 
 function refreshInputReadout() {

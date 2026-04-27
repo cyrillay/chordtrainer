@@ -34,11 +34,18 @@ function describeInputs(access) {
   return names.length === 0 ? 'No device' : names.join(' · ');
 }
 
+// Auto-dismiss error messages after 5s so they don't linger forever on mobile.
+function showTransient(text) {
+  const statusEl = $('midiStatus');
+  statusEl.textContent = text;
+  statusEl.style.display = 'block';
+  setTimeout(() => { statusEl.style.display = 'none'; }, 5000);
+}
+
 export async function startMidi() {
   const statusEl = $('midiStatus');
   if (!navigator.requestMIDIAccess) {
-    statusEl.textContent = 'Web MIDI not supported in this browser';
-    statusEl.style.display = 'block';
+    showTransient('Web MIDI not supported in this browser');
     return;
   }
   try {
@@ -63,8 +70,7 @@ export async function startMidi() {
     refreshHeardFromHeld();
   } catch (err) {
     console.error(err);
-    statusEl.textContent = 'MIDI access denied';
-    statusEl.style.display = 'block';
+    showTransient('MIDI access denied');
   }
 }
 

@@ -46,4 +46,5 @@ export const LS = {
   CUSTOM_PROGS: 'chordTrainer.customProgressions',
   ONBOARDED: 'chordTrainer.onboarded',
   INVERSION_FREQ: 'chordTrainer.inversionFrequency',
+  ACHIEVEMENTS: 'chordTrainer.achievements',
 };
