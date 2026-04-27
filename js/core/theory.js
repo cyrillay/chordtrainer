@@ -29,7 +29,10 @@ export function pitchClassToDisplay(pc) {
 // HTML rendering helpers for chord names — shared by chord display + generator.
 export function formatRootHtml(rootDisplay) {
   const match = rootDisplay.match(/^([A-G])([\u266F\u266D])$/);
-  if (match) return `${match[1]}<span class="accidental">${match[2]}</span>`;
+  if (match) {
+    const variant = match[2] === '\u266D' ? 'flat' : 'sharp';
+    return `${match[1]}<span class="accidental accidental-${variant}">${match[2]}</span>`;
+  }
   return rootDisplay;
 }
 

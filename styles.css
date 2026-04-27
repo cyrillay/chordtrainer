@@ -411,18 +411,62 @@ header {
 }
 
 .accidental {
-  margin-left: -0.15em;
+  margin-right: -0.05em;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
 }
 
-/* Firefox renders sharp/flat glyphs with tighter native kerning than WebKit,
-   so the negative margin above pulls them too close to the letter. Reset it
-   inside Firefox only via the @-moz-document scope. */
+/* Root accidentals — upright letter context. */
+.accidental-flat  { margin-left: -0.22em; }
+.accidental-sharp { margin-left: -0.04em; }
+
+/* Tighter ♭ specifically on the centered (main-current) carousel card.
+   The larger glyph at full scale leaves more visual whitespace on both sides,
+   so we pull it closer to the root letter and to the following suffix. */
+.chord-card.is-current .card-chord > .accidental-flat {
+  margin-left: -0.28em;
+  margin-right: -0.10em;
+}
+
+/* Bass note after the slash sits inside `.accent` (italic). The slant adds
+   optical space, so the accidental can pull tighter. */
+.accent .accidental-flat  { margin-left: -0.22em; }
+.accent .accidental-sharp { margin-left: -0.08em; }
+
+/* Side cards in the carousel — scaled-down, not interactive. Use the same
+   pull as the main current card (em-based, so the visual kerning scales
+   proportionally with the transform). */
+.chord-card:not(.is-current) .accidental-flat  { margin-left: -0.02em; }
+.chord-card:not(.is-current) .accidental-sharp { margin-left: 0; }
+.chord-card:not(.is-current) .accent .accidental-flat  { margin-left: -0.18em; }
+.chord-card:not(.is-current) .accent .accidental-sharp { margin-left: -0.04em; }
+
+/* Chord queue (progression display below the carousel) — Cormorant Garamond
+   at 2.1rem renders ♭ with more whitespace than the carousel font does, so
+   the root accidental needs a much looser pull than the baseline. Bass keeps
+   the italic `.accent` value. */
+.queue-item > span > .accidental-flat { margin-left: -0.06em; }
+
+/* Roots-grid checkboxes: keep "C♯ / D♭" on a single line and use slightly
+   looser kerning than the carousel. */
+.checkbox-item > span { white-space: nowrap; }
+.checkbox-item .accidental-flat  { margin-left: -0.18em; }
+.checkbox-item .accidental-sharp { margin-left: -0.06em; }
+
 @-moz-document url-prefix() {
-  .accidental { margin-left: 0; }
+  .accidental,
+  .accidental-flat,
+  .accidental-sharp,
+  .accent .accidental-flat,
+  .accent .accidental-sharp,
+  .chord-card:not(.is-current) .accidental-flat,
+  .chord-card:not(.is-current) .accidental-sharp,
+  .chord-card:not(.is-current) .accent .accidental-flat,
+  .chord-card:not(.is-current) .accent .accidental-sharp,
+  .checkbox-item .accidental-flat,
+  .checkbox-item .accidental-sharp { margin-left: 0; margin-right: 0; }
 }
 
 @media (max-width: 600px) {
-  .accidental { margin-left: 0; }
   .chord-stage {
     --base-size: clamp(3.4rem, 18vw, 6rem);
     --step: clamp(3.5rem, 26vw, 7rem);
