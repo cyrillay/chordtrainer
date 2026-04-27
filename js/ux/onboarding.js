@@ -52,6 +52,10 @@ export function startOnboarding() {
   // Position the card adjacent to the highlighted target instead of centered,
   // so the user's eye doesn't have to bounce between the spotlight and the
   // instructions. Falls back to centered (CSS flex) when there's no target.
+  //
+  // Crucially, if the card wouldn't fit below the target without overlapping,
+  // we scroll the page so the target sits near the top — that way the card
+  // always has room below and never covers the button it's pointing at.
   const placeCard = () => {
     if (!card) return;
     if (!activeTarget) {
@@ -61,7 +65,6 @@ export function startOnboarding() {
       card.style.margin = '';
       return;
     }
-    const target = activeTarget.getBoundingClientRect();
     // Reset before measuring so the card's natural width/height is used,
     // not the previous placement's clamped size.
     card.style.position = 'fixed';
@@ -72,14 +75,33 @@ export function startOnboarding() {
     const cardW = cardRect.width;
     const cardH = cardRect.height;
     const margin = 16;
+    // ringOffset = .onboard-target's outline-offset (8) + outline width (3) +
+    // glow halo (~6). ringGap is the visible empty space we want between the
+    // ring's outer edge and the card.
+    const ringOffset = 17;
+    const ringGap = 28;
+    const totalGap = ringOffset + ringGap;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
-    // Prefer below; fall back to above; final fallback clamps below the viewport edge.
-    let top = target.bottom + margin;
+    let target = activeTarget.getBoundingClientRect();
+
+    // Always scroll so the target sits near the top of the viewport — that
+    // way the card has the entire bottom of the viewport to live in, well
+    // below the highlighted ring. Skipped only when the target is already
+    // close to the top.
+    const wantedTargetTop = margin + 8;
+    if (target.top > wantedTargetTop + 8 || target.top < margin) {
+      window.scrollBy({ top: target.top - wantedTargetTop, behavior: 'auto' });
+      target = activeTarget.getBoundingClientRect();
+    }
+
+    let top = target.bottom + totalGap;
+    // Last-resort fallback: if even after scrolling the viewport is too short
+    // (e.g. tiny mobile landscape), prefer above the target rather than overlap.
     if (top + cardH > vh - margin) {
-      const aboveTop = target.top - margin - cardH;
-      top = aboveTop >= margin ? aboveTop : Math.max(margin, vh - margin - cardH);
+      const aboveTop = target.top - totalGap - cardH;
+      if (aboveTop >= margin) top = aboveTop;
     }
     let left = target.left + target.width / 2 - cardW / 2;
     left = Math.max(margin, Math.min(left, vw - margin - cardW));

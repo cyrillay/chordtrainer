@@ -9,6 +9,7 @@
 import { $, $$, setDisplay, checkedDataValues } from '../core/dom.js';
 import { LS } from '../core/constants.js';
 import { updateCircleHighlight } from '../instruments/circle.js';
+import { recordAction } from './achievements.js';
 
 const PRESETS = {
   firstTimer:   { qualities: ['maj'],                                                                roots: ['C', 'F', 'G'],           inversions: false, showFingerings: true, showCircle: false, showInstrument: true },
@@ -134,6 +135,10 @@ export function initPresets({ regenerate, applyInstrumentVisibility, refreshRoot
   });
 
   $$('.preset-btn').forEach(btn => {
-    btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.preset;
+      if (name === 'expert') recordAction('expertOpen');
+      applyPreset(name);
+    });
   });
 }

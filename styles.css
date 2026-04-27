@@ -14,11 +14,13 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* Shrink the desktop layout 20% by scaling the rem base — clean cascade since
-   nearly every size in this stylesheet is in rem. Mobile keeps the default
-   16px so touch targets and readable text don't get sub-44px. */
+/* Desktop sizing: rem base bumped slightly + a 0.9 zoom on top, which together
+   reproduce the look of "85% rem + browser cmd+- (90%)". Using `zoom` rather
+   than `transform: scale` keeps layout flow intact (no compensation hacks).
+   Supported in Chromium/Safari for years and in Firefox since 126.
+   Mobile keeps the default 16px so touch targets stay above 44px. */
 @media (min-width: 900px) {
-  html { font-size: 80%; }
+  html { font-size: 85%; zoom: 0.9; }
 }
 
 html, body {
@@ -105,8 +107,8 @@ header {
   display: inline-flex;
   border: 1px solid var(--gold);
   border-radius: 3px;
-  overflow: hidden;
   background: rgba(0, 0, 0, 0.15);
+  position: relative;
 }
 
 .input-mode-btn {
@@ -150,30 +152,64 @@ header {
   pointer-events: none;
 }
 
+/* CTA sits to the LEFT of the mic button: the arrow body lies horizontally
+   along the left edge of the input-selector, pointing right at the mic
+   button. Text label is to the left of the arrow. */
 .input-cta {
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-right: 0.5rem;
   display: flex;
+  flex-direction: row;
   align-items: center;
-  justify-content: flex-end;
-  gap: 0.4rem;
+  gap: 0.45rem;
   font-family: var(--font-display);
-  font-size: 0.65rem;
-  letter-spacing: 0.2em;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--gold);
+  color: var(--gold-bright, #e4c584);
   pointer-events: none;
   white-space: nowrap;
+  text-shadow: 0 0 10px rgba(228, 197, 132, 0.35);
+}
+
+.input-cta-text strong {
+  color: var(--gold-bright, #e4c584);
+  font-weight: 700;
+  letter-spacing: 0.2em;
 }
 
 .input-cta-arrow {
-  font-size: 1.1rem;
-  line-height: 1;
-  display: inline-block;
-  animation: input-cta-pulse 1.4s ease-in-out infinite;
+  display: block;
+  animation: input-cta-nudge 1.6s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px rgba(228, 197, 132, 0.45));
 }
 
-@keyframes input-cta-pulse {
-  0%, 100% { transform: translateY(-1px); }
-  50% { transform: translateY(3px); }
+@keyframes input-cta-nudge {
+  0%, 100% { transform: translateX(-2px); opacity: 0.85; }
+  50%      { transform: translateX(2px);  opacity: 1; }
+}
+
+/* On narrow viewports (iPhone SE etc.) the "Tap Mic to start" text would
+   overflow off the left edge — drop the text and let the arrow + the mic
+   button glow carry the message. */
+@media (max-width: 600px) {
+  .input-cta-text { display: none; }
+  .input-cta { margin-right: 0.3rem; gap: 0; }
+}
+
+/* Pulse the mic button itself while no input is active — the CTA arrow points
+   here, this glow confirms it. Disabled the moment the user activates input. */
+.input-mode-btn.cta-pulse {
+  animation: input-mic-glow 2.2s ease-in-out infinite;
+  color: var(--gold);
+}
+
+@keyframes input-mic-glow {
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(228, 197, 132, 0.12), 0 0 0 0 rgba(228, 197, 132, 0); }
+  50%      { box-shadow: inset 0 0 0 1px rgba(228, 197, 132, 0.45), 0 0 14px 1px rgba(228, 197, 132, 0.45); }
 }
 
 .input-help {
@@ -397,6 +433,77 @@ header {
 
 .checkbox-item.sub-option {
   font-size: 0.95rem;
+}
+
+/* Inline help bubble — a small "?" next to an option that reveals a tooltip
+   on hover/focus. Uses absolute positioning so it doesn't reflow surrounding
+   text, and sits above other UI thanks to a high z-index. */
+.info-tip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.35rem;
+  cursor: help;
+  outline: none;
+}
+.info-tip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 50%;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.info-tip:hover .info-tip-icon,
+.info-tip:focus .info-tip-icon {
+  opacity: 1;
+  color: var(--gold-bright, #e4c584);
+  border-color: var(--gold-bright, #e4c584);
+}
+.info-tip-bubble {
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  width: max-content;
+  max-width: 280px;
+  padding: 0.55rem 0.75rem;
+  background: rgba(20, 18, 16, 0.97);
+  border: 1px solid rgba(228, 197, 132, 0.35);
+  border-radius: 4px;
+  color: var(--ivory);
+  font-family: var(--font-display, serif);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-transform: none;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  z-index: 1000;
+}
+.info-tip:hover .info-tip-bubble,
+.info-tip:focus .info-tip-bubble {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.info-tip-bubble::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(228, 197, 132, 0.35);
 }
 
 .inline-option-label {
@@ -756,6 +863,7 @@ header {
   max-width: 220px;
   line-height: 1.4;
 }
+
 
 button {
   font-family: 'Cormorant Garamond', serif;
@@ -1644,7 +1752,10 @@ footer em {
 
 @media (max-width: 600px) {
   .controls { grid-template-columns: 1fr; }
-  header { flex-direction: column; gap: 0.5rem; align-items: flex-start; }
+  /* `align-items: stretch` lets `.header-right` span full width so its own
+     `align-items: flex-end` actually pushes mic/midi/achievements to the right
+     edge instead of pinning them under the wordmark on the left. */
+  header { flex-direction: column; gap: 0.5rem; align-items: stretch; }
   .piano { height: 140px; }
   .black-keys { height: 85px; }
   .chord-queue { gap: 0.6rem; padding: 0.6rem 0.5rem; }
@@ -1990,16 +2101,19 @@ footer em {
   pointer-events: auto;
 }
 
-/* When the overlay highlights an element, that element gets a ring. */
+/* When the overlay highlights an element, that element gets a ring with
+   visible breathing room (outline + offset) so the gold frame doesn't crush
+   the highlighted control. The dark cutout still hugs the element. */
 .onboard-target {
   position: relative;
   z-index: 3001;
+  outline: 3px solid var(--gold);
+  outline-offset: 8px;
   box-shadow:
-    0 0 0 4px var(--gold),
-    0 0 30px rgba(228, 197, 132, 0.5),
+    0 0 32px 6px rgba(228, 197, 132, 0.5),
     0 0 0 9999px rgba(10, 9, 8, 0.78);
   border-radius: 4px;
-  transition: box-shadow 0.3s ease;
+  transition: outline-offset 0.3s ease, box-shadow 0.3s ease;
 }
 
 .onboard-overlay.has-target {
@@ -2139,7 +2253,7 @@ footer em {
   padding: 0 0.1rem;
 }
 
-.prog-modal-close:hover { color: var(--gold); }
+.prog-modal-close:hover { color: var(--gold-bright); }
 
 .prog-modal-toolbar {
   display: flex;
@@ -2727,5 +2841,366 @@ body[data-theme="marble-musical"] {
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
+}
+
+/* ---- Achievements ---- */
+
+.ach-btn {
+  background: none;
+  border: 1px solid var(--line);
+  color: var(--ivory-dim);
+  cursor: pointer;
+  padding: 0.32rem 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 3px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.ach-btn:hover { color: var(--gold-bright); border-color: var(--gold-bright); }
+
+.ach-btn-label {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.ach-count {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--ivory-dim);
+  margin-left: 0.5rem;
+  font-weight: 400;
+}
+
+.ach-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.6rem;
+  padding: 0.5rem 1.2rem 1rem;
+}
+
+/* Section grouping (Common / Rare / Ultra-rare) */
+.ach-section + .ach-section {
+  border-top: 1px solid var(--line);
+  margin-top: 0.4rem;
+}
+
+.ach-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0.9rem 1.2rem 0.15rem;
+}
+
+.ach-section-label {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+}
+
+.ach-section-secret .ach-section-label { color: var(--gold); }
+.ach-section-ultra  .ach-section-label {
+  background: linear-gradient(90deg, var(--gold-bright), #fff, var(--gold-bright));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+
+.ach-section-count {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--ivory-dim);
+  letter-spacing: 0.06em;
+}
+
+.ach-section-blurb {
+  padding: 0 1.2rem 0.4rem;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 0.78rem;
+  color: var(--ivory-dim);
+  opacity: 0.7;
+  line-height: 1.3;
+}
+
+/* Sections list: stacked vertically (one column always). The wrapping into
+   multiple per-row tiles happens inside each section's own .ach-grid. */
+.ach-sections { display: block; }
+
+.ach-tile {
+  display: flex;
+  gap: 0.7rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: rgba(200, 164, 100, 0.02);
+  align-items: center;
+}
+
+.ach-tile { position: relative; overflow: hidden; }
+
+.ach-tile-locked { opacity: 0.45; }
+.ach-tile-locked .ach-tile-icon { filter: grayscale(1); }
+
+/* Secret (rare) — slight gold tint, opacity nudged up so it's enticing
+   rather than dismissed. Light pulse on the icon to hint at the mystery. */
+.ach-tile-secret {
+  opacity: 0.75;
+  border-color: rgba(200, 164, 100, 0.25);
+  background: linear-gradient(135deg, rgba(200, 164, 100, 0.04), rgba(200, 164, 100, 0.01));
+}
+.ach-tile-secret .ach-tile-icon {
+  font-family: var(--font-mono);
+  color: var(--gold);
+  font-weight: 600;
+  filter: none;
+  text-shadow: 0 0 8px rgba(200, 164, 100, 0.3);
+  animation: secretPulse 3.2s ease-in-out infinite;
+}
+@keyframes secretPulse {
+  0%, 100% { opacity: 0.7; text-shadow: 0 0 8px rgba(200, 164, 100, 0.3); }
+  50%      { opacity: 1;   text-shadow: 0 0 14px rgba(200, 164, 100, 0.55); }
+}
+.ach-tile-secret .ach-tile-name {
+  font-style: italic;
+  color: var(--ivory-dim);
+  letter-spacing: 0.15em;
+}
+.ach-tile-secret .ach-tile-desc {
+  font-style: italic;
+  color: var(--gold);
+  opacity: 0.75;
+}
+
+/* Ultra-rare locked — deep aurora gradient, brighter shimmer, lock icon.
+   Higher opacity than secrets so it visibly stands out as the prized tier.
+   No name/desc revealed; the only honest signal is "Ultra-rare" + a lock. */
+.ach-tile-ultra {
+  opacity: 0.92;
+  border-color: rgba(228, 197, 132, 0.45);
+  background:
+    linear-gradient(135deg,
+      rgba(228, 197, 132, 0.10) 0%,
+      rgba(160, 59, 59, 0.06) 50%,
+      rgba(107, 142, 107, 0.08) 100%),
+    rgba(10, 9, 8, 0.7);
+  box-shadow: inset 0 0 20px rgba(228, 197, 132, 0.06);
+}
+.ach-tile-ultra .ach-tile-icon {
+  filter: none;
+  color: var(--gold-bright);
+  text-shadow: 0 0 14px rgba(228, 197, 132, 0.5);
+  animation: ultraFloat 3.2s ease-in-out infinite;
+}
+.ach-tile-ultra .ach-tile-name {
+  font-family: 'Cormorant Garamond', serif;
+  color: var(--ivory-dim);
+}
+.ach-tile-ultra .ach-tile-desc {
+  font-style: italic;
+  color: var(--gold);
+  opacity: 0.85;
+}
+.ach-tile-tag {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 0.55rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  background: linear-gradient(90deg, var(--gold-bright), #fff, var(--gold-bright));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3.5s linear infinite;
+  margin-bottom: 0.15rem;
+}
+
+@keyframes ultraFloat {
+  0%, 100% { transform: translateY(0)    rotate(0);     }
+  50%      { transform: translateY(-2px) rotate(-2deg); }
+}
+
+/* Sweep shimmer overlay used by both secret and ultra locked tiles */
+.ach-tile-shimmer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(228, 197, 132, 0.10) 48%,
+    rgba(255, 255, 255, 0.18) 50%,
+    rgba(228, 197, 132, 0.10) 52%,
+    transparent 70%
+  );
+  background-size: 250% 100%;
+  background-position: 100% 0;
+  animation: tileShimmer 4.5s ease-in-out infinite;
+  mix-blend-mode: screen;
+}
+.ach-tile-ultra .ach-tile-shimmer { animation-duration: 3.2s; opacity: 1.2; }
+
+@keyframes tileShimmer {
+  0%        { background-position: 120% 0; }
+  60%, 100% { background-position: -40% 0; }
+}
+
+.ach-tile-unlocked {
+  border-color: rgba(200, 164, 100, 0.4);
+  background: rgba(200, 164, 100, 0.06);
+}
+
+.ach-tile-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 1.8rem;
+  text-align: center;
+}
+
+.ach-tile-body { flex: 1; min-width: 0; }
+
+.ach-tile-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  color: var(--ivory);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.ach-tile-desc {
+  font-size: 0.72rem;
+  color: var(--ivory-dim);
+  margin-top: 0.15rem;
+  line-height: 1.3;
+}
+
+.ach-tile-progress {
+  margin-top: 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ach-tile-bar {
+  flex: 1;
+  height: 3px;
+  background: var(--line);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.ach-tile-fill {
+  height: 100%;
+  background: var(--gold);
+  transition: width 0.4s ease;
+}
+
+.ach-tile-progress-text {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--ivory-dim);
+  letter-spacing: 0.04em;
+}
+
+.ach-mystery {
+  text-align: center;
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--ivory-dim);
+  padding: 0.8rem 1.2rem 1rem;
+  border-top: 1px solid var(--line);
+  opacity: 0.7;
+}
+
+.ach-modal-footer {
+  padding: 0.7rem 1.2rem;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.ach-reset-btn {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  padding: 0.32rem 0.8rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ivory-dim);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.ach-reset-btn:hover {
+  color: var(--crimson);
+  border-color: var(--crimson);
+}
+
+.ach-reset-btn.armed {
+  color: var(--ink);
+  background: var(--crimson);
+  border-color: var(--crimson);
+  font-weight: 500;
+}
+
+/* ---- Achievement unlock toast ---- */
+
+.ach-toast {
+  position: fixed;
+  top: 1.2rem;
+  right: 1.2rem;
+  z-index: 2100;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.7rem 1rem;
+  background: var(--ink);
+  border: 1px solid rgba(200, 164, 100, 0.45);
+  border-radius: 6px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6), 0 0 18px rgba(200, 164, 100, 0.12);
+  opacity: 0;
+  transform: translateY(-12px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  pointer-events: none;
+  max-width: 320px;
+}
+
+.ach-toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.ach-toast-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 8px rgba(228, 197, 132, 0.5));
+}
+
+.ach-toast-tier {
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.ach-toast-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.05rem;
+  font-style: italic;
+  color: var(--ivory);
+  line-height: 1.2;
 }
 

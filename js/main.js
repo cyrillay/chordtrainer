@@ -17,6 +17,7 @@ import { buildCircle, updateCircleHighlight } from './instruments/circle.js';
 import { buildGuitar, updateGuitarHighlight, cycleVoicing, updateAltVoicingButton } from './instruments/guitar.js';
 import { initProgressionModal } from './training/progressionManager.js';
 import { initRewards, setRewardsEnabled, isRewardsEnabled } from './ux/rewards.js';
+import { initAchievements, recordAction } from './ux/achievements.js';
 import { bindInputMode, autoStartMicrophone } from './ux/inputMode.js';
 import { initPresets, refreshActivePreset, syncInversionFreqVisibility } from './ux/presets.js';
 import { startOnboarding } from './ux/onboarding.js';
@@ -117,8 +118,12 @@ bpmSlider.addEventListener('input', () => {
 });
 
 $('dynamicStartBtn').addEventListener('click', () => {
-  if (state.dynamic.running) stopDynamic();
-  else startDynamic();
+  if (state.dynamic.running) {
+    stopDynamic();
+  } else {
+    startDynamic();
+    recordAction('metroStart');
+  }
 });
 
 $('muteMetronomeCb').addEventListener('change', (e) => setMetronomeMuted(e.target.checked));
@@ -179,7 +184,10 @@ const CHECKBOX_HANDLERS = {
     if (cb.checked) updateCircleHighlight();
   },
   inversionsCb:     ()   => { syncInversionFreqVisibility(); refreshActivePreset(); regenerate(); },
-  showFingeringsCb: ()   => applyInstrumentVisibility(),
+  showFingeringsCb: (cb) => {
+    applyInstrumentVisibility();
+    if (!cb.checked) recordAction('fingeringsOff');
+  },
 };
 
 function handleProgressionsToggle(on) {
@@ -245,6 +253,7 @@ $('advancedBtn').addEventListener('click', () => {
 // ---- Init ----
 
 initRewards();
+initAchievements();
 const rewardsCb = $('rewardsCb');
 if (rewardsCb) rewardsCb.checked = isRewardsEnabled();
 
