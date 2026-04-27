@@ -251,6 +251,15 @@ export class ProgressionStream {
   }
   setCycles(n) { this.targetCycles = n; }
 
+  // Move the cursor so the next next() call returns token i. Used when the
+  // user clicks a chord in the "Coming up" panel to jump within the
+  // current progression.
+  setPosition(i) {
+    if (i < 0) i = 0;
+    if (i > this.currentProgression.tokens.length) i = this.currentProgression.tokens.length;
+    this.position = i;
+  }
+
   advanceProgression() {
     this.position = 0;
     this.currentCycle = 0;

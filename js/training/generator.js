@@ -8,6 +8,7 @@ import { CHORD_FORMULAS, NOTE_DISPLAY, buildChord, formatChordHtml, pickInversio
 import { ProgressionStream, romanToChord } from './progressions.js';
 import { getActiveProgressions } from './progressionManager.js';
 import { QUEUE_SIZE } from '../core/constants.js';
+import { renderStage, displayChord } from '../instruments/chordDisplay.js';
 import { $, checkedDataValues } from '../core/dom.js';
 
 const progressionStream = new ProgressionStream();
@@ -55,7 +56,9 @@ function generateRandomFreeChord(avoidSymbols) {
   const roots = getEnabledRoots();
 
   if (qualities.length === 0 || roots.length === 0) {
-    $('chordDisplay').textContent = '—';
+    const cd = $('chordDisplay');
+    const inner = cd && cd.querySelector('.card-chord');
+    if (inner) inner.textContent = '—';
     $('status').textContent = 'Select at least one root and quality';
     return null;
   }
@@ -92,9 +95,14 @@ export function fillQueue() {
     if (!chord) break;
     state.chordQueue.push(chord);
   }
+  renderStage();
   renderQueue();
 }
 
+// "Coming up" panel below the main stage. The stage itself only shows prev
+// + current + next; this panel gives the broader context — the full
+// progression with all its degrees in progression mode, or the queue of
+// upcoming random chords.
 export function renderQueue() {
   const container = $('chordQueue');
   const items = $('queueItems');
@@ -103,7 +111,6 @@ export function renderQueue() {
 
   const meta = state.currentChord && state.currentChord.meta;
 
-  // Progression mode: show the full progression with all degrees + chords.
   if (meta) {
     container.classList.add('active');
     const keyDisp = NOTE_DISPLAY[meta.key] || meta.key;
@@ -119,15 +126,15 @@ export function renderQueue() {
       const inv = (meta.inversions && meta.inversions[i]) || 0;
       const chord = romanToChord(token, meta.key, inv);
       const cls = i === meta.position ? 'queue-item current' : 'queue-item dimmed';
-      return `<div class="${cls}">
+      return `<div class="${cls}" data-queue-idx="${i}">
         <span class="queue-degree">${token}</span>
         <span>${chord ? formatChordHtml(chord) : token}</span>
       </div>`;
     }).join('');
+    bindQueueClicks(items);
     return;
   }
 
-  // Random mode: show queued chords without degrees.
   if (progHeader) progHeader.style.display = 'none';
 
   if (state.chordQueue.length === 0) {
@@ -136,11 +143,55 @@ export function renderQueue() {
   }
 
   container.classList.add('active');
-  items.innerHTML = state.chordQueue.map((chord) => {
-    return `<div class="queue-item">
+  items.innerHTML = state.chordQueue.map((chord, i) => {
+    return `<div class="queue-item" data-queue-idx="${i}">
       <span>${formatChordHtml(chord)}</span>
     </div>`;
   }).join('');
+  bindQueueClicks(items);
+}
+
+// Wire one click listener on the queue container — replaces any prior
+// handler so we don't accumulate listeners across renders.
+function bindQueueClicks(items) {
+  items.onclick = (e) => {
+    const item = e.target.closest('.queue-item');
+    if (!item || !items.contains(item)) return;
+    const idx = parseInt(item.dataset.queueIdx, 10);
+    if (!isNaN(idx)) jumpToQueueIndex(idx);
+  };
+}
+
+// Jump to a specific position in the "Coming up" panel.
+//   - Progression mode: the panel shows all tokens, so idx is absolute and
+//     can move forward OR backward within the progression.
+//   - Random mode: the panel only shows upcoming chords, so idx is forward-
+//     only — clicking item N consumes 0..N from the queue.
+export function jumpToQueueIndex(idx) {
+  const meta = state.currentChord && state.currentChord.meta;
+  if (meta) {
+    if (idx === meta.position || idx < 0 || idx >= meta.tokens.length) return;
+    const inv = (meta.inversions && meta.inversions[idx]) || 0;
+    const chord = romanToChord(meta.tokens[idx], meta.key, inv);
+    if (!chord) return;
+    chord.meta = {
+      ...meta,
+      token: meta.tokens[idx],
+      position: idx
+    };
+    // Keep the stream in sync so subsequent advances continue from idx+1.
+    progressionStream.setPosition(idx + 1);
+    state.chordQueue = [];
+    displayChord(chord);
+    fillQueue();
+    return;
+  }
+
+  if (idx < 0 || idx >= state.chordQueue.length) return;
+  const target = state.chordQueue[idx];
+  state.chordQueue.splice(0, idx + 1);
+  displayChord(target);
+  fillQueue();
 }
 
 export function advanceToNextChord(displayChord) {

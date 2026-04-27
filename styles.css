@@ -257,7 +257,7 @@ header {
 }
 
 .label {
-  font-family: var(--font-display);
+  font-family: var(--font-display, serif);
   font-size: 0.65rem;
   letter-spacing: 0.35em;
   text-transform: uppercase;
@@ -265,57 +265,146 @@ header {
   margin-bottom: 1rem;
 }
 
-.chord-row {
+/* ── Chord stage ────────────────────────────────────────────────────────────
+   The "vanishing point" chord viewport: the current chord sits at center,
+   full size; the previous one shrinks to the left, dimmed and blurred; the
+   upcoming chords recede to the right in an exponential falloff so even a
+   7-token progression fits without crowding. Cards are absolutely positioned
+   at left:50%/top:50% and translated by --xmult * --step, then scaled by
+   --scale, with --opacity and --blur per slot. JS sets these CSS vars; CSS
+   handles the smooth transitions. */
+.chord-stage {
   position: relative;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: clamp(2rem, 6vw, 4.5rem);
-  flex-wrap: nowrap;
-}
-
-.chord-col {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 0;
+  width: 100%;
+  --base-size: clamp(4.5rem, 13vw, 10.5rem);
+  --step: clamp(6rem, 22vw, 14rem);
 }
 
-.chord-col-next .label {
-  margin-bottom: 0.5rem;
+.stage-header {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(0.85rem, 1.3vw, 1rem);
+  letter-spacing: 0.02em;
+  color: var(--ivory-dim);
+  margin-bottom: clamp(0.4rem, 1.2vw, 0.9rem);
+  min-height: 1.2em;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.4s ease;
 }
 
-.chord-col-current .chord-display {
-  margin: 0;
-}
+.stage-header.visible { opacity: 0.9; }
 
-.label-degree {
-  color: var(--gold);
+.stage-header em {
   font-style: italic;
+  color: var(--ivory);
 }
 
-.chord-sep {
-  align-self: stretch;
-  width: 1px;
-  background: var(--line);
-  margin: 1.2rem 0 2rem;
-  flex-shrink: 0;
+.stage-header .stage-header-cycle {
+  color: var(--ivory-dim);
+  opacity: 0.7;
+  margin-left: 0.4em;
 }
 
-.chord-row:has(.chord-display-next:empty) .chord-sep,
-.chord-row:has(.chord-display-next:empty) .chord-col-next {
-  display: none;
+.stage-track {
+  position: relative;
+  width: 100%;
+  font-size: var(--base-size);
+  line-height: 0.9;
+  height: 1.18em;
+  margin: 0 auto 0.6rem;
+  perspective: 1200px;
+  transform-style: preserve-3d;
 }
 
-.chord-display {
+.chord-card {
+  /* Defaults for the slot-driven custom props — JS overrides these via
+     setProperty() per slot. Declaring them here also lets static analyzers
+     (IDE linters) resolve the var() references below. */
+  --xmult: 0;
+  --scale: 1;
+  --opacity: 1;
+  --blur: 0px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  white-space: nowrap;
+  font-size: 1em;
+  transform-origin: center center;
+  transform:
+    translate(-50%, -50%)
+    translateX(calc(var(--step) * var(--xmult)))
+    scale(var(--scale));
+  opacity: var(--opacity);
+  filter: blur(var(--blur));
+  transition:
+    transform 0.55s cubic-bezier(0.22, 1.05, 0.36, 1),
+    opacity 0.45s ease,
+    filter 0.45s ease;
+  pointer-events: none;
+  will-change: transform, opacity, filter;
+}
+
+.chord-card .card-chord {
   font-family: 'Cormorant Garamond', serif;
   font-weight: 300;
-  font-size: clamp(5rem, 14vw, 11rem);
+  font-size: 1em;
   line-height: 0.9;
   letter-spacing: -0.02em;
-  margin: 0.5rem 0;
-  min-height: 1em;
-  transition: color 0.3s ease;
+  color: var(--ivory);
+  transition: color 0.3s ease, text-shadow 0.4s ease;
+}
+
+.chord-card .card-chord .accent {
+  color: var(--gold);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.chord-card .card-degree {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 0.16em;
+  letter-spacing: 0.04em;
+  color: var(--gold);
+  opacity: 0.55;
+  margin-top: 0.4em;
+  transition: opacity 0.3s ease;
+}
+
+.chord-card.is-current .card-degree {
+  opacity: 0.95;
+}
+
+/* Soft halo behind the current chord so long names (F#M7/F#) visually
+   occlude the prev/next cards instead of bleeding into them. Built from
+   --ink (the actual body background) so it blends seamlessly across
+   themes — using --paper would show a darker patch on light themes. */
+.chord-card.is-current::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 115%;
+  height: 125%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(ellipse at center,
+    var(--ink) 12%,
+    color-mix(in srgb, var(--ink) 85%, transparent) 32%,
+    color-mix(in srgb, var(--ink) 45%, transparent) 60%,
+    transparent 100%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Side cards inherit the gold accent but tone it down a touch. */
+.chord-card:not(.is-current) .card-chord .accent {
+  opacity: 0.85;
 }
 
 .accidental {
@@ -323,31 +412,12 @@ header {
 }
 
 @media (max-width: 600px) {
-  .accidental {
-    margin-left: 0;
+  .accidental { margin-left: 0; }
+  .chord-stage {
+    --base-size: clamp(3.4rem, 18vw, 6rem);
+    --step: clamp(3.5rem, 26vw, 7rem);
   }
-}
-
-.chord-display .accent {
-  color: var(--gold);
-  font-style: italic;
-  font-weight: 400;
-}
-
-/* Upcoming chord shown alongside the current one, visibly secondary. */
-.chord-display-next {
-  opacity: 0.28;
-  font-size: clamp(3rem, 9vw, 7rem);
-  line-height: 0.9;
-  transition: opacity 0.3s ease;
-}
-
-.chord-display-next:empty {
-  display: none;
-}
-
-.chord-display-next .accent {
-  color: var(--gold);
+  .stage-header { font-size: 0.7rem; margin-bottom: 0.3rem; }
 }
 
 /* Success: the chord briefly glows in bright gold. */
@@ -357,11 +427,11 @@ header {
   100% { text-shadow: 0 0 0 transparent; color: inherit; }
 }
 
-.chord-display.flash-success {
+.chord-card.flash-success .card-chord {
   animation: flashSuccess 0.9s ease-in-out;
 }
 
-.chord-display.flash-success .accent {
+.chord-card.flash-success .card-chord .accent {
   color: var(--gold-bright);
 }
 
@@ -378,6 +448,7 @@ header {
   line-height: 1;
   opacity: 0;
   pointer-events: none;
+  z-index: 20;
 }
 
 @keyframes successBurst {
@@ -407,12 +478,6 @@ header {
   0%   { opacity: 0; }
   30%  { opacity: 1; }
   100% { opacity: 0; }
-}
-
-@media (max-width: 600px) {
-  .chord-row { gap: clamp(1rem, 3vw, 2rem); }
-  .chord-col-next .label { margin-bottom: 0.25rem; font-size: 0.55rem; }
-  .chord-display-next { font-size: clamp(2rem, 7vw, 4.5rem); }
 }
 
 .chord-notes {
@@ -1166,13 +1231,25 @@ button:disabled {
   color: var(--ivory-dim);
   letter-spacing: -0.01em;
   line-height: 1;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.3s ease, color 0.2s ease, transform 0.2s ease;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0.25rem;
   min-width: 0;
   flex-shrink: 1;
+  cursor: pointer;
+}
+
+.queue-item:hover {
+  opacity: 1;
+  color: var(--ivory);
+  transform: translateY(-2px);
+}
+
+.queue-item:hover .queue-degree {
+  opacity: 1;
+  color: var(--gold-bright);
 }
 
 .queue-item .accent {
@@ -1192,6 +1269,14 @@ button:disabled {
 
 .queue-item.dimmed {
   opacity: 0.45;
+}
+
+.queue-item.current {
+  cursor: default;
+}
+
+.queue-item.current:hover {
+  transform: none;
 }
 
 .queue-item.current .queue-degree {
@@ -1758,7 +1843,7 @@ footer em {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.chord-display, .chord-notes { animation: fadeInUp 0.4s ease; }
+.chord-notes { animation: fadeInUp 0.4s ease; }
 
 @media (max-width: 600px) {
   .controls { grid-template-columns: 1fr; }
@@ -2788,8 +2873,7 @@ body[data-theme="urtext"]::before {
    But the rgba(255,255,255,X) lighten gradients vanish — replace those
    spots with a faint warm-paper tint via a sibling override. */
 body[data-theme="urtext"] .piano-wrap,
-body[data-theme="urtext"] .guitar-wrap,
-body[data-theme="urtext"] .chord-queue {
+body[data-theme="urtext"] .guitar-wrap {
   background: rgba(26, 20, 16, 0.04);
 }
 /* Guitar dot strokes/labels reference --ink (the page background colour,

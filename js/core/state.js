@@ -1,6 +1,7 @@
 // Shared mutable state for the app.
 export const state = {
   currentChord: null,
+  previousChord: null,
   chordQueue: [],
   audioContext: null,
   analyser: null,
