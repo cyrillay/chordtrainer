@@ -11,7 +11,7 @@
 // per-element flip — we don't re-render the chips on every detection update.
 
 import { state } from '../core/state.js';
-import { pitchClassToDisplay, formatChordHtml, NOTE_DISPLAY } from '../core/theory.js';
+import { pitchClassToDisplay, formatChordHtml, spellChordTones, NOTE_DISPLAY } from '../core/theory.js';
 import { romanToChord } from '../training/progressions.js';
 import { advanceToNextChord } from '../training/generator.js';
 import { updatePianoHighlight } from './piano.js';
@@ -215,8 +215,9 @@ export function renderNotesView() {
     noteChipEls = [];
     updateSheetHighlight(notesEl);
   } else {
-    notesEl.innerHTML = chord.orderedNotes.map(pc =>
-      `<span class="note" data-pc="${pc}">${pitchClassToDisplay(pc)}</span>`
+    const tones = spellChordTones(chord);
+    notesEl.innerHTML = chord.orderedNotes.map((pc, i) =>
+      `<span class="note" data-pc="${pc}">${tones[i].display}</span>`
     ).join('');
     noteChipEls = Array.from(notesEl.querySelectorAll('.note'));
     const heard = state.heardPitchClasses;

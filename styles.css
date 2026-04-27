@@ -435,16 +435,14 @@ header {
 /* Side cards in the carousel — scaled-down, not interactive. Use the same
    pull as the main current card (em-based, so the visual kerning scales
    proportionally with the transform). */
-.chord-card:not(.is-current) .accidental-flat  { margin-left: -0.02em; }
-.chord-card:not(.is-current) .accidental-sharp { margin-left: 0; }
-.chord-card:not(.is-current) .accent .accidental-flat  { margin-left: -0.18em; }
+.chord-card:not(.is-current) .accidental-flat  { margin-left: -0.28em; }
+.chord-card:not(.is-current) .accidental-sharp { margin-left: -0.04em; }
+.chord-card:not(.is-current) .accent .accidental-flat  { margin-left: -0.22em; }
 .chord-card:not(.is-current) .accent .accidental-sharp { margin-left: -0.04em; }
 
-/* Chord queue (progression display below the carousel) — Cormorant Garamond
-   at 2.1rem renders ♭ with more whitespace than the carousel font does, so
-   the root accidental needs a much looser pull than the baseline. Bass keeps
-   the italic `.accent` value. */
-.queue-item > span > .accidental-flat { margin-left: -0.06em; }
+/* Chord queue (progression display below the carousel) — match the tight
+   pull used on the current carousel card so ♭ sits flush to the letter. */
+.queue-item > span > .accidental-flat { margin-left: -0.28em; }
 
 /* Roots-grid checkboxes: keep "C♯ / D♭" on a single line and use slightly
    looser kerning than the carousel. */
@@ -579,7 +577,10 @@ header {
 .staff-svg .clef {
   fill: var(--gold);
   font-family: 'Bravura', 'Noto Music', 'Segoe UI Symbol', 'Apple Symbols', serif;
+  font-weight: 100;
   dominant-baseline: alphabetic;
+  opacity: 0.95;
+  filter: url(#clef-thin);
 }
 .staff-svg .accidental {
   fill: var(--ivory);
@@ -1317,6 +1318,7 @@ button:disabled {
 
 .queue-item {
   font-family: 'Cormorant Garamond', serif;
+  font-weight: 300;
   font-size: 2.1rem;
   color: var(--ivory-dim);
   letter-spacing: -0.01em;
@@ -2958,6 +2960,19 @@ body[data-theme="urtext"]::after {
 body[data-theme="urtext"]::before {
   opacity: 0.18;
   mix-blend-mode: multiply;
+}
+/* The current-chord halo uses --ink as a solid center to occlude prev/next
+   cards on dark themes — they share the same near-black, so the halo blends
+   in. On urtext the paper texture (body::before, multiply) shows through
+   everywhere except over the halo, leaving the halo as a visible cream patch.
+   Replace the colour fill with a backdrop blur masked by the same elliptical
+   shape: the texture stays continuous while prev/next cards still soften
+   behind the current chord. */
+body[data-theme="urtext"] .chord-card.is-current::before {
+  background: none;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  mask-image: radial-gradient(ellipse at center, #000 18%, transparent 70%);
 }
 /* On a paper background, black-translucent panel surfaces darken nicely.
    But the rgba(255,255,255,X) lighten gradients vanish — replace those

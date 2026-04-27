@@ -26,6 +26,43 @@ export function pitchClassToDisplay(pc) {
   return NOTE_DISPLAY[NOTE_NAMES[pc]];
 }
 
+// Interval-aware chord-tone spelling: each chord-tone's letter comes from its
+// position in the formula (root + n diatonic steps), and the accidental is
+// derived from the pc difference vs. that letter's natural pc. Guarantees,
+// e.g. C♯m/G♯ (not C♯m/A♭) and G minor → G, B♭, D (not G, A♯, D).
+const LETTER_NAMES = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+const LETTER_PCS = [0, 2, 4, 5, 7, 9, 11];
+// Diatonic-letter offset from the root for each chromatic interval our chord
+// formulas use. m3/M3 → +2, d5/P5/#5 all → +4 (the 5th is always on the 5th
+// letter, even when augmented), m7/M7 → +6, etc.
+const INTERVAL_LETTERS = [0, 1, 1, 2, 2, 3, 4, 4, 4, 5, 6, 6];
+const ACC_CHARS = { '-2': '\u{1D12B}', '-1': '\u266D', '0': '', '1': '\u266F', '2': '\u{1D12A}' };
+
+// Returns one entry per orderedNotes position, with both the letter/octave
+// info needed by sheet-music rendering and a `display` string (e.g. 'B♭')
+// used by chord-name and chip rendering.
+export function spellChordTones(chord) {
+  const formula = CHORD_FORMULAS[chord.quality];
+  const intervals = formula.intervals;
+  const len = intervals.length;
+  const inv = chord.inversion || 0;
+  const rootDisplay = NOTE_DISPLAY[chord.root];
+  const rootLetter = LETTER_NAMES.indexOf(rootDisplay[0]);
+  return chord.orderedNotes.map((pc, i) => {
+    const interval = intervals[(i + inv) % len];
+    const letter = (rootLetter + INTERVAL_LETTERS[interval]) % 7;
+    const naturalPc = LETTER_PCS[letter];
+    let diff = (pc - naturalPc + 24) % 12;
+    if (diff > 6) diff -= 12;
+    const accidental = ACC_CHARS[diff] || '';
+    // octShift is ±1 when the accidental crosses the C boundary (C♭ sounds as
+    // B in the octave below — its letter octave is one *above* the pc octave;
+    // B♯ likewise has letter octave one below). 0 for normal cases.
+    const octShift = (pc - naturalPc - diff) / 12;
+    return { letter, accidental, octShift, display: LETTER_NAMES[letter] + accidental };
+  });
+}
+
 // HTML rendering helpers for chord names — shared by chord display + generator.
 export function formatRootHtml(rootDisplay) {
   const match = rootDisplay.match(/^([A-G])([\u266F\u266D])$/);
@@ -40,8 +77,10 @@ export function formatChordHtml(chord) {
   const formula = CHORD_FORMULAS[chord.quality];
   const rootDisplay = NOTE_DISPLAY[chord.root];
   const suffix = formula.suffix;
+  // Bass is the chord's own spelling of the inverted note, so e.g. C♯m/G♯
+  // never displays as C♯m/A♭.
   const bassHtml = chord.orderedNotes[0] !== noteToPitchClass(chord.root)
-    ? '/' + formatRootHtml(pitchClassToDisplay(chord.orderedNotes[0]))
+    ? '/' + formatRootHtml(spellChordTones(chord)[0].display)
     : '';
   return `${formatRootHtml(rootDisplay)}<span class="accent">${suffix}</span>${bassHtml ? '<span class="accent">' + bassHtml + '</span>' : ''}`;
 }

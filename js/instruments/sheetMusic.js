@@ -8,7 +8,7 @@
 // would be heavyweight overkill.
 
 import { state } from '../core/state.js';
-import { NOTE_DISPLAY, CHORD_FORMULAS, noteToPitchClass } from '../core/theory.js';
+import { spellChordTones } from '../core/theory.js';
 import { LS } from '../core/constants.js';
 
 // Mode persisted in LS:
@@ -24,62 +24,6 @@ export function isSheetActive() { return mode !== 'off'; }
 export function setSheetMode(next) {
   mode = next;
   try { localStorage.setItem(LS.SHEET_MUSIC, mode); } catch { /* ignore */ }
-}
-
-// Interval-aware spelling: each chord-tone's letter is determined by its
-// position in the formula (root + n diatonic steps), and the accidental falls
-// out of the pc difference vs. that letter's natural pc. Guarantees, e.g.,
-// G minor → G, B♭, D (not G, A♯, D), and produces double accidentals where
-// theory requires them (F♯ aug → F♯, A♯, C𝄪; E♭ dim → E♭, G♭, B𝄫).
-const LETTER_IDX = { C: 0, D: 1, E: 2, F: 3, G: 4, A: 5, B: 6 };
-const LETTER_PCS = [0, 2, 4, 5, 7, 9, 11]; // C D E F G A B
-// Diatonic-letter offset from the root for each chromatic interval our chord
-// formulas use. m3/M3 → +2 letters, d5/P5/#5 all → +4 (the 5th is always on
-// the 5th letter, even when augmented), m7/M7 → +6, etc.
-const INTERVAL_LETTERS = [
-  0, // P1
-  1, // m2  (not used by current formulas, kept for completeness)
-  1, // M2
-  2, // m3
-  2, // M3
-  3, // P4
-  4, // d5
-  4, // P5
-  4, // #5 (aug)
-  5, // M6
-  6, // m7
-  6, // M7
-];
-
-// Spell each note in `chord.orderedNotes` from the chord formula. orderedNotes
-// is bass→top after inversion, so orderedNotes[i] corresponds to the formula
-// interval at index (i + inversion) % len.
-function spellChordNotes(chord) {
-  const formula = CHORD_FORMULAS[chord.quality];
-  const intervals = formula.intervals;
-  const len = intervals.length;
-  const inv = chord.inversion || 0;
-  const rootDisplay = NOTE_DISPLAY[chord.root];
-  const rootLetter = LETTER_IDX[rootDisplay[0]];
-  return chord.orderedNotes.map((pc, i) => {
-    const interval = intervals[(i + inv) % len];
-    const letter = (rootLetter + INTERVAL_LETTERS[interval]) % 7;
-    const naturalPc = LETTER_PCS[letter];
-    let diff = (pc - naturalPc + 24) % 12;
-    if (diff > 6) diff -= 12;
-    let acc = '';
-    if (diff === 1) acc = '\u266F';
-    else if (diff === -1) acc = '\u266D';
-    else if (diff === 2) acc = '\u{1D12A}';
-    else if (diff === -2) acc = '\u{1D12B}';
-    // Accidentals that cross the C boundary push the LETTER into a different
-    // octave than the sounding pc. e.g. C♭ sounds as B in the octave below,
-    // so its letter octave is one *above* the pc octave (C♭5 = B4). Likewise
-    // B♯ has letter octave one below. (pc - naturalPc - diff) is exactly 12
-    // or -12 in those cases, 0 otherwise.
-    const octShift = (pc - naturalPc - diff) / 12;
-    return { letter, acc, octShift };
-  });
 }
 
 // Voice the chord starting at `bassOctave`, then stack each subsequent note
@@ -101,10 +45,11 @@ function voiceChord(orderedNotes, bassOctave) {
 
 // Diatonic step from the bottom staff line (E4 in treble, G2 in bass). Each
 // integer = one letter (line OR space). y on the SVG = bottomLineY - step * (gap/2).
+// LETTER_NAMES order is C D E F G A B → E=2, G=4.
 function letterSteps(letterIdx, octave, clef) {
   const base = clef === 'treble'
-    ? { letter: LETTER_IDX.E, octave: 4 }
-    : { letter: LETTER_IDX.G, octave: 2 };
+    ? { letter: 2, octave: 4 }   // E4
+    : { letter: 4, octave: 2 };  // G2
   return (octave - base.octave) * 7 + (letterIdx - base.letter);
 }
 
@@ -215,13 +160,18 @@ export function renderSheet(chord, container) {
   if (!chord) return;
 
   const clef = pickClef();
-  const bassOctave = clef === 'treble' ? 4 : 3;
+  // Bass clef: high-pc roots (G and above) start an octave lower so the chord
+  // sits inside the staff instead of spilling above it. e.g. B♭ chord lands
+  // on B♭2 (2nd line) rather than B♭3 (above the staff).
+  const bassOctave = clef === 'treble'
+    ? 4
+    : (chord.orderedNotes[0] < 7 ? 3 : 2);
   const voiced = voiceChord(chord.orderedNotes, bassOctave);
 
-  const spelled = spellChordNotes(chord);
+  const spelled = spellChordTones(chord);
   const noteData = voiced.map(({ pc, octave }, i) => {
-    const { letter, acc, octShift } = spelled[i];
-    return { pc, accidental: acc, step: letterSteps(letter, octave + octShift, clef) };
+    const { letter, accidental, octShift } = spelled[i];
+    return { pc, accidental, step: letterSteps(letter, octave + octShift, clef) };
   });
   const offsets = computeOffsets(noteData);
 
@@ -248,6 +198,14 @@ export function renderSheet(chord, container) {
     viewBox: `0 0 ${width} ${height}`,
     'aria-hidden': 'true',
   });
+
+  // Erosion filter to thin the system-font clef glyph (Unicode music symbols
+  // ship at a fixed weight that's heavier than the rest of the engraving).
+  const defs = svg('defs');
+  const filter = svg('filter', { id: 'clef-thin', x: '-10%', y: '-10%', width: '120%', height: '120%' });
+  filter.appendChild(svg('feMorphology', { operator: 'erode', radius: '0.3' }));
+  defs.appendChild(filter);
+  root.appendChild(defs);
 
   const staffTopY = PAD_TOP;
   const bottomLineY = staffTopY + STAFF_HEIGHT;
