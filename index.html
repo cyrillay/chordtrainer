@@ -100,17 +100,11 @@
   </header>
 
   <main class="stage">
-    <div class="chord-row">
-      <div class="chord-col chord-col-current">
-        <div class="chord-display" id="chordDisplay">—</div>
-        <div class="chord-notes" id="chordNotes"></div>
+    <div class="chord-stage" id="chordStage">
+      <div class="stage-track" id="stageTrack">
+        <div class="success-burst" id="successBurst" aria-hidden="true">✓</div>
       </div>
-      <span class="chord-sep" aria-hidden="true"></span>
-      <div class="chord-col chord-col-next">
-        <div class="label">Next chord <span class="label-degree" id="chordDegreeNext"></span></div>
-        <div class="chord-display chord-display-next" id="chordDisplayNext"></div>
-      </div>
-      <div class="success-burst" id="successBurst" aria-hidden="true">✓</div>
+      <div class="chord-notes" id="chordNotes"></div>
     </div>
 
     <div class="status-row">
@@ -412,7 +406,7 @@
   </section>
 
   <footer>
-    <div class="footer-tagline"><em>Ars longa, vita brevis</em> · Listen with your ears, play with your hands</div>
+    <div class="footer-tagline"><em>Ars longa, vita brevis</em> · &ldquo;Music is the arithmetic of sounds&rdquo; &mdash; Debussy</div>
     <div class="footer-links">
       <span class="bmc-slot">
         <script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="chordtrainer" data-color="#FFDD00" data-emoji=""  data-font="Cookie" data-text="Buy me a coffee" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff" ></script>

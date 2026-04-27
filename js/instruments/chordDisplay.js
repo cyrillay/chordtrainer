@@ -1,11 +1,18 @@
-// Chord display panel: the big chord text, note chips, status line, and the
-// glue that fans heard pitch classes out to all instrument views.
+// Chord display: the "vanishing point" stage that shows previous + current +
+// upcoming chords as a single composed visual. Each chord is a card; cards
+// are positioned by slot (-1 = previous, 0 = current, ≥1 = upcoming) and CSS
+// transitions move them whenever the slots are reassigned. DOM nodes are
+// reused across renders (Map keyed by stable identity — chord object in
+// random mode, progression+cycle+tokenIndex string in progression mode) so
+// the same element animates from slot 1 → slot 0 instead of being recreated.
 //
-// Note chips are tracked after each displayChord() so toggling 'heard' on each
-// chip is a per-element flip, not a re-render of the whole row.
+// Note chips below the stage track which pitch classes have been heard, and
+// stay attached to the current chord. Toggling 'heard' on each chip is a
+// per-element flip — we don't re-render the chips on every detection update.
 
 import { state } from '../core/state.js';
-import { pitchClassToDisplay, formatChordHtml } from '../core/theory.js';
+import { pitchClassToDisplay, formatChordHtml, NOTE_DISPLAY } from '../core/theory.js';
+import { romanToChord } from '../training/progressions.js';
 import { advanceToNextChord } from '../training/generator.js';
 import { updatePianoHighlight } from './piano.js';
 import { updateCircleHighlight } from './circle.js';
@@ -18,18 +25,176 @@ import {
 
 let noteChipEls = []; // chip <span> elements for the current chord
 
-export function renderNextPreview() {
-  const el = $('chordDisplayNext');
-  const degEl = $('chordDegreeNext');
-  if (!el) return;
-  const next = state.chordQueue[0];
-  el.innerHTML = next ? formatChordHtml(next) : '';
-  if (degEl) {
-    degEl.textContent = next?.meta ? `(${next.meta.tokens[next.meta.position]})` : '';
-  }
+// Keyed by stable entry-key (chord object in random mode, string in
+// progression mode) so the same DOM element follows a chord across slots
+// (queue → current → previous), keeping its transition smooth.
+const cardEls = new Map();
+
+// Visible slots on the stage: just the previous chord (-1), the current (0),
+// and the immediate next (1). Anything outside is the off-stage exit state.
+function slotConfig(slot) {
+  if (slot === 0)  return { x: 0,     scale: 1.20, opacity: 1.00, blur: 0,   z: 10 };
+  if (slot === -1) return { x: -1.4,  scale: 0.45, opacity: 0.32, blur: 0.8, z: 4  };
+  if (slot === 1)  return { x:  1.4,  scale: 0.55, opacity: 0.55, blur: 0,   z: 6  };
+  // Off-stage: used for the exit animation (slide further out + fade).
+  if (slot < 0)    return { x: -2.1,  scale: 0.18, opacity: 0,    blur: 2,   z: 1  };
+  return            { x:  2.1,  scale: 0.18, opacity: 0,    blur: 2,   z: 1  };
 }
 
+function applySlot(el, slot) {
+  const cfg = slotConfig(slot);
+  el.style.setProperty('--xmult', cfg.x);
+  el.style.setProperty('--scale', cfg.scale);
+  el.style.setProperty('--opacity', cfg.opacity);
+  el.style.setProperty('--blur', `${cfg.blur}px`);
+  el.style.zIndex = cfg.z;
+  el.dataset.slot = String(slot);
+}
+
+function createCard(chord, degree) {
+  const el = document.createElement('div');
+  el.className = 'chord-card';
+
+  const chordEl = document.createElement('div');
+  chordEl.className = 'card-chord';
+  chordEl.innerHTML = chord ? formatChordHtml(chord) : '—';
+  el.appendChild(chordEl);
+
+  if (degree) {
+    const degEl = document.createElement('div');
+    degEl.className = 'card-degree';
+    degEl.textContent = degree;
+    el.appendChild(degEl);
+  }
+  return el;
+}
+
+// Build the stage entries: previous + current + immediate next. The full
+// progression / queue panel below the stage shows the broader context.
+//
+// Keys are stable across advances so the same DOM node animates between
+// slots instead of being recreated. In progression mode we key by
+// progression+cycle+tokenIndex (since tokens get re-resolved into new chord
+// objects each render); in random mode the chord object reference itself is
+// stable as it flows queue → current → previous.
+function computeStage() {
+  const cur = state.currentChord;
+  if (!cur) return { entries: [] };
+
+  const meta = cur.meta;
+  if (meta) {
+    const entries = [];
+    const tokenAt = (i) => {
+      if (i < 0 || i >= meta.tokens.length) return null;
+      const inv = (meta.inversions && meta.inversions[i]) || 0;
+      const chord = i === meta.position ? cur : romanToChord(meta.tokens[i], meta.key, inv);
+      if (!chord) return null;
+      return {
+        key: `prog:${meta.progression}:${meta.key}:${meta.cycle}:${i}`,
+        chord,
+        slot: i - meta.position,
+        // Degrees are shown in the "Coming up" queue panel below, so we
+        // omit them on the stage to keep it clean.
+        degree: null
+      };
+    };
+    const prev = tokenAt(meta.position - 1);
+    if (prev) entries.push(prev);
+    const curEntry = tokenAt(meta.position);
+    if (curEntry) entries.push(curEntry);
+    const next = tokenAt(meta.position + 1);
+    if (next) entries.push(next);
+    return { entries };
+  }
+
+  // Random mode: previous + current + immediate next (queue head).
+  const entries = [];
+  if (state.previousChord) {
+    entries.push({ key: state.previousChord, chord: state.previousChord, slot: -1, degree: null });
+  }
+  entries.push({ key: cur, chord: cur, slot: 0, degree: null });
+  if (state.chordQueue.length > 0) {
+    const c = state.chordQueue[0];
+    entries.push({ key: c, chord: c, slot: 1, degree: null });
+  }
+  return { entries };
+}
+
+export function renderStage() {
+  const track = $('stageTrack');
+  if (!track) return;
+
+  const { entries } = computeStage();
+
+  // Diff: keep the desired set, exit the rest.
+  const wantedKeys = new Set(entries.map(e => e.key));
+
+  for (const [key, el] of cardEls) {
+    if (!wantedKeys.has(key)) {
+      // Slide off-stage to the left, then remove once the transition settles.
+      applySlot(el, -3);
+      el.classList.remove('is-current');
+      const stale = el;
+      setTimeout(() => {
+        if (stale.parentNode) stale.parentNode.removeChild(stale);
+      }, 650);
+      cardEls.delete(key);
+    }
+  }
+
+  // Add or update cards for every desired entry.
+  let currentEl = null;
+  for (const entry of entries) {
+    let el = cardEls.get(entry.key);
+    if (!el) {
+      el = createCard(entry.chord, entry.degree);
+      track.appendChild(el);
+      cardEls.set(entry.key, el);
+      // Initialize one slot further out so the card appears to slide in
+      // from the vanishing point. (For the very first render, no transition
+      // would have time to set up; the user just sees the cards in place.)
+      applySlot(el, entry.slot + 1);
+      // Force reflow so the subsequent slot change triggers a transition.
+      void el.offsetHeight;
+    } else {
+      // Refresh the chord glyph itself: when keys are stable across renders
+      // the chord object may differ (progression mode rebuilds them), but
+      // for the same (progression, cycle, tokenIndex) the rendered chord
+      // is identical so this is a cheap no-op in practice.
+      const chordEl = el.querySelector('.card-chord');
+      if (chordEl) chordEl.innerHTML = entry.chord ? formatChordHtml(entry.chord) : '—';
+
+      // Sync degree label if it changed.
+      const existingDegree = el.querySelector('.card-degree');
+      if (entry.degree && !existingDegree) {
+        const degEl = document.createElement('div');
+        degEl.className = 'card-degree';
+        degEl.textContent = entry.degree;
+        el.appendChild(degEl);
+      } else if (!entry.degree && existingDegree) {
+        existingDegree.remove();
+      } else if (entry.degree && existingDegree && existingDegree.textContent !== entry.degree) {
+        existingDegree.textContent = entry.degree;
+      }
+    }
+    applySlot(el, entry.slot);
+    el.classList.toggle('is-current', entry.slot === 0);
+    if (entry.slot === 0) currentEl = el;
+  }
+
+  // Move the legacy id="chordDisplay" hook onto the current card so the
+  // onboarding spotlight + feedback flash + status message keep tracking it.
+  const prevAnchor = document.getElementById('chordDisplay');
+  if (prevAnchor && prevAnchor !== currentEl) prevAnchor.removeAttribute('id');
+  if (currentEl) currentEl.id = 'chordDisplay';
+}
+
+// Backwards-compatible alias kept for callers (main.js, generator.js
+// regeneration paths) that want to nudge the upcoming preview.
+export function renderNextPreview() { renderStage(); }
+
 export function displayChord(chord) {
+  state.previousChord = state.currentChord;
   state.currentChord = chord;
   state.heardPitchClasses = new Set();
   state.heardHistory = [];
@@ -38,29 +203,25 @@ export function displayChord(chord) {
   // swallows the match and the advance only fires after the window elapses.
   state.lastSuccessTime = 0;
 
-  const display = $('chordDisplay');
   const notesEl = $('chordNotes');
 
   if (!chord) {
-    display.textContent = '—';
-    notesEl.innerHTML = '';
+    if (notesEl) notesEl.innerHTML = '';
     noteChipEls = [];
-    renderNextPreview();
+    renderStage();
     return;
   }
 
-  display.innerHTML = formatChordHtml(chord);
-  renderNextPreview();
+  renderStage();
 
-  // Re-trigger fade-in animation.
-  display.style.animation = 'none';
-  void display.offsetHeight;
-  display.style.animation = '';
-
-  notesEl.innerHTML = chord.orderedNotes.map(pc =>
-    `<span class="note" data-pc="${pc}">${pitchClassToDisplay(pc)}</span>`
-  ).join('');
-  noteChipEls = Array.from(notesEl.querySelectorAll('.note'));
+  if (notesEl) {
+    notesEl.innerHTML = chord.orderedNotes.map(pc =>
+      `<span class="note" data-pc="${pc}">${pitchClassToDisplay(pc)}</span>`
+    ).join('');
+    noteChipEls = Array.from(notesEl.querySelectorAll('.note'));
+  } else {
+    noteChipEls = [];
+  }
 
   updatePianoHighlight();
   updateGuitarHighlight();
