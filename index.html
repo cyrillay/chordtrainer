@@ -53,6 +53,15 @@
     if (saved === null) document.body.dataset.theme = 'boudoir';
     else if (saved) document.body.dataset.theme = saved;
   })();
+  /* Tag Windows so the accidental kerning override (see styles.css) applies
+     there. The negative margins are tuned for Helvetica Neue; Windows is the
+     only platform whose ♭ fallback (Arial) has tight side bearings that cause
+     overlap. Mac/iOS use Helvetica Neue, Android falls through to Noto Music,
+     Linux to DejaVu — all render fine with the tight margins. */
+  (function () {
+    var p = navigator.platform || navigator.userAgent || '';
+    if (/Win/i.test(p)) document.documentElement.dataset.platform = 'win';
+  })();
 </script>
 <div class="app">
   <header>

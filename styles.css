@@ -457,6 +457,28 @@ header {
   .checkbox-item .accidental-sharp { margin-left: 0; margin-right: 0; }
 }
 
+/* Windows-only override: the ♭ falls back to Arial there, whose tight built-in
+   side bearings cause the negative margins above to overlap the letter. Mac/iOS
+   use Helvetica Neue, Android falls through to Noto Music, Linux to DejaVu —
+   all render fine with the tight margins. The Win tag is set pre-paint by an
+   inline script in index.html. */
+:root[data-platform="win"] .accidental,
+:root[data-platform="win"] .accidental-flat,
+:root[data-platform="win"] .accidental-sharp,
+:root[data-platform="win"] .chord-card.is-current .card-chord > .accidental-flat,
+:root[data-platform="win"] .chord-card:not(.is-current) .accidental-flat,
+:root[data-platform="win"] .chord-card:not(.is-current) .accidental-sharp,
+:root[data-platform="win"] .chord-card:not(.is-current) .accent .accidental-flat,
+:root[data-platform="win"] .chord-card:not(.is-current) .accent .accidental-sharp,
+:root[data-platform="win"] .accent .accidental-flat,
+:root[data-platform="win"] .accent .accidental-sharp,
+:root[data-platform="win"] .queue-item > span > .accidental-flat,
+:root[data-platform="win"] .checkbox-item .accidental-flat,
+:root[data-platform="win"] .checkbox-item .accidental-sharp {
+  margin-left: 0;
+  margin-right: 0;
+}
+
 @media (max-width: 600px) {
   .chord-stage {
     --base-size: clamp(3.4rem, 18vw, 6rem);
