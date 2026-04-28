@@ -8,7 +8,7 @@
 // key (V, IV, relative minor/major, parallel) instead of a random key,
 // which makes the modulation feel like a natural pivot.
 
-import { NOTE_NAMES, noteToPitchClass, buildChord, pickInversion, spellRootForKey } from '../core/theory.js';
+import { NOTE_NAMES, noteToPitchClass, buildChord, pickInversion, spellRootForKey, tonicSpellingFor } from '../core/theory.js';
 
 // All progressions transcribed verbatim from the user's reference.
 export const PROGRESSIONS = [
@@ -94,7 +94,50 @@ export const PROGRESSIONS = [
   { name: 'Raindrop',             tokens: ['iii', 'bIIIo', 'ii'] },
   { name: 'Starlight Dropback',   tokens: ['#iv', 'VII7', 'iii', 'VI7', 'ii'] },
   { name: 'TINGLe Dropback',      tokens: ['IΔ', 'IV7', 'bVII7', 'VI7', 'ii'] },
-  { name: 'TTFA Dropback',        tokens: ['IΔ', 'IV7', 'iii', 'VI7', 'ii'] }
+  { name: 'TTFA Dropback',        tokens: ['IΔ', 'IV7', 'iii', 'VI7', 'ii'] },
+
+  // ── Minor-key progressions ───────────────────────────────────────────────
+  // Cadences (classical / Spanish)
+  { name: 'Minor i–iv–V',          tokens: ['i', 'iv', 'V', 'i'] },
+  { name: 'Spanish cadence',       tokens: ['i', 'V7', 'i'] },
+  { name: 'Phrygian dominant',     tokens: ['i', 'bII', 'V7', 'i'] },
+  { name: 'Baroque turnaround',    tokens: ['i', 'V', 'iv', 'V'] },
+  { name: 'Lament',                tokens: ['i', 'V', 'bVI', 'V'] },
+  { name: 'Pachelbel (minor)',     tokens: ['i', 'V', 'bVI', 'bIII', 'iv', 'i', 'iv', 'V'] },
+  { name: 'La Folia',              tokens: ['i', 'V', 'i', 'bVII', 'bIII', 'bVII', 'i', 'V'] },
+  { name: 'Greensleeves',          tokens: ['i', 'bIII', 'bVII', 'v', 'i', 'bIII', 'V7', 'i'] },
+
+  // Andalusian descents
+  { name: 'Andalusian',            tokens: ['i', 'bVII', 'bVI', 'V'] },
+  { name: 'Hit the Road Jack',     tokens: ['i', 'bVII', 'bVI', 'V7'] },
+  { name: 'Stray Cat',             tokens: ['i', 'bVII', 'bVI', 'bVII'] },
+
+  // Pop / rock minor
+  { name: 'Pop minor',             tokens: ['i', 'bVI', 'bVII'] },
+  { name: 'Cinematic resolve',     tokens: ['i', 'bVI', 'bVII', 'i'] },
+  { name: 'Build-up',              tokens: ['bVI', 'bVII', 'i'] },
+  { name: 'Epic descent',          tokens: ['i', 'bVI', 'bIII', 'bVII'] },
+  { name: 'Mad World',             tokens: ['i', 'bIII', 'iv', 'i'] },
+  { name: 'Smoke on the Water',    tokens: ['i', 'bIII', 'IV', 'i'] },
+  { name: 'House of the Rising Sun', tokens: ['i', 'bIII', 'IV', 'bVI', 'i', 'V'] },
+  { name: 'Stairway intro',        tokens: ['i', 'iΔ', 'i7', 'IV'] },
+
+  // Modal (dorian / phrygian)
+  { name: 'Dorian vamp',           tokens: ['i', 'IV'] },
+  { name: 'Dorian rock',           tokens: ['i', 'IV', 'bIII', 'bVII'] },
+  { name: 'Modal pop minor',       tokens: ['i', 'bIII', 'bVII', 'IV'] },
+  { name: 'Phrygian colour',       tokens: ['i', 'bII', 'bIII', 'bII'] },
+
+  // Jazz minor
+  { name: 'Minor ii–V–i',          tokens: ['iiø', 'V7', 'i'] },
+  { name: 'Minor ii–V–iΔ',         tokens: ['iiø', 'V7+9', 'iΔ'] },
+  { name: 'Minor turnaround',      tokens: ['i', 'bVI7', 'iiø', 'V7'] },
+  { name: 'Autumn Leaves cycle',   tokens: ['iv7', 'bVII7', 'bIIIΔ', 'bVIΔ', 'iiø', 'V7', 'i'] },
+  { name: 'Minor V-of-V',          tokens: ['i', 'II7', 'V7', 'i'] },
+
+  // Minor blues
+  { name: 'Minor blues',           tokens: ['i7', 'iv7', 'i7', 'V7'] },
+  { name: 'Slow minor blues',      tokens: ['i7', 'iv7', 'i7', 'V7', 'iv7', 'i7'] }
 ];
 
 // Major-scale degree intervals (semitones from tonic).
@@ -156,6 +199,22 @@ export function progressionQualities(prog) {
   return qs;
 }
 
+// Mode of a progression: defined by the case of its tonic chord. We scan
+// from the end so progressions that resolve on a minor i after an earlier
+// I7 (e.g. Dogleg dropback: ii-V7-v-I7-i) are correctly read as minor —
+// the final tonic is what the ear hears as home, not the first one.
+// Falls back to 'major' if the progression has no diatonic I/i (e.g.
+// 'Autumnal' starts on ii and never resolves explicitly).
+export function progressionMode(prog) {
+  for (let i = prog.tokens.length - 1; i >= 0; i--) {
+    const p = parseRoman(prog.tokens[i]);
+    if (p.degree === 1 && p.accidental === 0) {
+      return p.isUpper ? 'major' : 'minor';
+    }
+  }
+  return 'major';
+}
+
 export function getUsableProgressions(enabledQualities, pool = PROGRESSIONS) {
   if (!enabledQualities || enabledQualities.length === 0) return [];
   const enabled = new Set(enabledQualities);
@@ -167,7 +226,7 @@ export function getUsableProgressions(enabledQualities, pool = PROGRESSIONS) {
   });
 }
 
-export function romanToChord(token, keyRoot, inversion = 0) {
+export function romanToChord(token, keyRoot, mode = 'major', inversion = 0) {
   const { accidental, degree, isUpper, suffix } = parseRoman(token);
   if (!degree) return null;
   const keyPc = noteToPitchClass(keyRoot);
@@ -175,7 +234,7 @@ export function romanToChord(token, keyRoot, inversion = 0) {
   const root = NOTE_NAMES[pc];
   const quality = suffixToQuality(suffix, isUpper);
   const chord = buildChord(root, quality, inversion);
-  chord.rootDisplay = spellRootForKey(keyRoot, degree, pc);
+  chord.rootDisplay = spellRootForKey(tonicSpellingFor(keyRoot, mode), degree, pc);
   return chord;
 }
 
@@ -213,6 +272,7 @@ export class ProgressionStream {
     this.usable = PROGRESSIONS;
     this.currentKey = pickRandomKey(null);
     this.currentProgression = PROGRESSIONS[Math.floor(Math.random() * PROGRESSIONS.length)];
+    this.currentMode = progressionMode(this.currentProgression);
     this.position = 0;
     this.targetCycles = 1;
     this.currentCycle = 0;
@@ -278,6 +338,7 @@ export class ProgressionStream {
       tries++;
     } while (next === this.currentProgression && tries < 5);
     this.currentProgression = next;
+    this.currentMode = progressionMode(this.currentProgression);
     this.rollInversions();
   }
 
@@ -286,7 +347,7 @@ export class ProgressionStream {
   // varied rather than locking in one shape for the whole progression run.
   rollInversions() {
     this.inversions = this.currentProgression.tokens.map(token => {
-      const chord = romanToChord(token, this.currentKey);
+      const chord = romanToChord(token, this.currentKey, this.currentMode);
       if (!chord) return 0;
       return pickInversion(chord.orderedNotes.length, this.useInversions, this.inversionFreq);
     });
@@ -304,10 +365,11 @@ export class ProgressionStream {
     }
     const token = this.currentProgression.tokens[this.position];
     const inv = this.inversions[this.position] || 0;
-    const chord = romanToChord(token, this.currentKey, inv);
+    const chord = romanToChord(token, this.currentKey, this.currentMode, inv);
     const meta = {
       progression: this.currentProgression.name,
       key: this.currentKey,
+      mode: this.currentMode,
       token,
       tokens: this.currentProgression.tokens,
       inversions: this.inversions.slice(),

@@ -38,34 +38,64 @@ const LETTER_PCS = [0, 2, 4, 5, 7, 9, 11];
 const INTERVAL_LETTERS = [0, 1, 1, 2, 2, 3, 4, 4, 4, 5, 6, 6];
 const ACC_CHARS = { '-2': '\u{1D12B}', '-1': '\u266D', '0': '', '1': '\u266F', '2': '\u{1D12A}' };
 
-// Canonical (letter, accidental) for each NOTE_NAMES entry when used as a key
-// tonic. Sharp tonics (C, G, D, A, E, B, F♯, C♯) keep the sharp letter; the
-// remaining sharp pcs are interpreted as their flat-key equivalent (D♯ → E♭,
-// G♯ → A♭, A♯ → B♭) since those are the conventional tonic spellings.
-const KEY_SPELLING = {
-  'C':  { letter: 0, accidental: 0 },
-  'C#': { letter: 0, accidental: 1 },
-  'D':  { letter: 1, accidental: 0 },
-  'D#': { letter: 2, accidental: -1 },
-  'E':  { letter: 2, accidental: 0 },
-  'F':  { letter: 3, accidental: 0 },
-  'F#': { letter: 3, accidental: 1 },
-  'G':  { letter: 4, accidental: 0 },
-  'G#': { letter: 5, accidental: -1 },
-  'A':  { letter: 5, accidental: 0 },
-  'A#': { letter: 6, accidental: -1 },
-  'B':  { letter: 6, accidental: 0 }
+// Tonic (letter, accidental) for each chromatic pc, indexed by mode. Five pcs
+// have two valid spellings; the choice follows standard sheet-music convention:
+//   C♯/D♭ → D♭ major (5♭) but C♯ minor (4♯) — Db major beats C# major (7♯)
+//   D♯/E♭ → E♭ major (3♭) and E♭ minor (6♭) — both flat sides
+//   F♯/G♭ → F♯ for both modes (G♭ major works too but F♯ keeps the sharp side)
+//   G♯/A♭ → A♭ major (4♭) but G♯ minor (5♯)
+//   A♯/B♭ → B♭ for both modes — A♯ major/minor would need 7♯
+const TONIC_SPELLING = {
+  'C':  { major: { letter: 0, accidental: 0 },  minor: { letter: 0, accidental: 0 } },
+  'C#': { major: { letter: 1, accidental: -1 }, minor: { letter: 0, accidental: 1 } },
+  'D':  { major: { letter: 1, accidental: 0 },  minor: { letter: 1, accidental: 0 } },
+  'D#': { major: { letter: 2, accidental: -1 }, minor: { letter: 2, accidental: -1 } },
+  'E':  { major: { letter: 2, accidental: 0 },  minor: { letter: 2, accidental: 0 } },
+  'F':  { major: { letter: 3, accidental: 0 },  minor: { letter: 3, accidental: 0 } },
+  'F#': { major: { letter: 3, accidental: 1 },  minor: { letter: 3, accidental: 1 } },
+  'G':  { major: { letter: 4, accidental: 0 },  minor: { letter: 4, accidental: 0 } },
+  'G#': { major: { letter: 5, accidental: -1 }, minor: { letter: 4, accidental: 1 } },
+  'A':  { major: { letter: 5, accidental: 0 },  minor: { letter: 5, accidental: 0 } },
+  'A#': { major: { letter: 6, accidental: -1 }, minor: { letter: 6, accidental: -1 } },
+  'B':  { major: { letter: 6, accidental: 0 },  minor: { letter: 6, accidental: 0 } }
 };
 
-// Spell a chord root for a given key + scale-degree context: the letter is the
-// diatonic letter for that degree (so vi in F♯ major lives on the D-letter,
+export function tonicSpellingFor(keyRoot, mode) {
+  const m = TONIC_SPELLING[keyRoot];
+  if (!m) return { letter: 0, accidental: 0 };
+  return m[mode] || m.major;
+}
+
+// Display string for the tonic itself (e.g. 'D♭', 'F♯', 'C').
+export function tonicDisplay(keyRoot, mode) {
+  const t = tonicSpellingFor(keyRoot, mode);
+  return LETTER_NAMES[t.letter] + (ACC_CHARS[t.accidental] || '');
+}
+
+// Two valid display spellings for the five enharmonic-ambiguous pcs. Used by
+// isolated-chords mode to vary between e.g. C♯ and D♭ for the same root.
+const ENHARMONIC_DISPLAYS = {
+  'C#': ['C\u266F', 'D\u266D'],
+  'D#': ['D\u266F', 'E\u266D'],
+  'F#': ['F\u266F', 'G\u266D'],
+  'G#': ['G\u266F', 'A\u266D'],
+  'A#': ['A\u266F', 'B\u266D']
+};
+
+export function randomEnharmonicDisplay(root) {
+  const pair = ENHARMONIC_DISPLAYS[root];
+  if (!pair) return NOTE_DISPLAY[root];
+  return pair[Math.random() < 0.5 ? 0 : 1];
+}
+
+// Spell a chord root for a given tonic + scale-degree context: the letter is
+// the diatonic letter for that degree (so vi in F♯ major lives on the D-letter,
 // never the E-letter), the accidental matches the pc against that letter's
 // natural pc. Used to keep root spelling consistent with the key signature
 // instead of falling through to the key-blind NOTE_DISPLAY map.
-export function spellRootForKey(keyRoot, degree, pc) {
-  const tonic = KEY_SPELLING[keyRoot];
-  if (!tonic) return NOTE_DISPLAY[NOTE_NAMES[pc]];
-  const letter = (tonic.letter + degree - 1) % 7;
+export function spellRootForKey(tonicSpelling, degree, pc) {
+  if (!tonicSpelling) return NOTE_DISPLAY[NOTE_NAMES[pc]];
+  const letter = (tonicSpelling.letter + degree - 1) % 7;
   const naturalPc = LETTER_PCS[letter];
   let diff = (pc - naturalPc + 24) % 12;
   if (diff > 6) diff -= 12;
