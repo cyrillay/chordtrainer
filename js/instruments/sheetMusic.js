@@ -16,7 +16,7 @@ import { LS } from '../core/constants.js';
 //   'treble' — always render in treble clef
 //   'bass'   — always render in bass clef
 //   'alt'    — randomly pick one of the two at every new chord
-let mode = localStorage.getItem(LS.SHEET_MUSIC) || 'off';
+let mode = localStorage.getItem(LS.SHEET_MUSIC) || 'alt';
 
 export function getSheetMode() { return mode; }
 export function isSheetActive() { return mode !== 'off'; }
