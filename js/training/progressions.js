@@ -8,7 +8,7 @@
 // key (V, IV, relative minor/major, parallel) instead of a random key,
 // which makes the modulation feel like a natural pivot.
 
-import { NOTE_NAMES, noteToPitchClass, buildChord, pickInversion } from '../core/theory.js';
+import { NOTE_NAMES, noteToPitchClass, buildChord, pickInversion, spellRootForKey } from '../core/theory.js';
 
 // All progressions transcribed verbatim from the user's reference.
 export const PROGRESSIONS = [
@@ -174,7 +174,9 @@ export function romanToChord(token, keyRoot, inversion = 0) {
   const pc = (keyPc + SCALE_INTERVALS[degree - 1] + accidental + 12) % 12;
   const root = NOTE_NAMES[pc];
   const quality = suffixToQuality(suffix, isUpper);
-  return buildChord(root, quality, inversion);
+  const chord = buildChord(root, quality, inversion);
+  chord.rootDisplay = spellRootForKey(keyRoot, degree, pc);
+  return chord;
 }
 
 function pickRandomKey(allowedRoots) {
@@ -301,11 +303,8 @@ export class ProgressionStream {
       }
     }
     const token = this.currentProgression.tokens[this.position];
-    let chord = romanToChord(token, this.currentKey);
     const inv = this.inversions[this.position] || 0;
-    if (chord && inv > 0) {
-      chord = buildChord(chord.root, chord.quality, inv);
-    }
+    const chord = romanToChord(token, this.currentKey, inv);
     const meta = {
       progression: this.currentProgression.name,
       key: this.currentKey,

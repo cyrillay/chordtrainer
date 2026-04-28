@@ -38,6 +38,40 @@ const LETTER_PCS = [0, 2, 4, 5, 7, 9, 11];
 const INTERVAL_LETTERS = [0, 1, 1, 2, 2, 3, 4, 4, 4, 5, 6, 6];
 const ACC_CHARS = { '-2': '\u{1D12B}', '-1': '\u266D', '0': '', '1': '\u266F', '2': '\u{1D12A}' };
 
+// Canonical (letter, accidental) for each NOTE_NAMES entry when used as a key
+// tonic. Sharp tonics (C, G, D, A, E, B, F♯, C♯) keep the sharp letter; the
+// remaining sharp pcs are interpreted as their flat-key equivalent (D♯ → E♭,
+// G♯ → A♭, A♯ → B♭) since those are the conventional tonic spellings.
+const KEY_SPELLING = {
+  'C':  { letter: 0, accidental: 0 },
+  'C#': { letter: 0, accidental: 1 },
+  'D':  { letter: 1, accidental: 0 },
+  'D#': { letter: 2, accidental: -1 },
+  'E':  { letter: 2, accidental: 0 },
+  'F':  { letter: 3, accidental: 0 },
+  'F#': { letter: 3, accidental: 1 },
+  'G':  { letter: 4, accidental: 0 },
+  'G#': { letter: 5, accidental: -1 },
+  'A':  { letter: 5, accidental: 0 },
+  'A#': { letter: 6, accidental: -1 },
+  'B':  { letter: 6, accidental: 0 }
+};
+
+// Spell a chord root for a given key + scale-degree context: the letter is the
+// diatonic letter for that degree (so vi in F♯ major lives on the D-letter,
+// never the E-letter), the accidental matches the pc against that letter's
+// natural pc. Used to keep root spelling consistent with the key signature
+// instead of falling through to the key-blind NOTE_DISPLAY map.
+export function spellRootForKey(keyRoot, degree, pc) {
+  const tonic = KEY_SPELLING[keyRoot];
+  if (!tonic) return NOTE_DISPLAY[NOTE_NAMES[pc]];
+  const letter = (tonic.letter + degree - 1) % 7;
+  const naturalPc = LETTER_PCS[letter];
+  let diff = (pc - naturalPc + 24) % 12;
+  if (diff > 6) diff -= 12;
+  return LETTER_NAMES[letter] + (ACC_CHARS[diff] || '');
+}
+
 // Returns one entry per orderedNotes position, with both the letter/octave
 // info needed by sheet-music rendering and a `display` string (e.g. 'B♭')
 // used by chord-name and chip rendering.
@@ -46,7 +80,7 @@ export function spellChordTones(chord) {
   const intervals = formula.intervals;
   const len = intervals.length;
   const inv = chord.inversion || 0;
-  const rootDisplay = NOTE_DISPLAY[chord.root];
+  const rootDisplay = chord.rootDisplay || NOTE_DISPLAY[chord.root];
   const rootLetter = LETTER_NAMES.indexOf(rootDisplay[0]);
   return chord.orderedNotes.map((pc, i) => {
     const interval = intervals[(i + inv) % len];
@@ -75,7 +109,7 @@ export function formatRootHtml(rootDisplay) {
 
 export function formatChordHtml(chord) {
   const formula = CHORD_FORMULAS[chord.quality];
-  const rootDisplay = NOTE_DISPLAY[chord.root];
+  const rootDisplay = chord.rootDisplay || NOTE_DISPLAY[chord.root];
   const suffix = formula.suffix;
   // Bass is the chord's own spelling of the inverted note, so e.g. C♯m/G♯
   // never displays as C♯m/A♭.
