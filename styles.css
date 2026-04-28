@@ -537,7 +537,7 @@ header {
   font-size: 0.85rem;
   letter-spacing: 0.12em;
   color: var(--ivory-dim);
-  margin-top: 0.6rem;
+  margin-top: 0.3rem;
 }
 
 .chord-notes .note {
@@ -562,7 +562,7 @@ header {
 
 .staff-svg {
   display: block;
-  margin: 0.4rem auto 0;
+  margin: 0 auto;
   height: clamp(120px, 22vw, 160px);
   width: auto;
   overflow: visible;

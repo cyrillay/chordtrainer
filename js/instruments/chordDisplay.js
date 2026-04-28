@@ -88,7 +88,7 @@ function computeStage() {
     const tokenAt = (i) => {
       if (i < 0 || i >= meta.tokens.length) return null;
       const inv = (meta.inversions && meta.inversions[i]) || 0;
-      const chord = i === meta.position ? cur : romanToChord(meta.tokens[i], meta.key, inv);
+      const chord = i === meta.position ? cur : romanToChord(meta.tokens[i], meta.key, meta.mode, inv);
       if (!chord) return null;
       return {
         key: `prog:${meta.progression}:${meta.key}:${meta.cycle}:${i}`,

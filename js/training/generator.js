@@ -4,7 +4,7 @@
 //   - progressions: walk through predefined chord progressions (see progressions.js)
 
 import { state } from '../core/state.js';
-import { CHORD_FORMULAS, NOTE_DISPLAY, buildChord, formatChordHtml, pickInversion } from '../core/theory.js';
+import { CHORD_FORMULAS, buildChord, formatChordHtml, pickInversion, randomEnharmonicDisplay, tonicDisplay } from '../core/theory.js';
 import { ProgressionStream, romanToChord } from './progressions.js';
 import { getActiveProgressions } from './progressionManager.js';
 import { QUEUE_SIZE } from '../core/constants.js';
@@ -72,6 +72,7 @@ function generateRandomFreeChord(avoidSymbols) {
     const quality = qualities[Math.floor(Math.random() * qualities.length)];
     const numNotes = CHORD_FORMULAS[quality].intervals.length;
     chord = buildChord(root, quality, pickInversion(numNotes, useInversions, invFreq));
+    chord.rootDisplay = randomEnharmonicDisplay(root);
     attempt++;
   } while (avoidSymbols.includes(chord.symbol) && attempt < 10);
 
@@ -113,7 +114,7 @@ export function renderQueue() {
 
   if (meta) {
     container.classList.add('active');
-    const keyDisp = NOTE_DISPLAY[meta.key] || meta.key;
+    const keyDisp = tonicDisplay(meta.key, meta.mode);
     const cycleInfo = meta.targetCycles > 1
       ? ` · cycle ${meta.cycle + 1}/${meta.targetCycles === Infinity ? '∞' : meta.targetCycles}`
       : '';
@@ -124,7 +125,7 @@ export function renderQueue() {
 
     items.innerHTML = meta.tokens.map((token, i) => {
       const inv = (meta.inversions && meta.inversions[i]) || 0;
-      const chord = romanToChord(token, meta.key, inv);
+      const chord = romanToChord(token, meta.key, meta.mode, inv);
       const cls = i === meta.position ? 'queue-item current' : 'queue-item dimmed';
       return `<div class="${cls}" data-queue-idx="${i}">
         <span class="queue-degree">${token}</span>
@@ -172,7 +173,7 @@ export function jumpToQueueIndex(idx) {
   if (meta) {
     if (idx === meta.position || idx < 0 || idx >= meta.tokens.length) return;
     const inv = (meta.inversions && meta.inversions[idx]) || 0;
-    const chord = romanToChord(meta.tokens[idx], meta.key, inv);
+    const chord = romanToChord(meta.tokens[idx], meta.key, meta.mode, inv);
     if (!chord) return;
     chord.meta = {
       ...meta,
