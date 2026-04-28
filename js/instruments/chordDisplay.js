@@ -365,7 +365,15 @@ export function updateStatus() {
   const missing = [...target].filter(pc => !heard.has(pc));
   const extra = [...heard].filter(pc => !target.has(pc));
 
-  if (missing.length === 0 && extra.length === 0 && heard.size > 0) {
+  // MIDI gives us real note numbers, so when the chord is shown as an inversion
+  // (e.g. C/E) we can enforce the bass. Root-position chords accept any voicing,
+  // and mic input — pitch-class-only — stays inversion-blind in all cases.
+  const expectedBass = state.currentChord.orderedNotes[0];
+  const midiActive = state.midiEnabled && state.midiHeldNotes.size > 0;
+  const enforceBass = midiActive && (state.currentChord.inversion || 0) > 0;
+  const bassWrong = enforceBass && (Math.min(...state.midiHeldNotes) % 12) !== expectedBass;
+
+  if (missing.length === 0 && extra.length === 0 && heard.size > 0 && !bassWrong) {
     statusEl.innerHTML = '◆ Correct ◆';
     statusEl.className = 'status success';
 
@@ -388,7 +396,7 @@ export function updateStatus() {
   } else if (extra.length > 0) {
     statusEl.innerHTML = `Wrong notes: ${extra.map(pitchClassToDisplay).join(', ')}`;
     statusEl.className = 'status wrong';
-  } else {
+  } else if (missing.length > 0) {
     statusEl.innerHTML = `Still missing: ${missing.map(pitchClassToDisplay).join(', ')}`;
     statusEl.className = 'status listening';
   }
