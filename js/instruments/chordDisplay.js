@@ -11,7 +11,7 @@
 // per-element flip — we don't re-render the chips on every detection update.
 
 import { state } from '../core/state.js';
-import { pitchClassToDisplay, formatChordHtml, spellChordTones, NOTE_DISPLAY } from '../core/theory.js';
+import { pitchClassToDisplay, formatChordHtml, formatRootHtml, spellChordTones, NOTE_DISPLAY } from '../core/theory.js';
 import { romanToChord } from '../training/progressions.js';
 import { advanceToNextChord } from '../training/generator.js';
 import { updatePianoHighlight } from './piano.js';
@@ -390,6 +390,10 @@ export function updateStatus() {
       const delay = state.midiEnabled ? MIDI_SUCCESS_DELAY_MS : MIC_SUCCESS_DELAY_MS;
       setTimeout(() => advanceToNextChord(displayChord), delay);
     }
+  } else if (bassWrong && missing.length === 0 && extra.length === 0) {
+    const bassDisplay = spellChordTones(state.currentChord)[0].display;
+    statusEl.innerHTML = `Wrong bass: should be ${formatRootHtml(bassDisplay)}`;
+    statusEl.className = 'status wrong';
   } else if (heard.size === 0) {
     statusEl.innerHTML = '<span class="listening-dot"></span>Listening...';
     statusEl.className = 'status listening';
