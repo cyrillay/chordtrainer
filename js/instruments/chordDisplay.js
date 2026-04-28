@@ -188,11 +188,62 @@ export function renderStage() {
   const prevAnchor = document.getElementById('chordDisplay');
   if (prevAnchor && prevAnchor !== currentEl) prevAnchor.removeAttribute('id');
   if (currentEl) currentEl.id = 'chordDisplay';
+
+  // Run after layout so offsetWidth reflects the new chord text.
+  requestAnimationFrame(adjustStageStep);
 }
 
 // Backwards-compatible alias kept for callers (main.js, generator.js
 // regeneration paths) that want to nudge the upcoming preview.
 export function renderNextPreview() { renderStage(); }
+
+// Side cards are positioned at xmult ±1.4 from center and rendered at the
+// scale below. We need the gap between current and side card to clear the
+// rendered widths of both, otherwise long chords like "G#m/D#" overlap the
+// next card. The CSS clamp for --step is a viewport-only heuristic and ends
+// up too small at most viewport widths, so we override it from measured
+// layout widths after each render and on resize.
+const SIDE_XMULT = 1.4;
+const CURRENT_SCALE = 1.20;
+const SIDE_SCALE = 0.55;
+const STEP_GAP_PX = 28;
+
+function adjustStageStep() {
+  const stage = $('chordStage');
+  const track = $('stageTrack');
+  if (!stage || !track) return;
+
+  let current = null;
+  let widestSide = 0;
+  for (const el of track.children) {
+    if (!el.classList.contains('chord-card')) continue;
+    const slot = el.dataset.slot;
+    if (slot === '0') current = el;
+    else if (slot === '1' || slot === '-1') {
+      // offsetWidth ignores transforms — gives the natural layout width.
+      widestSide = Math.max(widestSide, el.offsetWidth * SIDE_SCALE);
+    }
+  }
+  if (!current) return;
+
+  const currentRendered = current.offsetWidth * CURRENT_SCALE;
+  const required = (currentRendered + widestSide) / 2 + STEP_GAP_PX;
+  const step = required / SIDE_XMULT;
+  const minStep = window.matchMedia('(max-width: 700px)').matches ? 56 : 96;
+  stage.style.setProperty('--step', `${Math.max(minStep, step)}px`);
+}
+
+// Re-measure on viewport resize. The custom prop is a one-shot value; the
+// CSS clamp would otherwise stay overridden after the viewport changes.
+let resizeScheduled = false;
+window.addEventListener('resize', () => {
+  if (resizeScheduled) return;
+  resizeScheduled = true;
+  requestAnimationFrame(() => {
+    resizeScheduled = false;
+    adjustStageStep();
+  });
+});
 
 // Renders the notes section under the current chord — either the letter chips
 // or a staff, depending on the sheet-music mode. Called on chord change and
