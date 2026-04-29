@@ -491,6 +491,19 @@ header {
   margin-right: 0;
 }
 
+/* Android-only sheet music tuning: none of Bravura/Noto Music/Segoe UI Symbol/
+   Apple Symbols ship on Android Chrome, so ♭/♯ and the clef glyphs fall back
+   to the system serif. That serif draws ♭/♯ with more right-side whitespace
+   (visually pushed away from the notehead) and renders the treble clef
+   slightly larger at the same em-size. Translate accidentals back toward the
+   notes and trim the clef font-size to match the iOS/Mac balance. */
+:root[data-platform="android"] .staff-svg .accidental {
+  transform: translateX(4px);
+}
+:root[data-platform="android"] .staff-svg .clef-treble {
+  font-size: 48px;
+}
+
 @media (max-width: 600px) {
   .chord-stage {
     --base-size: clamp(3.4rem, 18vw, 6rem);
