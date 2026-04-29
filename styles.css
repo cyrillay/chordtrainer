@@ -498,7 +498,7 @@ header {
    slightly larger at the same em-size. Translate accidentals back toward the
    notes and trim the clef font-size to match the iOS/Mac balance. */
 :root[data-platform="android"] .staff-svg .accidental {
-  transform: translateX(4px);
+  transform: translateX(6px);
 }
 :root[data-platform="android"] .staff-svg .clef-treble {
   font-size: 48px;
