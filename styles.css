@@ -479,16 +479,16 @@ header {
   margin-right: 0;
 }
 
-/* Android-only: the ♭ fallback at the larger sizes used on the centered
-   carousel card and the queue ends up tighter than on iOS/Mac, overlapping
-   the root letter. Side carousel cards render fine, so only soften the two
-   spots where overlap shows. */
-:root[data-platform="android"] .chord-card.is-current .card-chord > .accidental-flat {
-  margin-left: 0;
-  margin-right: 0;
-}
+/* Android-only: the ♭ fallback ends up tighter than on iOS/Mac, overlapping
+   the root letter. The negative margins tuned for Helvetica Neue all need
+   resetting — current carousel card, side cards, and queue. */
+:root[data-platform="android"] .chord-card.is-current .card-chord > .accidental-flat,
+:root[data-platform="android"] .chord-card:not(.is-current) .accidental-flat,
+:root[data-platform="android"] .chord-card:not(.is-current) .accent .accidental-flat,
+:root[data-platform="android"] .accent .accidental-flat,
 :root[data-platform="android"] .queue-item > span > .accidental-flat {
   margin-left: 0;
+  margin-right: 0;
 }
 
 @media (max-width: 600px) {
