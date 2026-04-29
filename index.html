@@ -53,14 +53,17 @@
     if (saved === null) document.body.dataset.theme = 'boudoir';
     else if (saved) document.body.dataset.theme = saved;
   })();
-  /* Tag Windows so the accidental kerning override (see styles.css) applies
-     there. The negative margins are tuned for Helvetica Neue; Windows is the
-     only platform whose ♭ fallback (Arial) has tight side bearings that cause
-     overlap. Mac/iOS use Helvetica Neue, Android falls through to Noto Music,
-     Linux to DejaVu — all render fine with the tight margins. */
+  /* Tag the platform so accidental-kerning overrides in styles.css can apply
+     selectively. The negative margins are tuned for Helvetica Neue (Mac/iOS).
+     Windows falls back to Arial, whose tight side bearings cause ♭ to overlap
+     the letter — full reset. Android lacks a guaranteed Noto Music fallback
+     and the system serif chosen for ♭ at large sizes is also too tight on the
+     centered carousel card and the queue, so we soften those specifically. */
   (function () {
-    var p = navigator.platform || navigator.userAgent || '';
+    var ua = navigator.userAgent || '';
+    var p = navigator.platform || ua;
     if (/Win/i.test(p)) document.documentElement.dataset.platform = 'win';
+    else if (/Android/i.test(ua)) document.documentElement.dataset.platform = 'android';
   })();
 </script>
 <div class="app">
@@ -257,8 +260,17 @@
         </div>
 
         <div class="selection-inversions-row">
-          <label class="checkbox-item selection-inversions"><input type="checkbox" id="inversionsCb">Include inversions</label>
+          <label class="checkbox-item selection-inversions">
+            <input type="checkbox" id="inversionsCb">Include inversions
+            <span class="info-tip" tabindex="0" aria-label="What are inversions?">
+              <span class="info-tip-icon" aria-hidden="true">?</span>
+              <span class="info-tip-bubble" role="tooltip">
+                Mixes in chord inversions (the same chord with a different note in the bass). Choose the frequency to control how often inversions appear instead of root-position chords.
+              </span>
+            </span>
+          </label>
           <div class="inversion-freq" id="inversionFreqWrap" style="display:none;">
+            <span class="inversion-freq-label">Frequency</span>
             <button type="button" class="inv-preset-btn" data-inv-freq="33">33%</button>
             <button type="button" class="inv-preset-btn" data-inv-freq="66">66%</button>
           </div>
@@ -284,7 +296,7 @@
           <span class="info-tip" tabindex="0" aria-label="What are pivot keys?">
             <span class="info-tip-icon" aria-hidden="true">?</span>
             <span class="info-tip-bubble" role="tooltip">
-              When a progression ends, jumps to a neighbouring key by sharing a chord (a “pivot”) instead of restarting in a random key. Smoother and more musical — like real modulations.
+              When a progression ends, jumps to a neighbouring key by sharing a chord (a “pivot”) instead of restarting in a random key. Smoother and more musical.
             </span>
           </span>
         </label>
