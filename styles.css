@@ -695,7 +695,7 @@ header {
   background: rgba(20, 18, 16, 0.97);
   border: 1px solid rgba(var(--gold-bright-rgb), 0.35);
   border-radius: var(--radius-lg);
-  color: var(--ivory);
+  color: #f2e9dc;
   font-family: var(--font-display, serif);
   font-size: 0.78rem;
   line-height: 1.35;
