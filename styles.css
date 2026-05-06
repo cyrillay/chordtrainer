@@ -767,6 +767,35 @@ header {
 .level-meter.level-meter-inline .meter-label { display: none; }
 .level-meter.level-meter-inline .meter-bar { height: 4px; }
 
+/* On small screens, when the status text grows ("Still missing: …",
+   "Wrong notes: …" with several notes), keep the row on one line by
+   forcing nowrap and letting the inline mic meter shrink first. With the
+   default `flex-wrap: wrap`, the browser wraps the meter below before
+   ever applying flex-shrink — nowrap inverts that order. The meter has
+   a very high flex-shrink so it absorbs horizontal pressure before the
+   status text has to give up space.
+   These overrides must come *after* the base `.status` and
+   `.level-meter.level-meter-inline` rules above — media queries don't
+   add specificity, so source order decides the cascade. */
+@media (max-width: 600px) {
+  .status-row { flex-wrap: nowrap; }
+  .level-meter.level-meter-inline {
+    flex: 0 99 140px;
+    min-width: 32px;
+  }
+  .status {
+    min-width: 0;
+    letter-spacing: 0.08em;
+  }
+}
+
+@media (max-width: 420px) {
+  .status {
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+  }
+}
+
 /* Piano visualization */
 /* Stack piano + guitar in the same grid cell so the area's height is reserved
    by whichever instrument is taller (guitar). Switching with visibility:hidden
