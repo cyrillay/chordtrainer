@@ -308,6 +308,7 @@ function handleSuccess() {
   if (!enabled) return;
   succeededThisChord = true;
   clearTimeout(resetTimer);
+  resetTimer = null;
 
   streak++;
 
@@ -337,10 +338,10 @@ let succeededThisChord = false;
 function handleChordChange() {
   if (!enabled) return;
   succeededThisChord = false;
-  clearTimeout(resetTimer);
-  if (streak > 0) {
+  if (streak > 0 && resetTimer === null) {
     resetTimer = setTimeout(() => {
-      if (!succeededThisChord && streak > 0) {
+      resetTimer = null;
+      if (streak > 0) {
         streak = 0;
         updateStreakDisplay();
       }
