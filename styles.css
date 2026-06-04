@@ -130,12 +130,52 @@ header {
   font-weight: 500;
   font-size: 1.8rem;
   letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  flex-wrap: wrap;
 }
 
 .wordmark em {
   font-style: italic;
   color: var(--gold);
   font-weight: 400;
+}
+
+.wm-brand, .wm-suffix { white-space: nowrap; }
+
+/* Trainer-mode toggle baked into the wordmark. The pill matches the
+   visual language of .input-selector (Mic / MIDI) so the header reads as
+   a single coherent control surface rather than two unrelated widgets. */
+.mode-pill {
+  display: inline-flex;
+  border: 1px solid var(--gold);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  align-self: center;
+  /* Sized so the pill height matches the wordmark cap-height region —
+     visually anchored to the brand without overpowering it. */
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.mp-opt {
+  padding: 0.55rem 0.95rem;
+  color: var(--ivory-dim);
+  text-decoration: none;
+  border-right: 1px solid var(--line);
+  transition: color var(--ease-fast), background var(--ease-fast);
+}
+.mp-opt:last-child { border-right: none; }
+.mp-opt:hover { color: var(--ivory); background: rgba(var(--gold-bright-rgb), 0.06); }
+.mp-opt.is-active {
+  color: var(--gold);
+  background: rgba(var(--gold-bright-rgb), 0.12);
+  box-shadow: inset 0 -2px 0 var(--gold);
+  pointer-events: none;
 }
 
 .meta {
