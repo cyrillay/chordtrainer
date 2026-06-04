@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Score Trainer · Random Practice Chunks from PDF or MIDI</title>
+<meta name="description" content="Upload a PDF or MIDI score, split it into random measure-chunks and rotate through them at your own pace. Free, in-browser practice companion to chordtrainer.io.">
+<link rel="canonical" href="https://chordtrainer.io/scoretrainer/">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chordtrainer.io/scoretrainer/">
+<meta property="og:title" content="Score Trainer · Random Practice Chunks">
+<meta property="og:description" content="Upload a PDF or MIDI score, get random measure-chunks rotated on a timer.">
+<meta property="og:image" content="https://chordtrainer.io/og-image.jpg">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="Étude · Score Trainer">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="../favico.png">
+<link rel="stylesheet" href="scoretrainer.css">
+</head>
+<body>
+<script>
+  (function () {
+    var saved = localStorage.getItem('etude.theme');
+    if (saved === null) document.body.dataset.theme = 'boudoir';
+    else if (saved) document.body.dataset.theme = saved;
+  })();
+</script>
+
+<div class="app">
+
+  <header>
+    <div class="wordmark">
+      <span class="wm-brand">Étude <em>—</em></span>
+      <span class="mode-pill" role="tablist" aria-label="Switch trainer">
+        <a href="../" class="mp-opt" role="tab" aria-selected="false">Chord</a>
+        <a href="./" class="mp-opt is-active" role="tab" aria-selected="true">Score</a>
+      </span>
+      <span class="wm-suffix">Trainer</span>
+    </div>
+    <div class="header-right">
+      <div class="meta">Op. 3 No 1</div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ==================== UPLOAD VIEW ==================== -->
+    <section class="view view-upload" id="viewUpload">
+      <div class="hero">
+        <h1 class="hero-title">Random <em>chunks</em>, on rotation.</h1>
+        <p class="hero-sub">
+          Drop a score in <strong>PDF</strong> or <strong>MIDI</strong> form. We slice it into measure-chunks,
+          then put one on screen — randomly chosen, one at a time, until every chunk has had its turn.
+          Then we reshuffle and start again.
+        </p>
+        <p class="hero-rationale">
+          <em>Why random?</em> Interleaved practice — jumping between unfamiliar fragments instead of
+          drilling them in order — makes recall harder in the moment, and that struggle is what
+          consolidates the music into long-term memory. A piece you can play <em>start to finish</em>
+          isn't truly learned until you can also play it <em>from any measure</em>. The approach is
+          drawn from <em>Learn Faster, Perform Better</em> — same principles, applied to the page in front of you.
+        </p>
+      </div>
+
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="fileInput" accept=".pdf,.mid,.midi,application/pdf,audio/midi" hidden>
+        <div class="drop-art" aria-hidden="true">
+          <svg viewBox="0 0 56 56" width="56" height="56">
+            <rect x="10" y="6" width="36" height="44" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/>
+            <line x1="16" y1="18" x2="40" y2="18" stroke="currentColor" stroke-width="1"/>
+            <line x1="16" y1="24" x2="40" y2="24" stroke="currentColor" stroke-width="1"/>
+            <line x1="16" y1="30" x2="40" y2="30" stroke="currentColor" stroke-width="1"/>
+            <circle cx="22" cy="38" r="3" fill="currentColor"/>
+            <line x1="25" y1="38" x2="25" y2="26" stroke="currentColor" stroke-width="1.2"/>
+            <circle cx="32" cy="42" r="3" fill="currentColor"/>
+            <line x1="35" y1="42" x2="35" y2="30" stroke="currentColor" stroke-width="1.2"/>
+          </svg>
+        </div>
+        <div class="drop-title">Drop your score here</div>
+        <div class="drop-sub">or <button type="button" class="link-btn" id="browseBtn">browse</button> — PDF or MIDI</div>
+        <div class="drop-hint">Everything runs in your browser. Nothing leaves your machine.</div>
+      </div>
+
+      <div class="kind-row">
+        <div class="kind-card">
+          <div class="kind-title">PDF</div>
+          <div class="kind-body">You mark the measures once (drag systems, click barlines). Markings are saved per file.</div>
+        </div>
+        <div class="kind-card">
+          <div class="kind-title">MIDI / MusicXML</div>
+          <div class="kind-body">Measures are detected automatically from the file's metadata.</div>
+        </div>
+      </div>
+
+      <div class="recent" id="recent" style="display:none;">
+        <div class="recent-label">Recent scores</div>
+        <div class="recent-list" id="recentList"></div>
+      </div>
+    </section>
+
+
+    <!-- ==================== PDF MARKING VIEW ==================== -->
+    <section class="view view-mark" id="viewMark" hidden>
+      <div class="mark-header">
+        <div class="mark-title">
+          <span class="filename" id="markFilename"></span>
+          <span class="hint" id="markHint">Drag to box each <strong>system</strong> (one music line). The first and last barlines are the edges of the box — only the <strong>internal</strong> barlines need clicking afterwards.</span>
+        </div>
+        <div class="mark-toolbar">
+          <div class="mode-toggle" role="tablist">
+            <button type="button" class="mode-btn active" data-mode="system" role="tab">Systems</button>
+            <button type="button" class="mode-btn" data-mode="barline" role="tab">Internal barlines</button>
+          </div>
+          <div class="page-nav">
+            <button type="button" id="pageBack" class="icon-btn" title="Previous page">
+              <svg viewBox="0 0 24 24" width="16" height="16"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <span class="page-label"><span id="pageNum">1</span> / <span id="pageTotal">1</span></span>
+            <button type="button" id="pageFwd" class="icon-btn" title="Next page">
+              <svg viewBox="0 0 24 24" width="16" height="16"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+          <button type="button" class="ghost-btn" id="clearPageBtn" title="Clear marks on this page">Clear page</button>
+          <button type="button" class="ghost-btn danger" id="cancelMarkBtn">Cancel</button>
+          <button type="button" class="primary-btn" id="confirmMarkBtn" disabled>Continue →</button>
+        </div>
+      </div>
+
+      <div class="mark-stage" id="markStage">
+        <div class="mark-canvas-wrap" id="markCanvasWrap">
+          <canvas id="markCanvas"></canvas>
+          <div class="mark-overlay" id="markOverlay"></div>
+        </div>
+      </div>
+
+      <div class="mark-stats" id="markStats">
+        <span><strong id="systemCount">0</strong> systems</span>
+        <span class="dot">·</span>
+        <span><strong id="measureCount">0</strong> measures total</span>
+        <span class="dot">·</span>
+        <span class="kbd-hint"><kbd>Esc</kbd> undo</span>
+      </div>
+    </section>
+
+
+    <!-- ==================== SESSION CONFIG VIEW ==================== -->
+    <section class="view view-config" id="viewConfig" hidden>
+      <div class="config-card">
+        <div class="config-head">
+          <div class="config-eyebrow">Session</div>
+          <div class="config-title" id="configFilename">—</div>
+          <div class="config-summary" id="configSummary">—</div>
+        </div>
+
+        <div class="config-body">
+          <div class="config-row">
+            <label class="config-label">Chunk size</label>
+            <div class="config-control">
+              <input type="range" min="1" max="16" value="4" id="chunkSize" class="slider">
+              <output class="slider-val"><span id="chunkSizeVal">4</span> measure<span id="chunkSizePlural">s</span></output>
+            </div>
+            <div class="config-hint">How many consecutive measures appear on screen each round.</div>
+          </div>
+
+          <div class="config-row">
+            <label class="config-label">Display time</label>
+            <div class="config-control">
+              <input type="range" min="15" max="900" step="15" value="300" id="displayTime" class="slider">
+              <output class="slider-val" id="displayTimeVal">5 min</output>
+            </div>
+            <div class="config-hint">How long each chunk stays on screen before rotating.</div>
+          </div>
+
+        </div>
+
+        <div class="config-actions">
+          <button type="button" class="ghost-btn" id="backToUploadBtn">← New score</button>
+          <button type="button" class="primary-btn big" id="startBtn">Start</button>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ==================== PLAYBACK VIEW ==================== -->
+    <section class="view view-play" id="viewPlay" hidden>
+
+      <div class="play-meta">
+        <div class="play-meta-left">
+          <span class="play-counter"><span id="chunkPos">1</span> of <span id="chunkTotal">1</span></span>
+          <span class="dot">·</span>
+          <span id="chunkRange">m. 1 – 4</span>
+        </div>
+        <div class="play-meta-right">
+          <span class="round-label">Round <span id="roundNum">1</span></span>
+        </div>
+      </div>
+
+      <div class="chunk-stage" id="chunkStage">
+        <div class="chunk-render" id="chunkRender"></div>
+      </div>
+
+      <div class="play-controls">
+        <button type="button" class="icon-btn-lg" id="prevBtn" title="Previous chunk (shown earlier this round)" disabled>
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" class="icon-btn-lg pause-btn" id="pauseBtn" title="Pause / resume">
+          <svg viewBox="0 0 24 24" width="22" height="22" id="pauseIcon"><rect x="6" y="5" width="4" height="14" fill="currentColor"/><rect x="14" y="5" width="4" height="14" fill="currentColor"/></svg>
+          <svg viewBox="0 0 24 24" width="22" height="22" id="playIcon" hidden><polygon points="6,4 20,12 6,20" fill="currentColor"/></svg>
+        </button>
+        <button type="button" class="icon-btn-lg" id="nextBtn" title="Next chunk">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <div class="play-progress" id="playProgress">
+        <div class="play-progress-fill" id="playProgressFill"></div>
+        <div class="play-progress-time" id="playProgressTime">5:00</div>
+      </div>
+
+      <div class="play-footer">
+        <div class="kbd-row">
+          <span><kbd>←</kbd> prev</span>
+          <span><kbd>space</kbd> pause</span>
+          <span><kbd>→</kbd> next</span>
+        </div>
+        <button type="button" class="ghost-btn" id="exitSessionBtn">← Back to setup</button>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="page-footer">
+    <span>Companion to <a href="../">chordtrainer.io</a></span>
+  </footer>
+
+</div>
+
+<!-- OSMD ships UMD only, so load via <script> and access through window.opensheetmusicdisplay.
+     PDF.js and @tonejs/midi are imported as ES modules directly inside main.js. -->
+<script src="https://cdn.jsdelivr.net/npm/opensheetmusicdisplay@1.8.7/build/opensheetmusicdisplay.min.js"></script>
+
+<script type="module" src="js/main.js"></script>
+
+</body>
+</html>
