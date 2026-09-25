@@ -1,0 +1,104 @@
+/* PDF → MIDI converter. Builds on ../scoretrainer/scoretrainer.css (tokens,
+   header, drop zone, cards, buttons); only what's specific lives here. */
+
+[hidden] { display: none !important; }
+
+.status-line {
+  max-width: 640px;
+  margin: 1.4rem auto 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  color: var(--ivory-dim);
+}
+.status-line.is-error {
+  color: var(--ivory);
+  border: 1px solid rgba(160, 59, 59, 0.55);
+  background: rgba(160, 59, 59, 0.08);
+  border-radius: var(--radius-md);
+  padding: 0.9rem 1.1rem;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  letter-spacing: 0;
+  line-height: 1.45;
+}
+
+.result-card { max-width: 720px; }
+.result-card .config-actions { flex-wrap: wrap; }
+
+.warnings {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: 0.92rem;
+  color: var(--ivory-dim);
+  border-left: 2px solid rgba(var(--gold-rgb), 0.5);
+  padding-left: 0.9rem;
+}
+.warnings li::before { content: '⚠ '; color: var(--gold); }
+
+.verify-head {
+  max-width: 900px;
+  margin: 3rem auto 1rem;
+  text-align: center;
+}
+.verify-title {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  margin-bottom: 0.4rem;
+}
+.verify-legend {
+  font-size: 0.95rem;
+  color: var(--ivory-dim);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem 1rem;
+}
+.legend-item { display: inline-flex; align-items: center; gap: 0.35rem; font-family: var(--font-mono); font-size: 0.75rem; }
+.swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+/* Staff colours for the overlay markers (chosen to read on white paper). */
+.s0 { --mk: 37, 99, 235; }
+.s1 { --mk: 220, 38, 38; }
+.s2 { --mk: 22, 163, 74; }
+.swatch.s0, .swatch.s1, .swatch.s2 { background: rgb(var(--mk)); }
+
+.pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+.page {
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  background: #fff;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+.page canvas { display: block; width: 100%; height: auto; }
+.page-overlay { position: absolute; inset: 0; }
+
+.mk {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(var(--mk), 0.28);
+  box-shadow: 0 0 0 1.5px rgba(var(--mk), 0.9);
+  transform: translate(-1px, -50%);
+  transition: background var(--ease-fast), box-shadow var(--ease-fast);
+  cursor: help;
+}
+.mk:hover { background: rgba(var(--mk), 0.55); }
+.mk.is-playing {
+  background: rgba(var(--mk), 0.85);
+  box-shadow: 0 0 0 2px rgba(var(--mk), 1), 0 0 10px rgba(var(--mk), 0.8);
+}
+
+@media (max-width: 600px) {
+  .verify-head { margin-top: 2rem; }
+}

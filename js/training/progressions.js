@@ -282,7 +282,12 @@ export class ProgressionStream {
   }
 
   setSmartPivots(on) { this.smartPivots = on; }
-  setAllowedRoots(roots) { this.allowedRoots = roots; }
+  setAllowedRoots(roots) {
+    this.allowedRoots = roots;
+    // The constructor picks a key blind, and the user may untick the root
+    // we're in: don't keep playing in a key that's no longer allowed.
+    if (roots && roots.length > 0 && !roots.includes(this.currentKey)) this.advanceProgression();
+  }
   setUseInversions(on) {
     if (this.useInversions === on) return;
     this.useInversions = on;

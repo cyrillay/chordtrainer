@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PDF to MIDI Converter · Sheet Music PDF → MIDI, Note for Note</title>
+<meta name="description" content="Convert a sheet-music PDF exported from MuseScore, Dorico, Sibelius or Finale into a MIDI file. Reads the notation itself — pitches, rhythms, ties, tuplets, key and time signatures — entirely in your browser.">
+<link rel="canonical" href="https://chordtrainer.io/pdf2midi/">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chordtrainer.io/pdf2midi/">
+<meta property="og:title" content="PDF to MIDI · Sheet music converter">
+<meta property="og:description" content="Turn a sheet-music PDF into a MIDI file, note for note, in your browser.">
+<meta property="og:image" content="https://chordtrainer.io/og-image.jpg">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="Étude · PDF to MIDI">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="../favico.png">
+<link rel="stylesheet" href="../scoretrainer/scoretrainer.css">
+<link rel="stylesheet" href="pdf2midi.css">
+</head>
+<body>
+
+<div class="app">
+
+  <header>
+    <div class="wordmark">
+      <span class="wm-brand">Étude <em>—</em></span>
+      <span class="mode-pill" role="tablist" aria-label="Switch tool">
+        <a href="../" class="mp-opt" role="tab" aria-selected="false">Chord</a>
+        <a href="../scoretrainer/" class="mp-opt" role="tab" aria-selected="false">Score</a>
+        <a href="./" class="mp-opt is-active" role="tab" aria-selected="true">MIDI</a>
+      </span>
+      <span class="wm-suffix">Converter</span>
+    </div>
+    <div class="header-right">
+      <div class="meta">Op. 4 No 1</div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ==================== UPLOAD VIEW ==================== -->
+    <section class="view view-upload" id="viewUpload">
+      <div class="hero">
+        <h1 class="hero-title">PDF to <em>MIDI</em>, note for note.</h1>
+        <p class="hero-sub">
+          Drop a score exported as <strong>PDF</strong> from MuseScore, Dorico, Sibelius or Finale and get a
+          <strong>MIDI</strong> file back — pitches, rhythms, ties, tuplets, grace notes, key and time signatures.
+        </p>
+        <p class="hero-rationale">
+          <em>Why so exact?</em> Those PDFs are not pictures: every notehead, clef and accidental is a
+          symbol from a music font placed at a precise position, and every stem, beam and barline is a
+          vector line. We read that structure directly instead of guessing from pixels, so there is no
+          blur, skew or noise to misread. Scanned or photographed scores are images and can't be read this way.
+        </p>
+      </div>
+
+      <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Choose a PDF score">
+        <input type="file" id="fileInput" accept=".pdf,application/pdf" hidden>
+        <div class="drop-art" aria-hidden="true">
+          <svg viewBox="0 0 56 56" width="56" height="56">
+            <rect x="10" y="6" width="36" height="44" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/>
+            <line x1="16" y1="18" x2="40" y2="18" stroke="currentColor" stroke-width="1"/>
+            <line x1="16" y1="24" x2="40" y2="24" stroke="currentColor" stroke-width="1"/>
+            <line x1="16" y1="30" x2="40" y2="30" stroke="currentColor" stroke-width="1"/>
+            <circle cx="22" cy="38" r="3" fill="currentColor"/>
+            <line x1="25" y1="38" x2="25" y2="26" stroke="currentColor" stroke-width="1.2"/>
+            <circle cx="32" cy="42" r="3" fill="currentColor"/>
+            <line x1="35" y1="42" x2="35" y2="30" stroke="currentColor" stroke-width="1.2"/>
+          </svg>
+        </div>
+        <div class="drop-title">Drop your PDF score here</div>
+        <div class="drop-sub">or <button type="button" class="link-btn" id="browseBtn">browse</button></div>
+        <div class="drop-hint">Everything runs in your browser. Nothing leaves your machine.</div>
+      </div>
+
+      <div class="status-line" id="status" role="status" aria-live="polite" hidden></div>
+
+      <div class="kind-row">
+        <div class="kind-card">
+          <div class="kind-title">Works with</div>
+          <div class="kind-body">PDFs exported by notation software using a SMuFL music font: MuseScore 3 &amp; 4, Dorico, Sibelius 2024+, Finale 27…</div>
+        </div>
+        <div class="kind-card">
+          <div class="kind-title">Not yet</div>
+          <div class="kind-body">Scans and photos, repeats &amp; voltas (played once, as written), 8va lines, dynamics.</div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ==================== RESULT VIEW ==================== -->
+    <section class="view view-result" id="viewResult" hidden>
+      <div class="config-card result-card">
+        <div class="config-head">
+          <div class="config-eyebrow">Converted</div>
+          <div class="config-title" id="resTitle">—</div>
+          <div class="config-summary" id="resSummary">—</div>
+        </div>
+
+        <div class="config-body">
+          <div class="config-row">
+            <label class="config-label" for="tempoInput">Tempo</label>
+            <div class="config-control">
+              <input type="range" min="30" max="240" value="120" id="tempoInput" class="slider">
+              <output class="slider-val"><span id="tempoVal">120</span> bpm</output>
+            </div>
+            <div class="config-hint" id="tempoHint">Quarter notes per minute.</div>
+          </div>
+          <ul class="warnings" id="warnings" hidden></ul>
+        </div>
+
+        <div class="config-actions">
+          <button type="button" class="ghost-btn" id="againBtn">← Another PDF</button>
+          <button type="button" class="ghost-btn" id="playBtn">▶ Listen</button>
+          <button type="button" class="primary-btn big" id="downloadBtn">Download MIDI</button>
+        </div>
+      </div>
+
+      <div class="verify-head">
+        <div class="verify-title">Check the reading</div>
+        <div class="verify-legend">
+          Every recognised note is marked on the score — hover one for its pitch and beat.
+          <span class="legend-item"><span class="swatch s0"></span>staff 1</span>
+          <span class="legend-item"><span class="swatch s1"></span>staff 2</span>
+          <span class="legend-item"><span class="swatch s2"></span>staff 3+</span>
+        </div>
+      </div>
+      <div class="pages" id="pages"></div>
+    </section>
+
+  </main>
+
+  <footer class="page-footer">
+    <span>Companion to <a href="../">chordtrainer.io</a> · practise the result in the <a href="../scoretrainer/">Score Trainer</a></span>
+  </footer>
+
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
