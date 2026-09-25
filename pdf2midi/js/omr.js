@@ -816,6 +816,48 @@ function processSystem(sy, sysIdx, carry, warn, stats, options) {
     }
     const nominal = carry.timeSig.num * 4 / carry.timeSig.den;
 
+    // Implied tuplets: after the first few groups, engravers drop the "3"
+    // ("simile"). If a staff overflows the bar, beamed groups of three (or
+    // six) equal notes are triplets.
+    staves.forEach((staff, si) => {
+      const mine = evs.filter(e => e.si === si && !e.fullMeasure);
+      // This staff's length when laid out alone (same column rule as below).
+      const staffContent = () => {
+        const sorted = [...mine].sort((a, b) => a.x - b.x);
+        const cols = [];
+        for (const e of sorted) {
+          const col = cols[cols.length - 1];
+          if (col && e.x - col.x < 0.75 * sp) col.push(e); else { const c = [e]; c.x = e.x; cols.push(c); }
+        }
+        let t = 0, end = 0;
+        const placed = [];
+        cols.forEach((col, ci) => {
+          if (ci > 0) {
+            const ends = placed.map(p => p.t + p.e.dur).filter(v => v > t + EPS);
+            t = ends.length ? Math.min(...ends) : end;
+          }
+          for (const e of col) { placed.push({ e, t }); end = Math.max(end, t + e.dur); }
+        });
+        return end;
+      };
+      if (staffContent() <= nominal + EPS) return;
+      const groups = new Map();
+      for (const e of mine) {
+        if (e.kind !== 'chord' || !e.stem || e.tuplet) continue;
+        const bm = beams.find(b => e.stem.x >= b.x0 - 0.3 * sp && e.stem.x <= b.x1 + 0.3 * sp &&
+          [e.stem.y0, e.stem.y1].some(y => Math.abs(y - b.yAt(e.stem.x)) < 0.8 * sp) && b.x1 - b.x0 > 1.5 * sp);
+        if (!bm) continue;
+        if (!groups.has(bm)) groups.set(bm, []);
+        groups.get(bm).push(e);
+      }
+      for (const g of groups.values()) {
+        if (staffContent() <= nominal + EPS) break;
+        if ((g.length === 3 || g.length === 6) && g.every(e => Math.abs(e.dur - g[0].dur) < EPS)) {
+          g.forEach(e => { e.dur *= 2 / 3; e.tuplet = true; });
+          stats.tuplets++;
+        }
+      }
+    });
     const timed = evs.filter(e => !e.fullMeasure);
     // Column clustering on the event's left x.
     timed.sort((a, b) => a.x - b.x);

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PDF to MIDI Converter · Sheet Music PDF → MIDI, Note for Note</title>
-<meta name="description" content="Convert a sheet-music PDF exported from MuseScore, Dorico, Sibelius or Finale into a MIDI file. Reads the notation itself — pitches, rhythms, ties, tuplets, key and time signatures — entirely in your browser.">
+<meta name="description" content="Convert sheet music to MIDI in your browser: note-for-note from PDFs exported by MuseScore, Dorico, Sibelius or Finale, and from scans or photos of printed scores.">
 <link rel="canonical" href="https://chordtrainer.io/pdf2midi/">
 
 <meta property="og:type" content="website">
@@ -54,13 +54,14 @@
         <p class="hero-rationale">
           <em>Why so exact?</em> Those PDFs are not pictures: every notehead, clef and accidental is a
           symbol from a music font placed at a precise position, and every stem, beam and barline is a
-          vector line. We read that structure directly instead of guessing from pixels, so there is no
-          blur, skew or noise to misread. Scanned or photographed scores are images and can't be read this way.
+          vector line. We read that structure directly instead of guessing from pixels.
+          Scans, photos and image-only PDFs are read from their pixels instead — it works on clean printed
+          music, but expect to fix a few notes.
         </p>
       </div>
 
       <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Choose a PDF score">
-        <input type="file" id="fileInput" accept=".pdf,application/pdf" hidden>
+        <input type="file" id="fileInput" accept=".pdf,application/pdf,image/*" multiple hidden>
         <div class="drop-art" aria-hidden="true">
           <svg viewBox="0 0 56 56" width="56" height="56">
             <rect x="10" y="6" width="36" height="44" rx="2" fill="none" stroke="currentColor" stroke-width="1.4"/>
@@ -73,8 +74,8 @@
             <line x1="35" y1="42" x2="35" y2="30" stroke="currentColor" stroke-width="1.2"/>
           </svg>
         </div>
-        <div class="drop-title">Drop your PDF score here</div>
-        <div class="drop-sub">or <button type="button" class="link-btn" id="browseBtn">browse</button></div>
+        <div class="drop-title">Drop your score here</div>
+        <div class="drop-sub">or <button type="button" class="link-btn" id="browseBtn">browse</button> — a PDF, or photos / scans (one image per page)</div>
         <div class="drop-hint">Everything runs in your browser. Nothing leaves your machine.</div>
       </div>
 
@@ -82,12 +83,12 @@
 
       <div class="kind-row">
         <div class="kind-card">
-          <div class="kind-title">Works with</div>
+          <div class="kind-title">Exact</div>
           <div class="kind-body">PDFs exported by notation software using a SMuFL music font: MuseScore 3 &amp; 4, Dorico, Sibelius 2024+, Finale 27…</div>
         </div>
         <div class="kind-card">
-          <div class="kind-title">Not yet</div>
-          <div class="kind-body">Scans and photos, repeats &amp; voltas (played once, as written), 8va lines, dynamics.</div>
+          <div class="kind-title">Approximate</div>
+          <div class="kind-body">Scans, photos, screenshots and other PDFs (LilyPond, older Finale…): printed music, straight and sharp. Every note is marked on the page so you can check it.</div>
         </div>
       </div>
     </section>
