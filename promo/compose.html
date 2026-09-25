@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=Noto+Music&display=block" rel="stylesheet">
+<style>
+:root{--ink:#0a0908;--ivory:#f2e9dc;--ivory-dim:#c9bfae;--gold:#c8a464;--gold-bright:#e4c584;--sage:#8fb38f}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1080px;height:1920px;overflow:hidden;background:var(--ink)}
+body{position:relative;font-family:'Cormorant Garamond',serif;color:var(--ivory)}
+.abs{position:absolute}
+#bg{inset:-80px;background:url(marble-background.png) center/cover;filter:brightness(.55) saturate(.9)}
+#shade{inset:0;background:
+  radial-gradient(ellipse 70% 45% at 50% 55%, rgba(200,164,100,.16), transparent 70%),
+  linear-gradient(180deg, rgba(10,9,8,.72) 0%, rgba(10,9,8,.45) 40%, rgba(10,9,8,.8) 100%)}
+.acc{font-family:'Noto Music',serif;font-style:normal}
+.q{font-style:italic;color:var(--gold-bright)}
+/* hook */
+#hook{left:0;right:0;top:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+#h1{font-size:88px;font-weight:500;letter-spacing:.01em}
+#chordBox{position:relative;height:420px;width:100%;margin:10px 0 60px}
+.sym{position:absolute;left:0;right:0;top:0;font-family:'Playfair Display',serif;font-size:300px;line-height:420px;font-weight:500}
+.sym .q{font-family:'Cormorant Garamond',serif;font-weight:400;font-size:.8em}
+#h2{font-size:88px;font-style:italic;color:var(--gold-bright)}
+.rule{width:120px;height:2px;background:var(--gold);margin:34px auto 0}
+/* captions */
+#caps{left:60px;right:60px;top:120px;height:260px}
+.cap{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.cap .t{font-size:92px;font-weight:500;line-height:1.02}
+.cap .s{margin-top:22px;font-family:'JetBrains Mono',monospace;font-size:27px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+.check{color:var(--sage);font-family:'Noto Music','DejaVu Sans',sans-serif}
+/* phone */
+#phone{left:50%;top:0;width:704px;height:1472px;margin-left:-352px;border-radius:78px;padding:22px;
+  background:linear-gradient(145deg,#3b332b,#16120f 45%,#2c251f);
+  box-shadow:0 0 0 2px rgba(200,164,100,.45),0 50px 120px rgba(0,0,0,.75),0 0 160px rgba(200,164,100,.12);transform-origin:50% 0}
+#screen{width:660px;height:1428px;border-radius:58px;overflow:hidden;background:#1a1410;position:relative}
+#app{width:660px;height:1428px;display:block}
+#notch{position:absolute;top:18px;left:50%;margin-left:-70px;width:140px;height:38px;border-radius:20px;background:#050404}
+/* features */
+#feats{left:90px;right:90px;top:150px}
+#feats .ft{font-size:84px;font-weight:500;text-align:center;margin-bottom:44px;line-height:1.05}
+.row{display:flex;align-items:center;gap:30px;margin:0 auto 26px;width:780px;padding:22px 34px;border:1.5px solid rgba(200,164,100,.45);border-radius:14px;background:rgba(26,20,16,.72)}
+.row .ic{width:64px;height:64px;flex:none;display:flex;align-items:center;justify-content:center;font-size:48px;color:var(--gold-bright);font-family:'Noto Music',serif}
+.row .tx{font-size:50px;font-weight:500}
+.row .tx small{display:block;font-family:'JetBrains Mono',monospace;font-size:22px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-top:4px}
+/* CTA */
+#cta{inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+#logo{width:190px;height:190px;border-radius:40px;box-shadow:0 0 0 2px rgba(200,164,100,.5),0 30px 80px rgba(0,0,0,.6)}
+#wm{margin-top:60px;font-size:190px;font-weight:500;line-height:1}
+#wm em{color:var(--gold);font-style:normal}
+#wm2{font-family:'JetBrains Mono',monospace;font-size:40px;letter-spacing:.42em;text-transform:uppercase;color:var(--gold-bright);margin-top:26px;padding-left:.42em}
+#tag{margin-top:70px;font-size:62px;font-style:italic;color:var(--ivory-dim)}
+#url{margin-top:80px;font-family:'JetBrains Mono',monospace;font-size:52px;font-weight:500;color:#1a1410;background:var(--gold-bright);padding:28px 62px;border-radius:12px;letter-spacing:.04em}
+#free{margin-top:36px;font-family:'JetBrains Mono',monospace;font-size:26px;letter-spacing:.24em;text-transform:uppercase;color:var(--gold)}
+</style></head>
+<body>
+<div id="bg" class="abs"></div><div id="shade" class="abs"></div>
+
+<div id="hook" class="abs">
+  <div id="h1">Can you play these</div>
+  <div id="chordBox">
+    <div class="sym" id="s0">C<span class="q">maj</span><span class="q" style="font-size:.5em;vertical-align:.9em">7</span></div>
+    <div class="sym" id="s1">F<span class="acc" style="font-size:.6em;vertical-align:.45em">♯</span><span class="q">m</span><span class="q" style="font-size:.5em;vertical-align:.9em">7</span></div>
+    <div class="sym" id="s2">B<span class="acc" style="font-size:.6em;vertical-align:.45em">♭</span><span class="q">sus</span><span class="q" style="font-size:.5em;vertical-align:.9em">4</span></div>
+  </div>
+  <div id="h2">without thinking?</div>
+  <div class="rule" id="hr"></div>
+</div>
+
+<div id="phone" class="abs"><div id="screen"><img id="app" src="appframes/0000.png"><div id="notch"></div></div></div>
+
+<div id="caps" class="abs">
+  <div class="cap"><div class="t">A chord appears.</div><div class="s">random or from real progressions</div></div>
+  <div class="cap"><div class="t">You play it.</div><div class="s">MIDI keyboard or microphone</div></div>
+  <div class="cap"><div class="t">It listens. <span class="check">✓</span></div><div class="s">instant feedback, every chord</div></div>
+  <div class="cap"><div class="t">Build the streak.</div><div class="s">sight-reading, one chord at a time</div></div>
+  <div class="cap"><div class="t">Piano or guitar.</div><div class="s">voicings &amp; fretboard shapes</div></div>
+  <div class="cap"><div class="t">See the harmony.</div><div class="s">live circle of fifths</div></div>
+</div>
+
+<div id="feats" class="abs">
+  <div class="ft">And more…</div>
+  <div class="row"><div class="ic">𝄆</div><div class="tx">Chord progressions<small>Amen · Autumnal · Body &amp; Soul…</small></div></div>
+  <div class="row"><div class="ic">𝅘𝅥</div><div class="tx">Metronome mode<small>4 beats per chord · set the tempo</small></div></div>
+  <div class="row"><div class="ic">◆</div><div class="tx">Free, in your browser<small>no install · no sign-up</small></div></div>
+</div>
+
+<div id="cta" class="abs">
+  <img id="logo" src="favico.png">
+  <div id="wm">Étude <em>—</em></div>
+  <div id="wm2">Chord Trainer</div>
+  <div id="tag">See it. Play it. Own it.</div>
+  <div id="url">chordtrainer.io</div>
+  <div id="free">free · piano &amp; guitar</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lin = (t, a, b) => clamp((t - a) / (b - a));
+const eo = x => 1 - Math.pow(1 - x, 3);            // ease out cubic
+const eio = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const eback = x => { const c = 1.6; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+function fade(t, a, b, inD = .35, outD = .3) { return Math.min(eo(lin(t, a, a + inD)), 1 - lin(t, b - outD, b)); }
+function set(el, o, tr) { el.style.opacity = o; el.style.transform = tr || ''; el.style.visibility = o <= 0.001 ? 'hidden' : 'visible'; }
+
+const APP_START = 3.0, APP_FPS = 30, APP_FRAMES = +(new URLSearchParams(location.search).get('frames') || 420);
+const caps = [...document.querySelectorAll('.cap')];
+const capT = [[3.0, 4.75], [4.75, 6.7], [6.7, 8.8], [8.8, 11.0], [11.0, 12.7], [12.7, 15.0]];
+const rows = [...document.querySelectorAll('.row')];
+
+async function render(t) {
+  // background slow push-in
+  $('bg').style.transform = `scale(${1.04 + t * 0.006}) translateY(${-t * 3}px)`;
+
+  // hook
+  const hookOut = 1 - eio(lin(t, 2.45, 2.85));
+  set($('h1'), eo(lin(t, 0.05, 0.45)) * hookOut, `translateY(${(1 - eo(lin(t, .05, .45))) * 30 - (1 - hookOut) * 60}px)`);
+  const hits = [0.5, 1.0, 1.5];
+  hits.forEach((h, i) => {
+    const end = i < 2 ? hits[i + 1] : 99;
+    const p = lin(t, h, h + 0.22);
+    let o = t < h ? 0 : (t < end ? eo(p) : 1 - lin(t, end, end + 0.08));
+    o *= hookOut;
+    const s = 1.25 - 0.25 * eo(p);
+    set($('s' + i), o, `scale(${s})`);
+  });
+  set($('h2'), eo(lin(t, 1.85, 2.2)) * hookOut, `translateY(${(1 - eo(lin(t, 1.85, 2.2))) * 30 - (1 - hookOut) * 60}px)`);
+  $('hr').style.width = 120 * eo(lin(t, 1.95, 2.35)) * hookOut + 'px';
+
+  // phone
+  let py = 1920 - 1510 * eo(lin(t, 2.5, 3.15)) ; // → 410
+  let ps = 1, po = t < 2.5 ? 0 : 1;
+  const shrink = eio(lin(t, 15.0, 15.7));
+  ps = 1 - 0.36 * shrink; py = py + (840 - 410) * shrink;
+  const drop = eio(lin(t, 17.2, 17.7));
+  py += 700 * drop; po *= 1 - drop;
+  set($('phone'), po, `translateY(${py}px) scale(${ps})`);
+  const f = Math.round(clamp((t - APP_START) * APP_FPS, 0, APP_FRAMES - 1));
+  const src = `appframes/${String(f).padStart(4, '0')}.png`;
+  if (!$('app').src.endsWith(src)) { $('app').src = src; await $('app').decode().catch(() => {}); }
+
+  // captions
+  caps.forEach((c, i) => {
+    const [a, b] = capT[i];
+    const o = fade(t, a, b, .3, .22);
+    const y = (1 - eo(lin(t, a, a + .35))) * 28 - lin(t, b - .22, b) * 20;
+    set(c, o, `translateY(${y}px)`);
+  });
+
+  // features
+  const fo = 1 - lin(t, 17.2, 17.5);
+  set($('feats').querySelector('.ft'), eo(lin(t, 15.1, 15.45)) * fo, `translateY(${(1 - eo(lin(t, 15.1, 15.45))) * 24}px)`);
+  rows.forEach((r, i) => {
+    const a = 15.4 + i * 0.35, p = lin(t, a, a + .4);
+    set(r, eo(p) * fo, `translateX(${(1 - eback(p)) * 120}px)`);
+  });
+
+  // CTA
+  const c0 = 17.45;
+  set($('logo'), eo(lin(t, c0, c0 + .45)), `scale(${0.7 + 0.3 * eback(lin(t, c0, c0 + .5))})`);
+  set($('wm'), eo(lin(t, c0 + .15, c0 + .6)), `translateY(${(1 - eo(lin(t, c0 + .15, c0 + .6))) * 40}px)`);
+  set($('wm2'), eo(lin(t, c0 + .35, c0 + .8)), '');
+  $('wm2').style.letterSpacing = (0.42 + 0.3 * (1 - eo(lin(t, c0 + .35, c0 + 1.2)))) + 'em';
+  set($('tag'), eo(lin(t, c0 + .75, c0 + 1.15)), `translateY(${(1 - eo(lin(t, c0 + .75, c0 + 1.15))) * 24}px)`);
+  const up = lin(t, c0 + 1.05, c0 + 1.5);
+  const pulse = 1 + 0.03 * Math.sin(Math.max(0, t - (c0 + 1.5)) * 5) * (t > c0 + 1.5 ? 1 : 0);
+  set($('url'), eo(up), `scale(${(0.8 + 0.2 * eback(up)) * pulse})`);
+  set($('free'), eo(lin(t, c0 + 1.35, c0 + 1.75)), '');
+}
+window.render = render;
+render(0);
+</script>
+</body></html>
