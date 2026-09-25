@@ -35,3 +35,18 @@ Then visit `http://localhost:8000`.
 ## Tech
 
 Vanilla HTML / CSS / JS (ES modules). Web Audio API for pitch detection, Web MIDI API for keyboard input, SVG for the fretboard and circle.
+
+## Tests
+
+Cross-browser front-end tests with [Playwright](https://playwright.dev): Chrome, Firefox and Safari (WebKit) on desktop, plus Pixel 7 and iPhone 14 emulation.
+
+```
+npm install
+npx playwright install        # one-time browser download
+npm test                      # all browsers
+npx playwright test --project=mobile-safari   # a single one
+npm run test:ui               # interactive mode
+BASE_URL=https://chordtrainer.io npm test     # against production
+```
+
+They also run on GitHub Actions on every push to `main` and every pull request (`.github/workflows/e2e.yml`). To test production, run the workflow manually with a `base_url`.
