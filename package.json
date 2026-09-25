@@ -1,0 +1,13 @@
+{
+  "name": "chordtrainer",
+  "private": true,
+  "description": "Étude · Chord Trainer — practice chords on piano or guitar in the browser.",
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "test": "node --test tests/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

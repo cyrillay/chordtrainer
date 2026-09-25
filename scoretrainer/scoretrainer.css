@@ -980,3 +980,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
 @keyframes toastOut {
   to { opacity: 0; transform: translate(-50%, 12px); }
 }
+
+.inline-link { color: var(--gold); text-decoration: none; border-bottom: 1px solid rgba(var(--gold-rgb), 0.4); }
+.inline-link:hover { color: var(--gold-bright); border-bottom-color: var(--gold-bright); }
