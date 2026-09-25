@@ -3,8 +3,15 @@ import json, wave
 import numpy as np
 
 SR = 44100
-DUR = 20.0
-APP_START = 3.0
+import subprocess
+PLAN = json.loads(subprocess.check_output(["node", "-e", "import('./plan.mjs').then(m=>console.log(JSON.stringify({dur:m.DURATION,feat:m.T_FEAT,cta:m.T_CTA,guitar:m.GUITAR_AT,lag:m.SUCCESS_LAG,windows:m.WINDOWS,map:Array.from({length:1401},(_, i)=>m.a2v(i/100))})))"]))
+DUR = PLAN["dur"]
+
+
+def a2v(a):
+    i = min(1399, int(a * 100)); f = a * 100 - i
+    return PLAN["map"][i] * (1 - f) + PLAN["map"][i + 1] * f
+
 out = np.zeros((int(SR * DUR) + SR, 2))
 rng = np.random.default_rng(3)
 
@@ -82,24 +89,64 @@ chord([54, 57, 61, 64], 1.0, hold=0.45, stagger=0.0, vel=0.9)
 chord([58, 63, 65, 70], 1.5, hold=0.9, stagger=0.0, vel=0.95)
 
 # --- App demo: chords actually played in the captured session
+def noise_swell(t_end, dur=0.45, gain=0.12):
+    n = int(dur * SR); t = np.arange(n) / SR
+    x = rng.standard_normal(n)
+    # crude band-pass rising: mix of differenced noise, envelope rising
+    x = np.convolve(x, np.ones(6) / 6, mode='same') - np.convolve(x, np.ones(40) / 40, mode='same')
+    add(x * (t / dur) ** 2.5, t_end - dur, gain=gain)
+
+
+def thump(t0, gain=0.5):
+    n = int(0.25 * SR); t = np.arange(n) / SR
+    f = 55 + 70 * np.exp(-t * 30)
+    add(np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 14), t0, gain=gain)
+
+
+def crash(t0, gain=0.18):
+    n = int(1.6 * SR); t = np.arange(n) / SR
+    x = rng.standard_normal(n); x = x - np.convolve(x, np.ones(3) / 3, mode='same')
+    add(x * np.exp(-t * 3.2), t0, pan=-.2, gain=gain); add(x[::-1][:n] * 0 + x * np.exp(-t * 3.0), t0 + 0.004, pan=.2, gain=gain)
+
+
 played = json.load(open('chords.json'))
+slow_starts = [w[0] for w in PLAN['windows']]
 for i, c in enumerate(played):
-    t0 = APP_START + c['t']
-    if t0 < APP_START + 8.0:
-        chord(c['v'], t0)
-    else:  # guitar scene: strum
+    a0 = c['t']
+    if a0 < PLAN['guitar']:
+        for j, m in enumerate(c['v']):
+            add(piano(m, 0.4, 0.8), a2v(a0 + j * 0.03), pan=(j / 2 - .5) * .5)
+        add(piano(c['v'][0] - 12, 0.4, 0.65), a2v(a0))
+    else:
         notes = [c['v'][0] - 12] + c['v']
         for j, m in enumerate(notes):
-            add(pluck(m), t0 + j * 0.028, pan=(j / len(notes) - .5) * .6, gain=0.9)
-    chime(t0 + 0.03 * (len(c['v']) - 1) + 0.2)
+            add(pluck(m), a2v(a0 + j * 0.028), pan=(j / len(notes) - .5) * .6, gain=0.9)
+    ts = a2v(a0 + PLAN['lag'])
+    slow = any(abs(a0 + PLAN['lag'] - 0.1 - s) < 1e-6 for s in slow_starts)
+    up = 2 ** (min(i, 12) / 12)                         # combo: +1 semitone per chord
+    base = (659.25 * up, 830.61 * up, 987.77 * up)
+    if i == 9:                                           # 10 in a row: big hit
+        noise_swell(ts, 0.6, 0.16)
+        thump(ts, 0.9); crash(ts, 0.2)
+        chime(ts, freqs=[f * 2 for f in base] + [base[0] * 4], gain=0.24)
+        chime(ts + 0.02, freqs=base, gain=0.22)
+        chord([48, 55, 60, 64, 67, 72], ts, hold=1.0, stagger=0.0, vel=0.7)
+    elif slow:
+        noise_swell(ts, 0.5, 0.12)
+        thump(ts, 0.6)
+        chime(ts, freqs=base + (base[0] * 2,), gain=0.26)
+        chime(ts + 0.35, freqs=[f * 2 for f in base], gain=0.08)   # shimmer echo
+    else:
+        thump(ts, 0.35)
+        chime(ts, freqs=base, gain=0.2)
 
 # --- Features: metronome ticks under "Metronome mode"
 for k in range(4):
-    tick(15.75 + k * 0.33, accent=(k == 0))
+    tick(PLAN['feat'] + 0.72 + k * 0.3, accent=(k == 0))
 
 # --- CTA: lush final chord + chime
-chord([48, 55, 62, 64, 67, 71], 17.45, hold=2.0, stagger=0.045, vel=0.85, bass=True, pan_spread=0.8)
-chime(18.6, freqs=(783.99, 987.77, 1174.66, 1567.98), gain=0.15)
+chord([48, 55, 62, 64, 67, 71], PLAN['cta'], hold=2.0, stagger=0.045, vel=0.85, bass=True, pan_spread=0.8)
+chime(PLAN['cta'] + 1.1, freqs=(783.99, 987.77, 1174.66, 1567.98), gain=0.15)
 
 # --- simple stereo room: a few decaying early reflections
 rev = np.zeros_like(out)

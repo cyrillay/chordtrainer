@@ -34,6 +34,18 @@ body{position:relative;font-family:'Cormorant Garamond',serif;color:var(--ivory)
 #screen{width:660px;height:1428px;border-radius:58px;overflow:hidden;background:#1a1410;position:relative}
 #app{width:660px;height:1428px;display:block}
 #notch{position:absolute;top:18px;left:50%;margin-left:-70px;width:140px;height:38px;border-radius:20px;background:#050404}
+#stage{inset:0}
+#fx{left:0;top:0;width:1080px;height:1920px;pointer-events:none}
+#flash{inset:0;background:radial-gradient(circle at 50% 42%,rgba(255,236,190,.95),rgba(228,197,132,.55) 45%,rgba(228,197,132,0) 80%);mix-blend-mode:screen}
+#combo{left:760px;top:318px;width:230px;height:230px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 35%,#2e261d,#120e0b 75%);border:3px solid var(--gold);box-shadow:0 18px 50px rgba(0,0,0,.7)}
+#combo .n{font-family:'Playfair Display',serif;font-size:96px;line-height:1;color:var(--gold-bright);font-weight:600}
+#combo .n i{font-family:'Cormorant Garamond',serif;font-size:.55em;font-style:italic;margin-right:2px;color:var(--gold)}
+#combo .l{font-family:'JetBrains Mono',monospace;font-size:21px;letter-spacing:.3em;color:var(--gold);margin-top:6px;padding-left:.3em}
+#combo.hot{border-color:#ffb24a;background:radial-gradient(circle at 50% 30%,#5a2a0c,#1a0c05 75%)}
+#combo.hot .n{color:#ffd27a}
+#combo.hot .l{color:#ffb24a}
+#fire{position:absolute;top:-78px;left:50%;margin-left:-40px;font-size:80px;line-height:1;font-family:'Noto Color Emoji',sans-serif}
 /* features */
 #feats{left:90px;right:90px;top:150px}
 #feats .ft{font-size:84px;font-weight:500;text-align:center;margin-bottom:44px;line-height:1.05}
@@ -65,13 +77,17 @@ body{position:relative;font-family:'Cormorant Garamond',serif;color:var(--ivory)
   <div class="rule" id="hr"></div>
 </div>
 
-<div id="phone" class="abs"><div id="screen"><img id="app" src="appframes/0000.png"><div id="notch"></div></div></div>
+<div id="stage" class="abs"><div id="phone" class="abs"><div id="screen"><img id="app" src="appframes/0000.png"><div id="notch"></div></div></div></div>
+<canvas id="fx" class="abs" width="1080" height="1920"></canvas>
+<div id="combo" class="abs"><div id="fire">🔥</div><div class="n"><i>×</i><span id="cn">1</span></div><div class="l">streak</div></div>
 
 <div id="caps" class="abs">
   <div class="cap"><div class="t">A chord appears.</div><div class="s">random or from real progressions</div></div>
-  <div class="cap"><div class="t">You play it.</div><div class="s">MIDI keyboard or microphone</div></div>
-  <div class="cap"><div class="t">It listens. <span class="check">✓</span></div><div class="s">instant feedback, every chord</div></div>
-  <div class="cap"><div class="t">Build the streak.</div><div class="s">sight-reading, one chord at a time</div></div>
+  <div class="cap"><div class="t">You play it…</div><div class="s">MIDI keyboard or microphone</div></div>
+  <div class="cap"><div class="t">…it listens. <span class="check">✓</span></div><div class="s">instant feedback</div></div>
+  <div class="cap"><div class="t">Next one.</div><div class="s">sight-reading, chord after chord</div></div>
+  <div class="cap"><div class="t">Build the streak.</div><div class="s">faster · faster · faster</div></div>
+  <div class="cap"><div class="t">Ten in a row.</div><div class="s">can you beat it?</div></div>
   <div class="cap"><div class="t">Piano or guitar.</div><div class="s">voicings &amp; fretboard shapes</div></div>
   <div class="cap"><div class="t">See the harmony.</div><div class="s">live circle of fifths</div></div>
 </div>
@@ -83,6 +99,7 @@ body{position:relative;font-family:'Cormorant Garamond',serif;color:var(--ivory)
   <div class="row"><div class="ic">◆</div><div class="tx">Free, in your browser<small>no install · no sign-up</small></div></div>
 </div>
 
+<div id="flash" class="abs"></div>
 <div id="cta" class="abs">
   <img id="logo" src="favico.png">
   <div id="wm">Étude <em>—</em></div>
@@ -92,81 +109,156 @@ body{position:relative;font-family:'Cormorant Garamond',serif;color:var(--ivory)
   <div id="free">free · piano &amp; guitar</div>
 </div>
 
-<script>
+<script type="module">
+import { FPS, APP_START, PLAYS, GUITAR_AT, SCROLL_AT, SCROLL_DUR, SUCCESS_LAG, WINDOWS, a2v, v2a, APP_VIDEO_END, T_FEAT, T_CTA } from './plan.mjs';
 const $ = id => document.getElementById(id);
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const lin = (t, a, b) => clamp((t - a) / (b - a));
-const eo = x => 1 - Math.pow(1 - x, 3);            // ease out cubic
+const eo = x => 1 - Math.pow(1 - x, 3);
 const eio = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
-const eback = x => { const c = 1.6; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
-function fade(t, a, b, inD = .35, outD = .3) { return Math.min(eo(lin(t, a, a + inD)), 1 - lin(t, b - outD, b)); }
+const eback = x => { const c = 1.7; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+function fade(t, a, b, inD = .3, outD = .22) { return Math.min(eo(lin(t, a, a + inD)), 1 - lin(t, b - outD, b)); }
 function set(el, o, tr) { el.style.opacity = o; el.style.transform = tr || ''; el.style.visibility = o <= 0.001 ? 'hidden' : 'visible'; }
 
-const APP_START = 3.0, APP_FPS = 30, APP_FRAMES = +(new URLSearchParams(location.search).get('frames') || 420);
+// success moments
+const SUCC_A = PLAYS.map(p => p + SUCCESS_LAG);          // app time
+const SUCC_V = SUCC_A.map(a2v);                           // video time
+const slowAt = a => WINDOWS.some(([s, e]) => a >= s && a <= e);
+const SCREEN_X = 540, PHONE_TOP = 410 + 22, K = 660 / 390;
+const scrollAt = a => { const x = clamp((a - SCROLL_AT) / SCROLL_DUR); return 230 + 330 * (x < .5 ? 4*x*x*x : 1 - Math.pow(-2*x+2,3)/2); };
+// where the validated thing is on screen (chord stage, or the circle once scrolled)
+const focusY = a => PHONE_TOP + ((a >= SCROLL_AT ? 1204 : 448) - scrollAt(a)) * K;
+
 const caps = [...document.querySelectorAll('.cap')];
-const capT = [[3.0, 4.75], [4.75, 6.7], [6.7, 8.8], [8.8, 11.0], [11.0, 12.7], [12.7, 15.0]];
+const capT = [
+  [APP_START, a2v(0.5)], [a2v(0.5), SUCC_V[0] - 0.02], [SUCC_V[0], a2v(PLAYS[1] - 0.25)],
+  [a2v(PLAYS[1] - 0.25), a2v(PLAYS[2] - 0.3)], [a2v(PLAYS[2] - 0.3), SUCC_V[9]],
+  [SUCC_V[9], a2v(GUITAR_AT)], [a2v(GUITAR_AT), a2v(SCROLL_AT)], [a2v(SCROLL_AT), T_FEAT + 0.3],
+];
 const rows = [...document.querySelectorAll('.row')];
+const fx = $('fx').getContext('2d');
+
+function rnd(seed) { let s = seed * 9301 + 49297; return () => (s = (s * 9301 + 49297) % 233280) / 233280; }
+
+function drawFx(t, a) {
+  fx.clearRect(0, 0, 1080, 1920);
+  SUCC_A.forEach((sa, i) => {
+    const dt = a - sa;                   // app-time since success (slows down in slow-mo)
+    if (dt < 0 || dt > 1.2) return;
+    const big = i === 9, slow = slowAt(sa);
+    const cx = SCREEN_X, cy = focusY(sa);
+    // rings
+    for (let r = 0; r < (big ? 3 : 2); r++) {
+      const d = dt - r * 0.09; if (d < 0) continue;
+      const p = clamp(d / 0.7);
+      fx.beginPath(); fx.arc(cx, cy, 60 + eo(p) * (big ? 620 : 430), 0, Math.PI * 2);
+      fx.strokeStyle = `rgba(228,197,132,${(1 - p) * 0.85})`; fx.lineWidth = (big ? 10 : 7) * (1 - p) + 1; fx.stroke();
+    }
+    // sparks
+    const R = rnd(i + 1), n = big ? 90 : slow ? 46 : 26;
+    for (let k = 0; k < n; k++) {
+      const ang = R() * Math.PI * 2, sp = (big ? 900 : 650) * (0.35 + R() * 0.8), life = 0.55 + R() * 0.5;
+      const p = dt / life; if (p > 1) continue;
+      const x = cx + Math.cos(ang) * sp * dt, y = cy + Math.sin(ang) * sp * dt + 700 * dt * dt;
+      const sz = (2 + R() * 5) * (1 - p) * (big ? 1.4 : 1);
+      fx.fillStyle = big && k % 3 === 0 ? `rgba(255,150,60,${1 - p})` : `rgba(255,${215 + R() * 40 | 0},${140 + R() * 80 | 0},${1 - p})`;
+      fx.beginPath(); fx.arc(x, y, sz, 0, Math.PI * 2); fx.fill();
+    }
+    // central glow
+    const g = fx.createRadialGradient(cx, cy, 0, cx, cy, big ? 420 : 300);
+    const ga = Math.max(0, 1 - dt / 0.45) * (big ? 0.55 : 0.4);
+    g.addColorStop(0, `rgba(255,230,170,${ga})`); g.addColorStop(1, 'rgba(255,230,170,0)');
+    fx.fillStyle = g; fx.fillRect(0, 0, 1080, 1920);
+  });
+}
 
 async function render(t) {
-  // background slow push-in
-  $('bg').style.transform = `scale(${1.04 + t * 0.006}) translateY(${-t * 3}px)`;
+  const a = v2a(t);
+  $('bg').style.transform = `scale(${1.04 + t * 0.005}) translateY(${-t * 3}px)`;
 
-  // hook
+  // hook (unchanged)
   const hookOut = 1 - eio(lin(t, 2.45, 2.85));
   set($('h1'), eo(lin(t, 0.05, 0.45)) * hookOut, `translateY(${(1 - eo(lin(t, .05, .45))) * 30 - (1 - hookOut) * 60}px)`);
-  const hits = [0.5, 1.0, 1.5];
-  hits.forEach((h, i) => {
-    const end = i < 2 ? hits[i + 1] : 99;
-    const p = lin(t, h, h + 0.22);
-    let o = t < h ? 0 : (t < end ? eo(p) : 1 - lin(t, end, end + 0.08));
-    o *= hookOut;
-    const s = 1.25 - 0.25 * eo(p);
-    set($('s' + i), o, `scale(${s})`);
+  [0.5, 1.0, 1.5].forEach((h, i, hits) => {
+    const end = i < 2 ? hits[i + 1] : 99, p = lin(t, h, h + 0.22);
+    const o = (t < h ? 0 : (t < end ? eo(p) : 1 - lin(t, end, end + 0.08))) * hookOut;
+    set($('s' + i), o, `scale(${1.25 - 0.25 * eo(p)})`);
   });
   set($('h2'), eo(lin(t, 1.85, 2.2)) * hookOut, `translateY(${(1 - eo(lin(t, 1.85, 2.2))) * 30 - (1 - hookOut) * 60}px)`);
   $('hr').style.width = 120 * eo(lin(t, 1.95, 2.35)) * hookOut + 'px';
 
-  // phone
-  let py = 1920 - 1510 * eo(lin(t, 2.5, 3.15)) ; // → 410
-  let ps = 1, po = t < 2.5 ? 0 : 1;
-  const shrink = eio(lin(t, 15.0, 15.7));
-  ps = 1 - 0.36 * shrink; py = py + (840 - 410) * shrink;
-  const drop = eio(lin(t, 17.2, 17.7));
-  py += 700 * drop; po *= 1 - drop;
-  set($('phone'), po, `translateY(${py}px) scale(${ps})`);
-  const f = Math.round(clamp((t - APP_START) * APP_FPS, 0, APP_FRAMES - 1));
-  const src = `appframes/${String(f).padStart(4, '0')}.png`;
+  // phone position
+  let py = 1920 - 1510 * eo(lin(t, 2.5, 3.15));
+  const shrink = eio(lin(t, T_FEAT, T_FEAT + 0.7));
+  const ps = 1 - 0.36 * shrink; py += (840 - 410) * shrink;
+  const drop = eio(lin(t, T_CTA - 0.25, T_CTA + 0.25));
+  py += 700 * drop;
+  set($('phone'), (t < 2.5 ? 0 : 1) * (1 - drop), `translateY(${py}px) scale(${ps})`);
+
+  // success punch + shake on the whole stage
+  let punch = 0, sx = 0, sy = 0;
+  SUCC_A.forEach((sa, i) => {
+    const dt = a - sa; if (dt < 0 || dt > 0.5) return;
+    const x = dt / 0.5; punch += Math.sin(Math.PI * Math.min(1, x * 1.6)) * (1 - x) * (i === 9 ? 0.09 : slowAt(sa) ? 0.07 : 0.035);
+    if (i === 9) { const R = rnd(Math.round(dt * 60) + 5); sx += (R() - .5) * 26 * (1 - x); sy += (R() - .5) * 26 * (1 - x); }
+  });
+  const st = $('stage'); st.style.transformOrigin = `540px ${focusY(a)}px`;
+  st.style.transform = `translate(${sx}px,${sy}px) scale(${1 + punch})`;
+
+  const src = `appframes/a${Math.round(a * 1000)}.png`;
   if (!$('app').src.endsWith(src)) { $('app').src = src; await $('app').decode().catch(() => {}); }
+
+  // slow-mo: subtle desaturated vignette feel via background dimming
+  const slowAmt = WINDOWS.reduce((m, [s, e]) => Math.max(m, Math.min(lin(a, s, s + 0.06), 1 - lin(a, e - 0.08, e))), 0);
+  $('shade').style.opacity = 1; $('bg').style.filter = `brightness(${0.55 - 0.2 * slowAmt}) saturate(.9)`;
+
+  drawFx(t, a);
+
+  // combo badge
+  const nDone = SUCC_V.filter(v => v <= t).length;
+  const lastV = SUCC_V[nDone - 1] ?? 0;
+  const pop = eback(lin(t, lastV, lastV + 0.28));
+  const comboOn = nDone > 0 ? eo(lin(t, SUCC_V[0], SUCC_V[0] + .3)) * (1 - lin(t, T_FEAT, T_FEAT + .3)) : 0;
+  $('cn').textContent = Math.max(1, nDone);
+  $('combo').classList.toggle('hot', nDone >= 10);
+  const heat = nDone >= 5 ? Math.min(1, (nDone - 4) / 5) : 0;
+  $('combo').style.boxShadow = `0 18px 50px rgba(0,0,0,.7), 0 0 ${40 + 80 * heat}px rgba(255,${190 - 60 * (nDone >= 10)},90,${0.25 + 0.5 * heat})`;
+  set($('combo'), comboOn, `scale(${(nDone ? 1.45 - 0.45 * pop : 1) * (1 + 0.1 * heat)}) rotate(${(1 - pop) * -8}deg)`);
+  set($('fire'), nDone >= 10 ? eback(lin(t, SUCC_V[9], SUCC_V[9] + .35)) : 0,
+      `scale(${nDone >= 10 ? 0.6 + 0.4 * eback(lin(t, SUCC_V[9], SUCC_V[9] + .35)) + 0.06 * Math.sin(t * 18) : 0})`);
+
+  // big flash on the 10th
+  const fd = a - SUCC_A[9];
+  set($('flash'), fd >= 0 ? Math.max(0, 0.8 * (1 - fd / 0.45)) : 0, '');
 
   // captions
   caps.forEach((c, i) => {
-    const [a, b] = capT[i];
-    const o = fade(t, a, b, .3, .22);
-    const y = (1 - eo(lin(t, a, a + .35))) * 28 - lin(t, b - .22, b) * 20;
-    set(c, o, `translateY(${y}px)`);
+    const [s, e] = capT[i];
+    const y = (1 - eo(lin(t, s, s + .3))) * 28 - lin(t, e - .22, e) * 20;
+    set(c, fade(t, s, e), `translateY(${y}px)${i === 5 ? ` scale(${1.2 - 0.2 * eback(lin(t, s, s + .35))})` : ''}`);
   });
 
   // features
-  const fo = 1 - lin(t, 17.2, 17.5);
-  set($('feats').querySelector('.ft'), eo(lin(t, 15.1, 15.45)) * fo, `translateY(${(1 - eo(lin(t, 15.1, 15.45))) * 24}px)`);
+  const fo = 1 - lin(t, T_CTA - 0.25, T_CTA + 0.05);
+  set($('feats').querySelector('.ft'), eo(lin(t, T_FEAT + 0.1, T_FEAT + 0.45)) * fo, `translateY(${(1 - eo(lin(t, T_FEAT + 0.1, T_FEAT + 0.45))) * 24}px)`);
   rows.forEach((r, i) => {
-    const a = 15.4 + i * 0.35, p = lin(t, a, a + .4);
+    const s0 = T_FEAT + 0.4 + i * 0.32, p = lin(t, s0, s0 + .4);
     set(r, eo(p) * fo, `translateX(${(1 - eback(p)) * 120}px)`);
   });
 
   // CTA
-  const c0 = 17.45;
+  const c0 = T_CTA;
   set($('logo'), eo(lin(t, c0, c0 + .45)), `scale(${0.7 + 0.3 * eback(lin(t, c0, c0 + .5))})`);
   set($('wm'), eo(lin(t, c0 + .15, c0 + .6)), `translateY(${(1 - eo(lin(t, c0 + .15, c0 + .6))) * 40}px)`);
   set($('wm2'), eo(lin(t, c0 + .35, c0 + .8)), '');
   $('wm2').style.letterSpacing = (0.42 + 0.3 * (1 - eo(lin(t, c0 + .35, c0 + 1.2)))) + 'em';
   set($('tag'), eo(lin(t, c0 + .75, c0 + 1.15)), `translateY(${(1 - eo(lin(t, c0 + .75, c0 + 1.15))) * 24}px)`);
   const up = lin(t, c0 + 1.05, c0 + 1.5);
-  const pulse = 1 + 0.03 * Math.sin(Math.max(0, t - (c0 + 1.5)) * 5) * (t > c0 + 1.5 ? 1 : 0);
+  const pulse = t > c0 + 1.5 ? 1 + 0.03 * Math.sin((t - (c0 + 1.5)) * 5) : 1;
   set($('url'), eo(up), `scale(${(0.8 + 0.2 * eback(up)) * pulse})`);
   set($('free'), eo(lin(t, c0 + 1.35, c0 + 1.75)), '');
 }
 window.render = render;
-render(0);
+window.ready = true;
 </script>
 </body></html>
