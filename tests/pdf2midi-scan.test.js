@@ -70,8 +70,8 @@ test('reads a clean image of a score', () => {
   assert.equal(r.measures.length, 33);
   assert.deepEqual(r.keySigs[0], { time: 0, fifths: -2 });
   const s = score(r);
-  assert.ok(s.precision >= 0.8, `precision ${s.precision}`);
-  assert.ok(s.recall >= 0.8, `recall ${s.recall}`);
+  assert.ok(s.precision >= 0.88, `precision ${s.precision}`);
+  assert.ok(s.recall >= 0.88, `recall ${s.recall}`);
 });
 
 test('reads a skewed, noisy scan of the same page', () => {
@@ -82,8 +82,8 @@ test('reads a skewed, noisy scan of the same page', () => {
   assert.equal(r.measures.length, 33);
   const s = score(r);
   // Regression floor, not a target: raise it as recognition improves.
-  assert.ok(s.precision >= 0.4, `precision ${s.precision}`);
-  assert.ok(s.recall >= 0.4, `recall ${s.recall}`);
+  assert.ok(s.precision >= 0.44, `precision ${s.precision}`);
+  assert.ok(s.recall >= 0.42, `recall ${s.recall}`);
 });
 
 test('an image without music has no staves', () => {

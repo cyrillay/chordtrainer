@@ -37,9 +37,23 @@ accidentals, onsets by aligning simultaneous events in x-columns per measure,
 plus ties, tuplets, grace notes, arpeggios and tempo marks. On the test scores it
 matches the MIDI exported by MuseScore itself note for note.
 
-Scans and photos are not supported (no vector data), nor yet repeats/voltas
-and 8va lines. The result page overlays every recognised note on the score so
-the reading can be checked, and plays it back before download.
+Scans, photos, screenshots and PDFs without SMuFL vector music (LilyPond,
+older Finale…) go through an image recogniser instead (`pdf2midi/js/raster/`,
+run in a Web Worker). It rebuilds the same primitives from pixels — staff
+lines, stems, beams, noteheads and symbols matched against Bravura / Leland
+glyph templates — so the music logic is shared. It is approximate; measured
+note-level precision/recall against the source MIDI:
+
+| Input | Accuracy |
+|---|---|
+| Clean 200 dpi image of a MuseScore score | ~92 % |
+| Same page scanned at 300 dpi (skewed, noisy, uneven light) | ~65 % |
+| Same page at 100 dpi (screenshot-like) | ~60 % |
+| LilyPond PDF (Chopin nocturne, Mutopia) | ~57 % |
+
+Repeats/voltas and 8va lines are not handled yet. The result page overlays
+every recognised note on the score so the reading can be checked, and plays
+it back before download.
 
 ## Visualizations
 

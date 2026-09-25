@@ -113,7 +113,7 @@ function vRun(bin, x, y) {
 
 // ---------------------------------------------------------------- staves
 
-export function findStaffLines(bin, sp, lt) {
+function findStaffLines(bin, sp, lt) {
   const { width: w, height: h } = bin;
   const minRun = Math.round(3 * sp);
   const cover = new Float64Array(h);
@@ -157,7 +157,6 @@ export function findStaffLines(bin, sp, lt) {
     if (y1 - y <= lt + 3) bands.push({ y: ysum / wsum, y0: y, y1: y1 - 1, x0, x1, cover: wsum });
     y = y1;
   }
-  if (findStaffLines.debug) findStaffLines.debug(bands);
   // Five equally spaced overlapping bands make a staff. Every band is tried
   // as a top line; the most regular, best covered candidates win.
   const cands = [];
@@ -224,14 +223,13 @@ export function scanPage(gray, options = {}) {
   const origW = gray.width;
   let bin = binarize(gray);
   const first = staffMetrics(bin);
-  const f = first.staffSpace >= 6 && first.staffSpace <= 80 ? TARGET_SP / first.staffSpace : 1;
+  const f = first.staffSpace >= 4 && first.staffSpace <= 80 ? TARGET_SP / first.staffSpace : 1;
   if (Math.abs(f - 1) > 0.15) { gray = resizeGray(gray, f); bin = binarize(gray); }
   const skew = estimateSkew(bin);
-  if (Math.abs(skew) > 0.0005) bin = binarize(rotateGray(gray, skew));
+  if (Math.abs(skew) > 0.0005) { gray = rotateGray(gray, skew); bin = binarize(gray); }
   const { width: W, height: H } = bin;
   const { lineThickness: lt, staffSpace: spEst } = staffMetrics(bin);
   const toPt = (pageWidth || origW) / W;
-  if (options.debugBin) options.debugBin(bin);
   const out = { width: W * toPt, height: H * toPt, glyphs: [], lines: [], shapes: [] };
   const stats = { skew, staffSpace: spEst, lineThickness: lt, staves: 0 };
 
@@ -243,7 +241,7 @@ export function scanPage(gray, options = {}) {
 
   const P = v => Math.round(v * toPt * 100) / 100;
   const glyph = (cp, x, y, wpx) => out.glyphs.push({ c: cp, x: P(x), y: P(y), size: P(4 * sp), w: P(wpx), rot: 0, font: 'scan' });
-  const line = (x1, y1, x2, y2, lw) => out.lines.push({ x1: P(x1), y1: P(y1), x2: P(x2), y2: P(y2), lw: P(lw) });
+  const line = (x1, y1, x2, y2, lw, bar) => out.lines.push({ x1: P(x1), y1: P(y1), x2: P(x2), y2: P(y2), lw: P(lw), ...(bar ? { bar: true } : {}) });
 
   // --- 2/3. Staff lines out, ledger lines out --------------------------------
   const ns = copy(bin);
@@ -398,6 +396,9 @@ export function scanPage(gray, options = {}) {
       inText.add(c); mates.forEach(o => inText.add(o));
     }
   }
+
+  // --- 4c. Other symbols a template matches as a whole (erased before the
+  // noteheads are searched, so they can't disturb them) ---------------------------
   const classified = [];
   const placedAcc = [];
   const unclassified = [];
@@ -426,7 +427,6 @@ export function scanPage(gray, options = {}) {
         }
       }
     }
-    if (options.debugComp) options.debugComp(c, best);
     if (!best || best.s < 0.62) { unclassified.push({ c, st, cw, ch }); continue; }
     classified.push({ c, ...best, st });
   }
@@ -451,73 +451,21 @@ export function scanPage(gray, options = {}) {
     glyph(cp, ox, oy, t.adv);
     eraseComp(c);
   }
-  // Components no single template explained: accidentals touching each
-  // other or cut by staff-line removal, found by sliding the templates.
-  // Share of a placed template's ink that belongs to big neighbouring
-  // components (a note and its stem): an accidental doesn't overlap them.
-  const big = comps.map(k => k.y1 - k.y0 > 3.5 * sp || k.area > 3 * sp * sp);
-  const foreignInk = f => {
-    let ink = 0, foreign = 0;
-    for (let y = 0; y < f.t.h; y++) {
-      const Y = f.y + y;
-      if (Y < 0 || Y >= H || skipRow[Y]) continue;
-      for (let x = 0; x < f.t.w; x++) {
-        const X = f.x + x;
-        if (X < 0 || X >= W || !f.t.mask[y * f.t.w + x]) continue;
-        const l = labels[Y * W + X];
-        if (!l) continue;
-        ink++;
-        if (big[l - 1]) foreign++;
-      }
-    }
-    return ink ? foreign / ink : 1;
-  };
-  const classifiedAcc = classified.filter(k => k.cl.kind === 'acc').map(k => ({ x: k.c.x0, y: k.c.y0, t: k.t }));
-  for (const { c, st, cw, ch } of unclassified) {
-    // Touching accidentals (key signatures, chord columns) form one wide
-    // component: slide the accidental templates along it.
-    // Also catches accidentals that staff-line removal cut in two (a
-    // flat's bowl on a line): matching skips staff-line rows.
-    if (cw <= 8 * sp && ch >= 0.9 * sp && ch <= 4 * sp) {
-      const found = [];
-      for (let x = Math.round(c.x0 - sp); x < c.x1; x++) {
-        let b = null;
-        for (const cp of [0xE260, 0xE261, 0xE262]) for (const font of FONTS) {
-          const t = rasterGlyph(font, cp, sp);
-          if (!t || t.w > cw + sp) continue;
-          for (let y = Math.round(c.y0 - 1.5 * sp); y <= c.y1 - t.h + 1.5 * sp; y++) {
-            const sc = maskedDice(healed, x, y, t, skipRow);
-            if (!b || sc > b.s) b = { s: sc, t, cp, x, y };
-          }
-        }
-        if (b && b.s > 0.74 && foreignInk(b) < 0.15) found.push(b);
-      }
-      found.sort((a, b) => b.s - a.s);
-      const picked = [];
-      for (const f of found) {
-        if (placedAcc.concat(picked, classifiedAcc).some(p => Math.abs(p.x - f.x) < 0.6 * f.t.w && Math.abs(p.y - f.y) < 0.6 * f.t.h)) continue;
-        picked.push(f);
-      }
-      // Keep them only if they explain the component (not a note's stem).
-      let covered = 0, total = 0;
-      for (let y = c.y0; y <= c.y1; y++) for (let x = c.x0; x <= c.x1; x++) {
-        if (labels[y * W + x] !== c.id || skipRow[y]) continue;
-        total++;
-        if (picked.some(f => { const tx = x - f.x, ty = y - f.y; return tx >= -1 && ty >= -1 && tx <= f.t.w && ty <= f.t.h; })) covered++;
-      }
-      if (!total || covered / total < 0.8) continue;
-      for (const f of picked) {
-        placedAcc.push(f);
-        const oy = st.bottom - Math.round((st.bottom - (f.y - f.t.oy)) / (st.sp / 2)) * (st.sp / 2);
-        glyph(f.cp, f.x - f.t.ox, oy, f.t.adv);
-        eraseUnder(work, f.x, f.y, f.t, 1);
-      }
-    }
-  }
-  stats.symbols = classified.length;
 
   // --- 5. Noteheads -------------------------------------------------------------
   const ii = integral(work);
+  // "Light" pixels, halfway between ink and paper in grey: the inside of a
+  // hollow head stays light even when blur has closed it in the binary image.
+  const light = new Uint8Array(W * H);
+  {
+    const hist = new Uint32Array(256), inkHist = new Uint32Array(256);
+    for (let i = 0; i < gray.data.length; i += 3) { hist[gray.data[i]]++; if (bin.data[i]) inkHist[gray.data[i]]++; }
+    const median = h => { let t = 0, a = 0; for (const v of h) t += v; for (let v = 0; v < 256; v++) { a += h[v]; if (a >= t / 2) return v; } return 128; };
+    const paper = median(hist), ink = median(inkHist);
+    const mid = (paper + ink) / 2;
+    for (let i = 0; i < light.length; i++) light[i] = gray.data[i] >= mid ? 1 : 0;
+  }
+  const iiLight = integral({ width: W, height: H, data: light });
   const heads = [];
   const tBlack = FONTS.map(f => rasterGlyph(f, HEAD_BLACK, sp)).filter(Boolean);
   const tHollow = [HEAD_HALF, HEAD_WHOLE].flatMap(cp => FONTS.map(f => rasterGlyph(f, cp, sp)).filter(Boolean)
@@ -543,7 +491,7 @@ export function scanPage(gray, options = {}) {
     let white = 0;
     for (let y = 0; y < t.h; y++) {
       const row = (y0 + y) * W + x0;
-      for (let x = 0; x < t.w; x++) if (t.hole[y * t.w + x] && !work.data[row + x]) white++;
+      for (let x = 0; x < t.w; x++) if (t.hole[y * t.w + x] && (light[row + x] || !work.data[row + x])) white++;
     }
     if (!t.n) return 0;
     // The ring must be closed: every eighth of it carries ink (rules out the
@@ -592,7 +540,11 @@ export function scanPage(gray, options = {}) {
               // head's centre is paper; most positions stop here.
               const cw2 = Math.max(1, Math.round(t.w * (hollow ? 0.15 : 0.2))), ch2 = Math.max(1, Math.round(t.h * (hollow ? 0.15 : 0.2)));
               const cx0 = x0 + (t.w >> 1) - cw2, cy0 = y0 + (t.h >> 1) - ch2;
-              const centre = ii.count(cx0, cy0, cx0 + 2 * cw2, cy0 + 2 * ch2) / (4 * cw2 * ch2);
+              // (Hollow heads: the centre may be closed by blur in the binary
+              // image but stays light in grey — either will do.)
+              const centre = hollow
+                ? Math.min(ii.count(cx0, cy0, cx0 + 2 * cw2, cy0 + 2 * ch2), 4 * cw2 * ch2 - iiLight.count(cx0, cy0, cx0 + 2 * cw2, cy0 + 2 * ch2)) / (4 * cw2 * ch2)
+                : ii.count(cx0, cy0, cx0 + 2 * cw2, cy0 + 2 * ch2) / (4 * cw2 * ch2);
               if (hollow ? centre > 0.6 : centre < 0.6) continue;
               const box = ii.count(x0, y0, x0 + t.w, y0 + t.h) / (t.w * t.h);
               if (box < (hollow ? 0.3 : 0.55)) continue;
@@ -637,7 +589,117 @@ export function scanPage(gray, options = {}) {
     if (kept.some(k => Math.abs(k.x - h.x) < 0.75 * Math.max(k.w, h.w) && Math.abs(k.y - h.y) < 0.6 * sp)) continue;
     kept.push(h);
   }
+  // Blur closes the inside of half and whole notes once binarised, but the
+  // grey levels still show it: a hollow head's centre is much lighter than
+  // its outline.
+  {
+    const hist = new Uint32Array(256);
+    for (let i = 0; i < gray.data.length; i += 7) hist[gray.data[i]]++;
+    let acc = 0, total = 0;
+    for (const v of hist) total += v;
+    let paper = 255;
+    for (let v = 255; v >= 0; v--) { acc += hist[v]; if (acc >= total * 0.5) { paper = v; break; } }
+    for (const h of kept) {
+      const cx = h.x0 + h.t.w / 2, cy = h.y0 + h.t.h / 2;
+      const rx = Math.max(1, Math.round(h.t.w * 0.12)), ry = Math.max(1, Math.round(h.t.h * 0.1));
+      let core = 0, n = 0;
+      for (let y = Math.round(cy - ry); y <= Math.round(cy + ry); y++) for (let x = Math.round(cx - rx); x <= Math.round(cx + rx); x++) {
+        core += gray.data[y * W + x]; n++;
+      }
+      core /= n;
+      const vals = [];
+      for (let y = 0; y < h.t.h; y++) for (let x = 0; x < h.t.w; x++) if (h.t.mask[y * h.t.w + x]) vals.push(gray.data[(h.y0 + y) * W + h.x0 + x]);
+      vals.sort((a, b) => a - b);
+      const ink = vals[Math.floor(vals.length * 0.15)];
+      const hollowByGrey = core > ink + 0.4 * (paper - ink);
+      if (hollowByGrey !== h.hollow) {
+        // Switch to the matching template family at the same place.
+        const pool = hollowByGrey ? tHollow.filter(t => t.cp === HEAD_HALF) : tBlack;
+        const t = pool.reduce((b, t) => (Math.abs(t.w - h.t.w) < Math.abs(b.w - h.t.w) ? t : b));
+        h.hollow = hollowByGrey; h.t = t; h.cp = t.cp;
+        h.x0 = Math.round(cx - t.w / 2); h.y0 = Math.round(cy - t.h / 2); h.w = t.w; h.x = h.x0 - t.ox;
+      }
+    }
+  }
   stats.heads = kept.length;
+
+  // --- 5b. Accidentals found by sliding templates, once the heads are known
+  // (a fragment of a notehead must not be taken for a flat) ----------------------
+  // Symbols never sit on a notehead: components that are mostly notehead
+  // are notes, whatever their shape resembles.
+  const headMask = new Uint8Array(W * H);
+  for (const h of kept) for (let y = 0; y < h.t.h; y++) for (let x = 0; x < h.t.w; x++) {
+    if (h.t.mask[y * h.t.w + x] || (h.hollow && h.t.hole[y * h.t.w + x])) headMask[(h.y0 + y) * W + h.x0 + x] = 1;
+  }
+  const onHeads = c => {
+    let n = 0;
+    for (let y = c.y0; y <= c.y1; y++) for (let x = c.x0; x <= c.x1; x++) if (labels[y * W + x] === c.id && headMask[y * W + x]) n++;
+    return n / c.area;
+  };
+  // Components no single template explained: accidentals touching each
+  // other or cut by staff-line removal, found by sliding the templates.
+  // Share of a placed template's ink that belongs to big neighbouring
+  // components (a note and its stem): an accidental doesn't overlap them.
+  const big = comps.map(k => k.y1 - k.y0 > 3.5 * sp || k.area > 3 * sp * sp);
+  const foreignInk = f => {
+    let ink = 0, foreign = 0;
+    for (let y = 0; y < f.t.h; y++) {
+      const Y = f.y + y;
+      if (Y < 0 || Y >= H || skipRow[Y]) continue;
+      for (let x = 0; x < f.t.w; x++) {
+        const X = f.x + x;
+        if (X < 0 || X >= W || !f.t.mask[y * f.t.w + x]) continue;
+        const l = labels[Y * W + X];
+        if (!l) continue;
+        ink++;
+        if (big[l - 1] || headMask[Y * W + X]) foreign++;
+      }
+    }
+    return ink ? foreign / ink : 1;
+  };
+  const classifiedAcc = classified.filter(k => k.cl.kind === 'acc').map(k => ({ x: k.c.x0, y: k.c.y0, t: k.t }));
+  for (const { c, st, cw, ch } of unclassified) {
+    // Touching accidentals (key signatures, chord columns) form one wide
+    // component: slide the accidental templates along it.
+    // Also catches accidentals that staff-line removal cut in two (a
+    // flat's bowl on a line): matching skips staff-line rows.
+    if (cw <= 8 * sp && ch >= 0.9 * sp && ch <= 4 * sp) {
+      const found = [];
+      for (let x = Math.round(c.x0 - sp); x < c.x1; x++) {
+        let b = null;
+        for (const cp of [0xE260, 0xE261, 0xE262]) for (const font of FONTS) {
+          const t = rasterGlyph(font, cp, sp);
+          if (!t || t.w > cw + sp) continue;
+          for (let y = Math.round(c.y0 - 1.5 * sp); y <= c.y1 - t.h + 1.5 * sp; y++) {
+            const sc = maskedDice(healed, x, y, t, skipRow);
+            if (!b || sc > b.s) b = { s: sc, t, cp, x, y };
+          }
+        }
+        if (b && b.s > 0.74 && foreignInk(b) < 0.15) found.push(b);
+      }
+      found.sort((a, b) => b.s - a.s);
+      const picked = [];
+      for (const f of found) {
+        if (placedAcc.concat(picked, classifiedAcc).some(p => Math.abs(p.x - f.x) < 0.6 * f.t.w && Math.abs(p.y - f.y) < 0.6 * f.t.h)) continue;
+        picked.push(f);
+      }
+      // Keep them only if they explain the component (not a note's stem).
+      let covered = 0, total = 0;
+      for (let y = c.y0; y <= c.y1; y++) for (let x = c.x0; x <= c.x1; x++) {
+        if (labels[y * W + x] !== c.id || skipRow[y]) continue;
+        total++;
+        if (picked.some(f => { const tx = x - f.x, ty = y - f.y; return tx >= -1 && ty >= -1 && tx <= f.t.w && ty <= f.t.h; })) covered++;
+      }
+      if (!total || covered / total < 0.8) continue;
+      for (const f of picked) {
+        placedAcc.push(f);
+        const oy = st.bottom - Math.round((st.bottom - (f.y - f.t.oy)) / (st.sp / 2)) * (st.sp / 2);
+        glyph(f.cp, f.x - f.t.ox, oy, f.t.adv);
+        eraseUnder(work, f.x, f.y, f.t, 1);
+      }
+    }
+  }
+  stats.symbols = classified.length;
 
   // --- 6. Stems and barlines ------------------------------------------------------
   // Vertical runs ≥ 1.5 spaces, linked across adjacent columns.
@@ -665,7 +727,6 @@ export function scanPage(gray, options = {}) {
     }
     open = next;
   }
-  const med = a => { const s = [...a].sort((p, q) => p - q); return s[s.length >> 1]; };
   let verticals = segs
     .filter(s => s.x1 - s.x0 + 1 <= Math.max(3, 0.45 * sp))
     .map(s => ({ x0: s.x0, x1: s.x1, y0: Math.min(...s.ys0), y1: Math.max(...s.ys1) }))
@@ -681,7 +742,6 @@ export function scanPage(gray, options = {}) {
   verticals = merged
     .filter(v => v.x1 - v.x0 + 1 <= Math.max(4, 0.5 * sp))
     .map(v => ({ ...v, x: (v.x0 + v.x1 + 1) / 2, w: v.x1 - v.x0 + 1 }));
-  if (options.debugVert) options.debugVert(segs, verticals, kept);
 
   // Stems: vertical runs that start on a notehead's edge and stick out of the
   // chord. Returns them with their tip (the end away from the heads).
@@ -736,13 +796,30 @@ export function scanPage(gray, options = {}) {
     const sp2 = spanned(v);
     for (let i = 1; i < sp2.length; i++) sysOf.set(root(sp2[i]), root(sp2[0]));
   }
+  // Damaged scans may lose the lines joining the staves; staves whose
+  // barline candidates line up are one system too.
+  for (let i = 0; i + 1 < staves.length; i++) {
+    const a = staves[i], b = staves[i + 1];
+    // Only staves not already in a system, and close together: systems of
+    // one page often have their barlines at the same places too.
+    const alone = x => staves.filter(o => root(o) === root(x)).length === 1;
+    if (root(a) === root(b) || !alone(a) || !alone(b) || b.top - a.bottom > 8 * sp) continue;
+    const xa = verticals.filter(v => spanned(v).includes(a)).map(v => v.x);
+    const xb = verticals.filter(v => spanned(v).includes(b)).map(v => v.x);
+    const common = xa.filter(x => xb.some(y => Math.abs(x - y) <= 0.5 * sp)).length;
+    if (common >= 3) sysOf.set(root(b), root(a));
+  }
   const systemStaves = s => staves.filter(o => root(o) === root(s));
   const isBarline = (v, attached) => {
     const sp2 = spanned(v);
     if (!sp2.length) return false;
     const sys = systemStaves(sp2[0]);
     // Through every staff of a multi-staff system: a barline, whatever is near.
-    if (sys.length > 1) return sys.every(o => sp2.includes(o));
+    if (sys.length > 1) {
+      if (sys.every(o => sp2.includes(o))) return true;
+      // Drawn (or surviving) as one piece per staff.
+      return sys.every(o => verticals.some(u => Math.abs(u.x - v.x) <= 0.5 * sp && spanned(u).includes(o))) && !attached.length;
+    }
     return !attached.length;
   };
   const stems = [];
@@ -758,7 +835,7 @@ export function scanPage(gray, options = {}) {
     const protrudes = Math.max(hy0 - v.y0, v.y1 - hy1) >= 1.5 * sp;
     const endsAtHead = protrudes && attached.some(h => Math.abs(h.y - v.y0) < 0.8 * sp || Math.abs(h.y - v.y1) < 0.8 * sp);
     if (isBarline(v, attached)) {
-      line(v.x, v.y0, v.x, v.y1, v.w);
+      line(v.x, v.y0, v.x, v.y1, v.w, true);
     } else if (endsAtHead && len >= 2 * sp) {
       // The tip is the end away from the noteheads.
       v.up = (v.y1 - hy1) < (hy0 - v.y0) ? true : false;
@@ -872,7 +949,6 @@ export function scanPage(gray, options = {}) {
     for (const v of chain) {
       beamed.add(v);
       const py = primaryAt(v.x);
-      if (options.debugBeam) options.debugBeam(v, levelsAt(v), py, chain.length);
       for (const y of levelsAt(v)) {
         if (Math.abs(y - py) < 0.45 * sp) continue;
         beamShape(v.x - 0.35 * sp, y, v.x + 0.35 * sp, y);
