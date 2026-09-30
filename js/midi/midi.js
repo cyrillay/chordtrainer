@@ -40,15 +40,13 @@ const isIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent)
 // Bluetooth MIDI to Chrome unless another app opens the link first.
 function noDeviceHelpHtml() {
   if (isAndroid()) {
-    return `<strong>USB:</strong> plug your keyboard in with a USB-C (OTG) cable — it shows up right away.<br><br>`
-      + `<strong>Bluetooth:</strong> Chrome can't scan for Bluetooth MIDI on Android. Install the free app `
+    return `<strong>Bluetooth:</strong> Chrome can't scan for Bluetooth MIDI on Android. Install the free app `
       + `<a href="${MIDI_BLE_CONNECT_URL}" target="_blank" rel="noopener">MIDI BLE Connect</a>, `
       + `connect your keyboard there, then come back here.<br><br>`
       + `Close your keyboard's own app first (e.g. Roland Piano App): only one app can hold the Bluetooth link. `
       + `Don't pair the keyboard in Android's Bluetooth settings.`;
   }
-  return `<strong>USB:</strong> plug your keyboard in — it shows up here automatically.<br><br>`
-    + `<strong>Bluetooth:</strong> connect it in your system's MIDI settings first `
+  return `<strong>Bluetooth:</strong> connect your keyboard in your system's MIDI settings first `
     + `(Mac: Audio MIDI Setup → Window → Show MIDI Studio → Bluetooth).<br><br>`
     + `Still nothing? Check the site's MIDI permission (icon left of the URL) and reload.`;
 }
