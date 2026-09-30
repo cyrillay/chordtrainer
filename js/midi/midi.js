@@ -29,10 +29,71 @@ function attachInputs(access) {
   for (const input of access.inputs.values()) input.onmidimessage = handleMidiMessage;
 }
 
-function describeInputs(access) {
+const MIDI_BLE_CONNECT_URL = 'https://play.google.com/store/apps/details?id=com.mobileer.example.midibtlepairing';
+const WEB_MIDI_BROWSER_URL = 'https://apps.apple.com/fr/app/web-midi-browser/id953846217';
+
+const isAndroid = () => /Android/i.test(navigator.userAgent);
+const isIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent)
+  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+// Browsers only list MIDI devices the OS has already opened, so the fix for
+// "No device" depends on the platform — Android in particular never exposes
+// Bluetooth MIDI to Chrome unless another app opens the link first.
+function noDeviceHelpHtml() {
+  // iOS browsers have no Web MIDI at all; Web MIDI Browser is a WebKit
+  // wrapper that adds it.
+  if (isIOS()) {
+    return `Use the <a href="${WEB_MIDI_BROWSER_URL}" target="_blank" rel="noopener">Web MIDI Browser</a> app `
+      + `and open this site in it — iPhone/iPad browsers don't support MIDI.`;
+  }
+  if (isAndroid()) {
+    return `<strong>Bluetooth:</strong> Chrome can't scan for Bluetooth MIDI on Android. Install the free app `
+      + `<a href="${MIDI_BLE_CONNECT_URL}" target="_blank" rel="noopener">MIDI BLE Connect</a>, `
+      + `connect your keyboard there, then come back here.<br><br>`
+      + `Close your keyboard's own app first (e.g. Roland Piano App): only one app can hold the Bluetooth link. `
+      + `Don't pair the keyboard in Android's Bluetooth settings.`;
+  }
+  return `<strong>Bluetooth:</strong> connect your keyboard in your system's MIDI settings first `
+    + `(Mac: Audio MIDI Setup → Window → Show MIDI Studio → Bluetooth).<br><br>`
+    + `Still nothing? Check the site's MIDI permission (icon left of the URL) and reload.`;
+}
+
+// Tapping anywhere closes an auto-opened hint; registered once.
+let hintDismissBound = false;
+function bindHintDismiss() {
+  if (hintDismissBound) return;
+  hintDismissBound = true;
+  document.addEventListener('pointerdown', (e) => {
+    const tip = document.querySelector('.midi-help.open');
+    if (!tip || tip.contains(e.target)) return;
+    tip.classList.remove('open');
+    // The "not supported" hint has no MIDI session behind it: hide it outright.
+    const statusEl = $('midiStatus');
+    if (statusEl.dataset.dismissible) {
+      statusEl.style.display = 'none';
+      delete statusEl.dataset.dismissible;
+    }
+  });
+}
+
+function renderHint(statusEl, label, { openHint = false } = {}) {
+  let tip = statusEl.querySelector('.midi-help');
+  if (!tip || statusEl.firstChild.textContent !== label) {
+    statusEl.innerHTML = `<span>${label}</span>`
+      + `<span class="info-tip midi-help" tabindex="0" aria-label="How to connect a MIDI keyboard">`
+      + `<span class="info-tip-icon" aria-hidden="true">?</span>`
+      + `<span class="info-tip-bubble" role="tooltip">${noDeviceHelpHtml()}</span></span>`;
+    tip = statusEl.querySelector('.midi-help');
+    bindHintDismiss();
+  }
+  if (openHint) tip.classList.add('open');
+}
+
+function renderStatus(statusEl, access, opts) {
   const names = [];
   for (const input of access.inputs.values()) names.push(input.name);
-  return names.length === 0 ? 'No device' : names.join(' · ');
+  if (names.length > 0) statusEl.textContent = names.join(' · ');
+  else renderHint(statusEl, 'No device found', opts);
 }
 
 // Auto-dismiss error messages after 5s so they don't linger forever on mobile.
@@ -45,8 +106,15 @@ function showTransient(text) {
 
 export async function startMidi() {
   const statusEl = $('midiStatus');
+  delete statusEl.dataset.dismissible;
   if (!navigator.requestMIDIAccess) {
-    showTransient('Web MIDI not supported in this browser');
+    if (isIOS()) {
+      statusEl.style.display = 'block';
+      statusEl.dataset.dismissible = '1';
+      renderHint(statusEl, 'MIDI not supported here', { openHint: true });
+    } else {
+      showTransient('Web MIDI not supported in this browser');
+    }
     return;
   }
   try {
@@ -55,19 +123,21 @@ export async function startMidi() {
     state.midiEnabled = true;
     state.midiHeldNotes = new Set();
 
-    const updateStatus = () => {
+    const updateStatus = (opts) => {
       attachInputs(access);
-      statusEl.textContent = describeInputs(access);
+      renderStatus(statusEl, access, opts);
       if (access.inputs.size > 0) recordAction('midiConnect');
     };
 
-    access.onstatechange = updateStatus;
+    access.onstatechange = () => updateStatus();
     statusEl.style.display = 'block';
 
     // On mobile browsers, inputs may be enumerated asynchronously after
     // requestMIDIAccess resolves — check immediately then retry after a short delay.
+    // Only the delayed check pops the help open, so it doesn't flash on
+    // devices that were simply slow to enumerate.
     updateStatus();
-    setTimeout(updateStatus, 500);
+    setTimeout(() => { if (state.midiAccess === access) updateStatus({ openHint: true }); }, 500);
 
     refreshHeardFromHeld();
   } catch (err) {
