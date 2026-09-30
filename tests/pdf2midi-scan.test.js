@@ -70,8 +70,8 @@ test('reads a clean image of a score', () => {
   assert.equal(r.measures.length, 33);
   assert.deepEqual(r.keySigs[0], { time: 0, fifths: -2 });
   const s = score(r);
-  assert.ok(s.precision >= 0.88, `precision ${s.precision}`);
-  assert.ok(s.recall >= 0.88, `recall ${s.recall}`);
+  assert.ok(s.precision >= 0.93, `precision ${s.precision}`);
+  assert.ok(s.recall >= 0.93, `recall ${s.recall}`);
 });
 
 test('reads a skewed, noisy scan of the same page', () => {
@@ -82,8 +82,20 @@ test('reads a skewed, noisy scan of the same page', () => {
   assert.equal(r.measures.length, 33);
   const s = score(r);
   // Regression floor, not a target: raise it as recognition improves.
-  assert.ok(s.precision >= 0.44, `precision ${s.precision}`);
-  assert.ok(s.recall >= 0.42, `recall ${s.recall}`);
+  assert.ok(s.precision >= 0.62, `precision ${s.precision}`);
+  assert.ok(s.recall >= 0.58, `recall ${s.recall}`);
+});
+
+test('reads a real screenshot of the score (≈100 dpi, light staff lines)', () => {
+  const shot = readPgm(zlib.gunzipSync(fs.readFileSync(new URL('autumn-leaves.screenshot.pgm.gz', dir))));
+  const { page, stats } = scanPage(shot, { pageWidth: 595 });
+  assert.equal(stats.staves, 10);
+  const r = recognize({ pages: [page] });
+  assert.equal(r.measures.length, 33);
+  const s = score(r);
+  // Regression floor, not a target.
+  assert.ok(s.precision >= 0.6, `precision ${s.precision}`);
+  assert.ok(s.recall >= 0.6, `recall ${s.recall}`);
 });
 
 test('an image without music has no staves', () => {

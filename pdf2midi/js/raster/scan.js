@@ -113,7 +113,7 @@ function vRun(bin, x, y) {
 
 // ---------------------------------------------------------------- staves
 
-function findStaffLines(bin, sp, lt) {
+function findStaffLines(bin, sp, lt, gray) {
   const { width: w, height: h } = bin;
   const minRun = Math.round(3 * sp);
   const cover = new Float64Array(h);
@@ -159,6 +159,24 @@ function findStaffLines(bin, sp, lt) {
   }
   // Five equally spaced overlapping bands make a staff. Every band is tried
   // as a top line; the most regular, best covered candidates win.
+  // A line too faint to be found (downscaled screenshots) still darkens its
+  // row a little: accept a synthetic fifth line where the grey profile dips.
+  const faintLineAt = (y, x0, x1) => {
+    if (!gray) return false;
+    // Median darkness along the row: a staff line spans it, symbols don't.
+    const rowDark = yy => {
+      const Y = Math.round(yy);
+      if (Y < 0 || Y >= h) return 0;
+      const v = [];
+      for (let x = Math.max(0, Math.round(x0)); x < Math.min(w, x1); x += 2) v.push(255 - gray.data[Y * w + x]);
+      v.sort((a, b) => a - b);
+      return v.length ? v[v.length >> 1] : 0;
+    };
+    let best = 0, by = y;
+    for (let d = -1; d <= 1; d++) { const v = rowDark(y + d); if (v > best) { best = v; by = y + d; } }
+    const around = (rowDark(by - 0.4 * sp) + rowDark(by + 0.4 * sp)) / 2;
+    return best > 6 && best > 1.8 * around + 2 ? by : false;
+  };
   const cands = [];
   for (let i = 0; i < bands.length; i++) {
     const group = [i];
@@ -173,13 +191,23 @@ function findStaffLines(bin, sp, lt) {
       }
       if (best < 0) ok = false; else group.push(best);
     }
-    if (!ok) continue;
-    const ls = group.map(k => bands[k]);
+    let ls;
+    if (ok) ls = group.map(k => bands[k]);
+    else if (group.length === 4) {
+      // Four clear lines: look for a faint fifth just above or below.
+      const g4 = group.map(k => bands[k]);
+      const x0 = g4[0].x0, x1 = g4[0].x1;
+      const below = faintLineAt(g4[3].y + sp, x0, x1), above = faintLineAt(g4[0].y - sp, x0, x1);
+      const mk = y => ({ y, y0: Math.floor(y - lt / 2), y1: Math.ceil(y + lt / 2), x0, x1, cover: Math.min(...g4.map(l => l.cover)) * 0.5, faint: true });
+      if (below !== false) ls = [...g4, mk(below)];
+      else if (above !== false) ls = [mk(above), ...g4];
+      else continue;
+    } else continue;
     const gaps = ls.slice(1).map((l, k) => l.y - ls[k].y);
     const mean = gaps.reduce((x, y) => x + y, 0) / 4;
     const dev = gaps.reduce((x, g) => x + Math.abs(g - mean), 0) / 4;
     const cov = Math.min(...ls.map(l => l.cover));
-    cands.push({ group, ls, score: cov / (1 + dev) });
+    cands.push({ group, ls, score: cov / (1 + dev) * (ls.some(l => l.faint) ? 0.5 : 1) });
   }
   cands.sort((p, q) => q.score - p.score);
   const staves = [];
@@ -233,7 +261,33 @@ export function scanPage(gray, options = {}) {
   const out = { width: W * toPt, height: H * toPt, glyphs: [], lines: [], shapes: [] };
   const stats = { skew, staffSpace: spEst, lineThickness: lt, staves: 0 };
 
-  const staves = findStaffLines(bin, spEst, lt);
+  // Staff lines are thin: in screenshots and small scans they come out as
+  // light grey and break up in the binary image. Look for them with a
+  // lenient threshold (a quarter of the way from paper to ink).
+  const loose = { width: W, height: H, data: new Uint8Array(W * H) };
+  {
+    const hist = new Uint32Array(256), inkHist = new Uint32Array(256);
+    for (let i = 0; i < gray.data.length; i += 3) { hist[gray.data[i]]++; if (bin.data[i]) inkHist[gray.data[i]]++; }
+    const median = h => { let t = 0, a = 0; for (const v of h) t += v; for (let v = 0; v < 256; v++) { a += h[v]; if (a >= t / 2) return v; } return 128; };
+    const paper = median(hist), ink = median(inkHist);
+    const cut = paper - 0.25 * (paper - ink);
+    for (let i = 0; i < loose.data.length; i++) loose.data[i] = bin.data[i] || gray.data[i] < cut ? 1 : 0;
+  }
+  const staves = findStaffLines(loose, spEst, lt, gray);
+  // Centre each line on the ink of the regular binary image (the lenient
+  // one is thicker on one side), then refresh the staff geometry.
+  for (const st of staves) {
+    for (const l of st.lines) {
+      let sw = 0, sy = 0;
+      for (let y = Math.max(0, Math.floor(l.y - lt - 1)); y <= Math.min(H - 1, Math.ceil(l.y + lt + 1)); y++) {
+        let n = 0;
+        for (let x = Math.max(0, Math.round(st.x0)); x < Math.min(W, st.x1); x += 2) n += bin.data[y * W + x];
+        sw += n; sy += n * y;
+      }
+      if (sw > 0.2 * (st.x1 - st.x0) / 2) l.y = sy / sw;
+    }
+    st.top = st.lines[0].y; st.bottom = st.lines[4].y; st.sp = (st.bottom - st.top) / 4;
+  }
   stats.staves = staves.length;
   if (!staves.length) return { page: out, stats, transform: toOriginal(0, out.width, out.height) };
   const sp = staves.reduce((a, s) => a + s.sp, 0) / staves.length;
@@ -355,14 +409,15 @@ export function scanPage(gray, options = {}) {
     };
     const num = fit(digitTpls, st.top + st.sp), den = fit(digitTpls, st.bottom - st.sp);
     const com = fit(commonTpls, (st.top + st.bottom) / 2);
-    const plausible = num && den && num.d >= 1 && [1, 2, 4, 8].includes(den.d);
-    if (plausible && num.s > 0.65 && den.s > 0.65 && Math.min(num.s, den.s) > (com ? com.s : 0)) {
+    // Stacked chords can look like digits: only usual metres, clearly matched.
+    const plausible = num && den && num.d >= 2 && [2, 4, 8].includes(den.d);
+    if (plausible && num.s > 0.7 && den.s > 0.7 && Math.min(num.s, den.s) > (com ? com.s : 0)) {
       for (const [o, cy] of [[num, st.top + st.sp], [den, st.bottom - st.sp]]) {
         glyph(0xE080 + o.d, o.x0 - o.t.ox, cy, o.t.adv);
         eraseUnder(healed, o.x0, o.y0, o.t, 2);
         eraseUnder(ns, o.x0, o.y0, o.t, 2);
       }
-    } else if (com && com.s > 0.65) {
+    } else if (com && com.s > 0.78) {
       glyph(com.cp, com.x0 - com.t.ox, (st.top + st.bottom) / 2, com.t.adv);
       eraseUnder(healed, com.x0, com.y0, com.t, 2);
       eraseUnder(ns, com.x0, com.y0, com.t, 2);
@@ -402,8 +457,47 @@ export function scanPage(gray, options = {}) {
   const classified = [];
   const placedAcc = [];
   const unclassified = [];
+  // An arpeggio's wiggle can pass for a quarter rest: its left edge swings
+  // back and forth about every half space, a rest's only two or three times.
+  const turnsOf = c => {
+    const xs = [];
+    for (let y = c.y0; y <= c.y1; y++) {
+      let x = c.x0;
+      while (x <= c.x1 && labels[y * W + x] !== c.id) x++;
+      if (x <= c.x1) xs.push(x);
+    }
+    let turns = 0, dir = 0;
+    for (let i = 2; i < xs.length; i += 2) {
+      const d = Math.sign(xs[i] - xs[i - 2]);
+      if (d && d !== dir) { if (dir) turns++; dir = d; }
+    }
+    return turns;
+  };
+  const arpeggioBoxes = [];
+  // Typical ink width of a row: a wiggle is a thin stroke, a sharp is wide.
+  const medianRowSpan = c => {
+    const spans = [];
+    for (let y = c.y0; y <= c.y1; y++) {
+      let a = -1, b = -1;
+      for (let x = c.x0; x <= c.x1; x++) if (labels[y * W + x] === c.id) { if (a < 0) a = x; b = x; }
+      if (a >= 0) spans.push(b - a + 1);
+    }
+    spans.sort((p, q) => p - q);
+    return spans.length ? spans[spans.length >> 1] : 0;
+  };
   for (const c of comps) {
     if (inText.has(c)) continue;
+    // Arpeggios first: a narrow, tall, regular wiggle.
+    {
+      const cw = c.x1 - c.x0 + 1, ch = c.y1 - c.y0 + 1;
+      if (ch >= 2 * sp && cw >= 0.3 * sp && cw <= 1.6 * sp && staffOf((c.y0 + c.y1) / 2) &&
+          medianRowSpan(c) <= 0.7 * sp && turnsOf(c) >= Math.max(5, 1.5 * ch / sp)) {
+        for (let y = c.y0 + sp / 2; y <= c.y1; y += sp) glyph(0xEAA9, c.x0, y, cw);
+        arpeggioBoxes.push(c);
+        eraseComp(c);
+        continue;
+      }
+    }
     const cw = c.x1 - c.x0 + 1, ch = c.y1 - c.y0 + 1;
     if (ch < 0.6 * sp && cw < 0.6 * sp) continue;
     const st = staffOf((c.y0 + c.y1) / 2);
@@ -434,6 +528,12 @@ export function scanPage(gray, options = {}) {
     const { c, cl, t, dx, dy, st } = k;
     let ox = c.x0 + dx - t.ox, oy = c.y0 + dy - t.oy;
     let cp = cl.cp;
+    if (cp === 0xE4E5 && turnsOf(c) >= Math.max(5, 1.5 * (c.y1 - c.y0) / sp)) {
+      for (let y = c.y0 + sp / 2; y <= c.y1; y += sp) glyph(0xEAA9, c.x0, y, c.x1 - c.x0 + 1);
+      arpeggioBoxes.push(c);
+      eraseComp(c);
+      continue;
+    }
     if (cl.kind === 'clef') {
       // Snap the clef's reference line onto the nearest staff line.
       const ly = st.lines.reduce((a, l) => (Math.abs(l.y - oy) < Math.abs(a - oy) ? l.y : a), st.lines[0].y);
@@ -526,6 +626,14 @@ export function scanPage(gray, options = {}) {
     }
     return white >= 2;
   };
+  // Beside a real head, at mid-height, at least one side is paper (the other
+  // may carry the stem or a neighbouring note); along a beam both are ink.
+  const sideOpen = (t, x0, y0) => {
+    const gap = Math.max(2, Math.round(0.2 * sp));
+    const ya = y0 + Math.round(t.h * 0.3), yb = y0 + Math.round(t.h * 0.7);
+    const frac = (xa, xb) => ii.count(xa, ya, xb, yb) / Math.max(1, (xb - xa) * (yb - ya));
+    return Math.min(frac(x0 - gap - 1, x0 - 1), frac(x0 + t.w + 1, x0 + t.w + gap + 1)) < 0.5;
+  };
   for (const st of staves) {
     const half = st.sp / 2;
     for (let k = -14; k <= 22; k++) {
@@ -549,8 +657,9 @@ export function scanPage(gray, options = {}) {
               const box = ii.count(x0, y0, x0 + t.w, y0 + t.h) / (t.w * t.h);
               if (box < (hollow ? 0.3 : 0.55)) continue;
               const s = scoreAt(t, x0, y0, hollow);
-              if (s < minFill || !cornersOk(t, x0, y0)) continue;
-              heads.push({ x: x0 - t.ox, y: yc, w: t.w, h: t.h, s, hollow, cp: t.cp, t, x0, y0, st, k });
+              if (s < minFill || !cornersOk(t, x0, y0) || !sideOpen(t, x0, y0)) continue;
+              // Where the head really is, not the step it was searched at.
+              heads.push({ x: x0 - t.ox, y: y0 - t.oy, w: t.w, h: t.h, s, hollow, cp: t.cp, t, x0, y0, st, k });
             }
           }
         }
@@ -581,7 +690,10 @@ export function scanPage(gray, options = {}) {
     }
     return n && w / n > 0.5;
   };
-  for (let i = heads.length - 1; i >= 0; i--) if (!ladderOk(heads[i]) || inWord(heads[i])) heads.splice(i, 1);
+  // Nor is an arpeggio's arrowhead, in the wiggle's column.
+  const onArpeggio = h => arpeggioBoxes.some(a => h.x + h.w / 2 >= a.x0 - 0.5 * sp && h.x + h.w / 2 <= a.x1 + 0.5 * sp &&
+    h.y >= a.y0 - 2 * sp && h.y <= a.y1 + sp);
+  for (let i = heads.length - 1; i >= 0; i--) if (!ladderOk(heads[i]) || inWord(heads[i]) || onArpeggio(heads[i])) heads.splice(i, 1);
   // Non-maximum suppression.
   heads.sort((a, b) => b.s - a.s);
   const kept = [];
@@ -611,7 +723,9 @@ export function scanPage(gray, options = {}) {
       for (let y = 0; y < h.t.h; y++) for (let x = 0; x < h.t.w; x++) if (h.t.mask[y * h.t.w + x]) vals.push(gray.data[(h.y0 + y) * W + h.x0 + x]);
       vals.sort((a, b) => a - b);
       const ink = vals[Math.floor(vals.length * 0.15)];
-      const hollowByGrey = core > ink + 0.4 * (paper - ink);
+      // Measured on real scores: solid heads stay below 0.03, hollow ones
+      // above ~0.1 even in small screenshots.
+      const hollowByGrey = core > ink + 0.12 * (paper - ink);
       if (hollowByGrey !== h.hollow) {
         // Switch to the matching template family at the same place.
         const pool = hollowByGrey ? tHollow.filter(t => t.cp === HEAD_HALF) : tBlack;
@@ -753,7 +867,7 @@ export function scanPage(gray, options = {}) {
       if (!attached.length || v.y1 - v.y0 < 2 * sp) continue;
       const hy0 = Math.min(...attached.map(h => h.y)), hy1 = Math.max(...attached.map(h => h.y));
       if (Math.max(hy0 - v.y0, v.y1 - hy1) < 1.5 * sp) continue;
-      if (!attached.some(h => Math.abs(h.y - v.y0) < 0.8 * sp || Math.abs(h.y - v.y1) < 0.8 * sp)) continue;
+      if (!attached.some(h => Math.abs(h.y - v.y0) < sp || Math.abs(h.y - v.y1) < sp)) continue;
       const up = (v.y1 - hy1) < (hy0 - v.y0);
       found.push({ v, up, tip: up ? v.y0 : v.y1 });
     }
@@ -833,7 +947,7 @@ export function scanPage(gray, options = {}) {
     const hy0 = attached.length ? Math.min(...attached.map(h => h.y)) : 0;
     const hy1 = attached.length ? Math.max(...attached.map(h => h.y)) : 0;
     const protrudes = Math.max(hy0 - v.y0, v.y1 - hy1) >= 1.5 * sp;
-    const endsAtHead = protrudes && attached.some(h => Math.abs(h.y - v.y0) < 0.8 * sp || Math.abs(h.y - v.y1) < 0.8 * sp);
+    const endsAtHead = protrudes && attached.some(h => Math.abs(h.y - v.y0) < sp || Math.abs(h.y - v.y1) < sp);
     if (isBarline(v, attached)) {
       line(v.x, v.y0, v.x, v.y1, v.w, true);
     } else if (endsAtHead && len >= 2 * sp) {

@@ -459,12 +459,14 @@ function processSystem(sy, sysIdx, carry, warn, stats, options) {
   const touchesHead = v => allHeads.some(h =>
     (Math.abs(v.x - h.x) < 0.3 * sp || Math.abs(v.x - (h.x + h.w)) < 0.3 * sp) &&
     h.y >= v.y0 - 0.6 * sp && h.y <= v.y1 + 0.6 * sp);
+  const taggedBars = verts.some(v => v.bar);
   const barXs = [];
   const stems = [];
   for (const v of verts) {
     const spansStaff = staves.some(s => v.y0 <= s.top + 0.3 * s.sp && v.y1 >= s.bottom - 0.3 * s.sp && v.x >= s.x0 - 0.5 * sp);
-    // Image recognition marks the lines it knows are barlines.
-    if (v.bar || (spansStaff && !touchesHead(v))) barXs.push(v.x);
+    // Image recognition marks the lines it knows are barlines; then only
+    // those count.
+    if (taggedBars ? v.bar : (spansStaff && !touchesHead(v))) barXs.push(v.x);
     else if (!v.filled && v.y1 - v.y0 > 1.2 * sp) stems.push(v);
   }
   // Collapse double/final barlines; drop the system's opening line.
