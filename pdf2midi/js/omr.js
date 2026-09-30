@@ -177,7 +177,7 @@ export function recognize(doc, options = {}) {
     if (!staves.length) return;
     const verticals = page.lines
       .filter(l => Math.abs(l.x1 - l.x2) < 0.25 && Math.abs(l.y2 - l.y1) > 1)
-      .map(l => ({ x: (l.x1 + l.x2) / 2, y0: Math.min(l.y1, l.y2), y1: Math.max(l.y1, l.y2), lw: l.lw }));
+      .map(l => ({ x: (l.x1 + l.x2) / 2, y0: Math.min(l.y1, l.y2), y1: Math.max(l.y1, l.y2), lw: l.lw, bar: !!l.bar }));
     // Thick barlines are sometimes filled rectangles.
     for (const s of page.shapes) {
       if (s.curve || s.kind === 'stroke') continue;
@@ -239,8 +239,10 @@ export function recognize(doc, options = {}) {
         // Trust the time signature: a misread duration then stays local to
         // this measure instead of shifting the rest of the piece.
         warn(`Measure ${measures.length + 1}: recognised content (${fmt(m.content)} beats) exceeds the time signature (${fmt(m.nominal)}).`);
-      } else if (isFirst && m.content < m.nominal - EPS && m.content > 0) {
-        length = m.content; // pickup (anacrusis)
+      } else if (isFirst && m.content > 0 && m.content <= 0.75 * m.nominal + EPS && m.narrow) {
+        // Pickup (anacrusis): clearly short and drawn narrower than the
+        // other bars. A single misread rest must not shift the whole piece.
+        length = m.content;
       }
       if (m.timeSig && (!timeSigs.length || timeSigs[timeSigs.length - 1].num !== m.timeSig.num || timeSigs[timeSigs.length - 1].den !== m.timeSig.den)) {
         timeSigs.push({ time: now, num: m.timeSig.num, den: m.timeSig.den });
@@ -457,11 +459,14 @@ function processSystem(sy, sysIdx, carry, warn, stats, options) {
   const touchesHead = v => allHeads.some(h =>
     (Math.abs(v.x - h.x) < 0.3 * sp || Math.abs(v.x - (h.x + h.w)) < 0.3 * sp) &&
     h.y >= v.y0 - 0.6 * sp && h.y <= v.y1 + 0.6 * sp);
+  const taggedBars = verts.some(v => v.bar);
   const barXs = [];
   const stems = [];
   for (const v of verts) {
     const spansStaff = staves.some(s => v.y0 <= s.top + 0.3 * s.sp && v.y1 >= s.bottom - 0.3 * s.sp && v.x >= s.x0 - 0.5 * sp);
-    if (spansStaff && !touchesHead(v)) barXs.push(v.x);
+    // Image recognition marks the lines it knows are barlines; then only
+    // those count.
+    if (taggedBars ? v.bar : (spansStaff && !touchesHead(v))) barXs.push(v.x);
     else if (!v.filled && v.y1 - v.y0 > 1.2 * sp) stems.push(v);
   }
   // Collapse double/final barlines; drop the system's opening line.
@@ -728,6 +733,20 @@ function processSystem(sy, sysIdx, carry, warn, stats, options) {
       if (g && a.x - g[g.length - 1].x < 2 * sp) g.push(a);
       else groups.push([a]);
     }
+    // Mid-system, a lone accidental before a bar's first note is that note's
+    // accidental set a little wide, not a key change.
+    const systemStart = firstEventX(si);
+    for (let gi = groups.length - 1; gi >= 0; gi--) {
+      const g = groups[gi];
+      if (g[0].x < systemStart || g.length >= 2) continue;
+      const a = g[0];
+      const cands = chordHeads.filter(({ h }) => Math.abs(h.y - a.y) < 0.3 * sp && h.x > a.x && h.x - a.x < 6 * sp && !headAcc.has(h));
+      if (cands.length) {
+        const best = cands.reduce((b, c) => (c.h.x < b.h.x ? c : b));
+        headAcc.set(best.h, a.alter);
+      }
+      groups.splice(gi, 1);
+    }
     staff.keyChanges = groups.map(g => {
       const x = g[0].x;
       const map = {};
@@ -798,8 +817,6 @@ function processSystem(sy, sysIdx, carry, warn, stats, options) {
     heads.forEach(({ h }, i) => { h.roll = i; h.rollN = heads.length; });
   }
 
-  // Development hook: inspect a system's events before timing.
-  if (options.debug) options.debug(sysIdx, events, beams, perStaff);
   // --- 5 + 6. Per-measure rhythm and pitch --------------------------------
   const measures = [];
   for (let mi = 0; mi < boundaries.length; mi++) {
@@ -816,6 +833,48 @@ function processSystem(sy, sysIdx, carry, warn, stats, options) {
     }
     const nominal = carry.timeSig.num * 4 / carry.timeSig.den;
 
+    // Implied tuplets: after the first few groups, engravers drop the "3"
+    // ("simile"). If a staff overflows the bar, beamed groups of three (or
+    // six) equal notes are triplets.
+    staves.forEach((staff, si) => {
+      const mine = evs.filter(e => e.si === si && !e.fullMeasure);
+      // This staff's length when laid out alone (same column rule as below).
+      const staffContent = () => {
+        const sorted = [...mine].sort((a, b) => a.x - b.x);
+        const cols = [];
+        for (const e of sorted) {
+          const col = cols[cols.length - 1];
+          if (col && e.x - col.x < 0.75 * sp) col.push(e); else { const c = [e]; c.x = e.x; cols.push(c); }
+        }
+        let t = 0, end = 0;
+        const placed = [];
+        cols.forEach((col, ci) => {
+          if (ci > 0) {
+            const ends = placed.map(p => p.t + p.e.dur).filter(v => v > t + EPS);
+            t = ends.length ? Math.min(...ends) : end;
+          }
+          for (const e of col) { placed.push({ e, t }); end = Math.max(end, t + e.dur); }
+        });
+        return end;
+      };
+      if (staffContent() <= nominal + EPS) return;
+      const groups = new Map();
+      for (const e of mine) {
+        if (e.kind !== 'chord' || !e.stem || e.tuplet) continue;
+        const bm = beams.find(b => e.stem.x >= b.x0 - 0.3 * sp && e.stem.x <= b.x1 + 0.3 * sp &&
+          [e.stem.y0, e.stem.y1].some(y => Math.abs(y - b.yAt(e.stem.x)) < 0.8 * sp) && b.x1 - b.x0 > 1.5 * sp);
+        if (!bm) continue;
+        if (!groups.has(bm)) groups.set(bm, []);
+        groups.get(bm).push(e);
+      }
+      for (const g of groups.values()) {
+        if (staffContent() <= nominal + EPS) break;
+        if ((g.length === 3 || g.length === 6) && g.every(e => Math.abs(e.dur - g[0].dur) < EPS)) {
+          g.forEach(e => { e.dur *= 2 / 3; e.tuplet = true; });
+          stats.tuplets++;
+        }
+      }
+    });
     const timed = evs.filter(e => !e.fullMeasure);
     // Column clustering on the event's left x.
     timed.sort((a, b) => a.x - b.x);
@@ -918,8 +977,12 @@ function processSystem(sy, sysIdx, carry, warn, stats, options) {
     });
 
     const key = keyAt(staves[0], mx0 + 0.1);
+    // Width of the bar's music (after any clef/key/time header), to tell a
+    // pickup from a full bar.
+    const xs = evs.map(e => e.x);
+    const musicWidth = xs.length ? mx1 - Math.min(...xs) : 0;
     measures.push({
-      notes, content, nominal,
+      notes, content, nominal, musicWidth,
       timeSig: { num: carry.timeSig.num, den: carry.timeSig.den },
       keyFifths: key ? key.fifths : 0
     });
@@ -979,5 +1042,11 @@ function processSystem(sy, sysIdx, carry, warn, stats, options) {
   }
   carry.pendingTies = carry.pendingTies.filter(p => p.sys === sysIdx);
 
+  // A pickup bar holds fewer beats, so it is drawn narrower than its peers.
+  if (measures.length > 2) {
+    const widths = measures.slice(1).map(m => m.musicWidth / Math.max(m.nominal, EPS)).sort((a, b) => a - b);
+    const typical = widths[widths.length >> 1];
+    measures[0].narrow = measures[0].musicWidth / Math.max(measures[0].nominal, EPS) < 0.8 * typical;
+  } else if (measures.length) measures[0].narrow = true;
   return { measures };
 }

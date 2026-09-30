@@ -13,6 +13,7 @@ import { readMidi } from './helpers/midi.js';
 const FIXTURES = [
   // name, min precision, min recall, min duration accuracy
   ['autumn-leaves', 1, 1, 0.99],          // arpeggios, ties in chords, 2 voices
+  ['autumn-leaves-macos-print', 1, 1, 0.99], // same, re-printed to PDF by macOS Preview
   ['luv-sic-part-3', 1, 1, 1],            // 16ths, dense chords
   ['carrying-you', 0.995, 0.995, 0.99],   // 3 pages, 2/4 bars, grace note, tempo mark
   ['key-changes', 0.99, 0.99, 0.95],
