@@ -221,7 +221,7 @@ function renderResult() {
   $('tempoVal').textContent = String(state.tempo);
   $('tempoHint').textContent = s.tempoFound
     ? 'Read from the metronome mark on the score. Quarter notes per minute.'
-    : 'No metronome mark found — set it here. Quarter notes per minute.';
+    : 'No metronome mark found. Set it here, in quarter notes per minute.';
 
   const ul = $('warnings');
   ul.innerHTML = '';
@@ -309,7 +309,7 @@ async function renderPages() {
   if (total > pages) {
     const more = document.createElement('p');
     more.className = 'status-line';
-    more.textContent = `Preview limited to the first ${pages} pages — the MIDI file contains all ${total}.`;
+    more.textContent = `Preview limited to the first ${pages} pages. The MIDI file contains all ${total}.`;
     wrap.appendChild(more);
   }
 }

@@ -2,9 +2,9 @@
 // note-on events in and renders whatever the matcher reports.
 //
 // A task is one chord to arpeggiate in a given direction, starting on a given
-// chord tone. Validation is pitch-class + direction based (any octave), but
-// each step must land on the *next* chord tone in close position, i.e. less
-// than an octave away from the previous correct note.
+// chord tone. Validation is pitch-class + direction based: any octave, and
+// each next chord tone may be played in any octave as long as it moves the
+// right way from the previous correct note.
 
 import { CHORD_FORMULAS, buildChord, spellChordTones, randomEnharmonicDisplay } from '../../js/core/theory.js';
 
@@ -101,7 +101,8 @@ export class ArpeggioMatcher {
   get done() { return this.index >= this.task.steps.length; }
   get expected() { return this.task.steps[this.index] || null; }
 
-  // The exact key the next note should be, once one note has been played.
+  // The closest key the next note can be, once one note has been played (used
+  // for the guide-key hint; farther octaves in the right direction count too).
   // Before the first note any octave works, so this returns null.
   expectedMidi() {
     const step = this.expected;
@@ -144,7 +145,6 @@ export class ArpeggioMatcher {
     const delta = midi - this.lastMidi;
     if (step.dir === 'up' && delta <= 0) return 'direction';
     if (step.dir === 'down' && delta >= 0) return 'direction';
-    if (Math.abs(delta) >= 12) return 'leap';
     return null;
   }
 

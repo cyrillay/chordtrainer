@@ -23,7 +23,7 @@ const STEPS = [
   },
   {
     title: 'Match your level',
-    body: 'Start with a <strong>preset</strong> — First timer locks you to C, F, G majors. Move up as you get comfortable.',
+    body: 'Start with a <strong>preset</strong>. First timer locks you to C, F, G majors. Move up as you get comfortable.',
     target: 'presetRow'
   },
   {

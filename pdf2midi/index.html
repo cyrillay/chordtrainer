@@ -21,25 +21,39 @@
 <link rel="icon" type="image/png" href="../favico.png">
 <link rel="stylesheet" href="../scoretrainer/scoretrainer.css">
 <link rel="stylesheet" href="pdf2midi.css">
+<link rel="stylesheet" href="../themes.css">
+<link rel="stylesheet" href="../header.css">
 </head>
 <body>
+<script>
+  /* Same theme as the Chords trainer (picked in its options), applied before
+     first paint. No key yet means the Boudoir default; '' means Ink. */
+  (function () {
+    var saved = null;
+    try { saved = localStorage.getItem('etude.theme'); } catch (e) {}
+    if (saved === null) document.body.dataset.theme = 'boudoir';
+    else if (saved) document.body.dataset.theme = saved;
+  })();
+</script>
 
 <div class="app">
 
-  <header>
-    <div class="wordmark">
-      <span class="wm-brand">Étude <em>—</em></span>
-      <span class="mode-pill" role="tablist" aria-label="Switch tool">
-        <a href="../" class="mp-opt" role="tab" aria-selected="false">Chord</a>
-        <a href="../scoretrainer/" class="mp-opt" role="tab" aria-selected="false">Score</a>
-        <a href="../arpeggio/" class="mp-opt" role="tab" aria-selected="false">Arpeggio</a>
-        <a href="../sightreading/" class="mp-opt" role="tab" aria-selected="false">Read</a>
-      </span>
-      <span class="wm-suffix">Converter</span>
+  <header class="site-header">
+    <div class="hd-top">
+      <a href="../" class="hd-brand" aria-label="Étude, home">
+        <span class="hd-name">Étude</span>
+        <span class="hd-opus">Anh. 1 No 7</span>
+      </a>
+      <div class="hd-actions">
+        <span class="hd-opus">PDF to MIDI</span>
+      </div>
     </div>
-    <div class="header-right">
-      <div class="meta">Op. 4 No 1</div>
-    </div>
+    <nav class="hd-nav" aria-label="Trainers" title="I, vi, ii, V: the turnaround that always comes home to I">
+      <a href="../" class="hd-link"><span class="hd-num">I</span>Chords</a>
+      <a href="../sightreading/" class="hd-link"><span class="hd-num">vi</span>Sight-reading</a>
+      <a href="../arpeggio/" class="hd-link"><span class="hd-num">ii</span>Arpeggios</a>
+      <a href="../scoretrainer/" class="hd-link"><span class="hd-num">V</span>Repertoire</a>
+    </nav>
   </header>
 
   <main>
@@ -50,13 +64,13 @@
         <h1 class="hero-title">PDF to <em>MIDI</em>, note for note.</h1>
         <p class="hero-sub">
           Drop a score exported as <strong>PDF</strong> from MuseScore, Dorico, Sibelius or Finale and get a
-          <strong>MIDI</strong> file back — pitches, rhythms, ties, tuplets, grace notes, key and time signatures.
+          <strong>MIDI</strong> file back: pitches, rhythms, ties, tuplets, grace notes, key and time signatures.
         </p>
         <p class="hero-rationale">
           <em>Why so exact?</em> Those PDFs are not pictures: every notehead, clef and accidental is a
           symbol from a music font placed at a precise position, and every stem, beam and barline is a
           vector line. We read that structure directly instead of guessing from pixels.
-          Scans, photos and image-only PDFs are read from their pixels instead — it works on clean printed
+          Scans, photos and image-only PDFs are read from their pixels instead. It works on clean printed
           music, but expect to fix a few notes.
         </p>
       </div>
@@ -76,7 +90,7 @@
           </svg>
         </div>
         <div class="drop-title">Drop your score here</div>
-        <div class="drop-sub">or <button type="button" class="link-btn" id="browseBtn">browse</button> — a PDF, or photos / scans (one image per page)</div>
+        <div class="drop-sub">or <button type="button" class="link-btn" id="browseBtn">browse</button> · a PDF, or photos / scans (one image per page)</div>
         <div class="drop-hint">Everything runs in your browser. Nothing leaves your machine.</div>
       </div>
 
@@ -126,7 +140,7 @@
       <div class="verify-head">
         <div class="verify-title">Check the reading</div>
         <div class="verify-legend">
-          Every recognised note is marked on the score — hover one for its pitch and beat.
+          Every recognised note is marked on the score. Hover one for its pitch and beat.
           <span class="legend-item"><span class="swatch s0"></span>staff 1</span>
           <span class="legend-item"><span class="swatch s1"></span>staff 2</span>
           <span class="legend-item"><span class="swatch s2"></span>staff 3+</span>
@@ -138,7 +152,7 @@
   </main>
 
   <footer class="page-footer">
-    <span>Companion to <a href="../">chordtrainer.io</a> · practise the result in the <a href="../scoretrainer/">Score Trainer</a></span>
+    <span>Companion to <a href="../">chordtrainer.io</a> · practise the result in <a href="../scoretrainer/">Repertoire</a></span>
   </footer>
 
 </div>

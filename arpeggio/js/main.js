@@ -1,13 +1,16 @@
 // Arpeggio Trainer — page controller. Views: the level path (map) and the
 // play stage. MIDI is required to play; everything else is local state.
 
-import { CHORD_FORMULAS, NOTE_NAMES, NOTE_DISPLAY, formatChordHtml } from '../../js/core/theory.js';
+import { CHORD_FORMULAS, NOTE_NAMES, NOTE_DISPLAY } from '../../js/core/theory.js';
 import { ArpeggioMatcher, scoreArpeggio, comboMultiplier, starsFor, degreeName, STAR_RULES } from './engine.js';
 import {
-  LEVELS, levelById, levelLength, makeTask, poolFrom, timeLimitMs,
+  LEVELS, levelById, levelLength, makeTask, poolFrom, levelPool, timeLimitMs,
   weakList, makeWeakTask, recordWeak, rootsUpTo,
 } from './levels.js';
 import { createKeyboard } from './keyboard.js';
+import { renderStage, clearStage, currentCard } from './stage.js';
+import { renderMidiHint, gateCopy, DENIED_HELP_HTML } from '../../js/midi/midiHelp.js';
+import { bindInfoTips } from '../../js/ux/infoTip.js';
 import { createMidi, attachComputerKeyboard } from './midi.js';
 import { loadSettings, saveSettings, loadProgress, saveProgress, loadWeak, saveWeak, clearWeak } from './storage.js';
 import { initAchievements, grant, bump, setMax, setValue } from './achievements.js';
@@ -22,6 +25,12 @@ let weakStats = loadWeak();
 
 const WEAK_SESSION_LENGTH = 12;
 const QUALITY_ORDER = ['maj', 'min', 'dim', 'aug', 'maj7', 'min7', 'dom7', 'm7b5', 'mMaj7'];
+// Same list and wording as the Chords trainer's "Chord qualities" grid.
+const QUALITY_LABELS = {
+  maj: 'Major', min: 'Minor', dim: 'Diminished', aug: 'Augmented',
+  maj7: 'Major 7th', min7: 'Minor 7th', dom7: 'Dominant 7th',
+  m7b5: 'Half-diminished (ø)', mMaj7: 'Minor major 7th',
+};
 const Q_PRESETS = {
   triads: ['maj', 'min'],
   allTriads: ['maj', 'min', 'dim', 'aug'],
@@ -55,28 +64,22 @@ const midi = createMidi({
 function renderMidiStatus({ state, names }) {
   midiState = state;
   const btn = $('midiBtn');
-  btn.dataset.state = state;
-  const label = {
-    connected: names.join(' · '),
-    nodevice: 'No device found',
-    denied: 'MIDI access denied',
-    unsupported: 'MIDI not supported',
-  }[state] || 'Connect MIDI';
+  btn.classList.toggle('is-connected', state === 'connected');
+  btn.classList.toggle('is-error', ['nodevice', 'denied', 'unsupported'].includes(state));
+  const label = state === 'connected' ? names.join(' · ') : 'Connect MIDI';
   $('midiLabel').textContent = label;
   btn.title = state === 'connected' ? 'MIDI connected' : 'Connect a MIDI keyboard';
 
   const gate = $('midiGate');
   gate.hidden = state === 'connected';
-  if (state === 'nodevice') {
-    $('gateTitle').textContent = 'MIDI is on, but no keyboard was found.';
-    $('gateSub').textContent = 'Check the cable, or pair your Bluetooth keyboard in your system MIDI settings first. It will appear here automatically.';
-  } else if (state === 'unsupported') {
-    $('gateTitle').textContent = 'This browser has no Web MIDI.';
-    $('gateSub').textContent = 'Use Chrome, Edge or Firefox on desktop or Android. On iPhone/iPad, open this page in the Web MIDI Browser app.';
-  } else if (state === 'denied') {
-    $('gateTitle').textContent = 'MIDI permission was refused.';
-    $('gateSub').textContent = 'Allow MIDI for this site (icon left of the address bar), then reload.';
-  }
+  const status = $('midiStatus');
+  status.hidden = state === 'connected' || state === 'off';
+  if (state === 'nodevice') renderMidiHint(status, 'No device found');
+  else if (state === 'unsupported') renderMidiHint(status, 'MIDI not supported here');
+  else if (state === 'denied') renderMidiHint(status, 'MIDI access denied', { html: DENIED_HELP_HTML });
+  const copy = gateCopy(state);
+  $('gateTitle').textContent = copy.title;
+  $('gateSub').textContent = copy.sub;
   document.body.classList.toggle('midi-ready', state === 'connected');
 }
 
@@ -161,7 +164,8 @@ function spec() {
 
 function generate(prev, k) {
   if (session.kind === 'weak') return makeWeakTask(session.weakPool, prev);
-  return makeTask(spec(), poolFrom(settings), k, prev);
+  const pool = session.kind === 'level' ? levelPool(session.level) : poolFrom(settings);
+  return makeTask(spec(), pool, k, prev);
 }
 
 function fillQueue() {
@@ -191,6 +195,7 @@ function startSession(kind, level = null) {
   renderDots();
   renderHud();
   keyboard.clearAll();
+  clearStage();
   requestAnimationFrame(() => keyboard.reveal(60));
   fillQueue();
   nextTask();
@@ -200,6 +205,7 @@ function startSession(kind, level = null) {
 function exitSession() {
   if (session?.timerId) cancelAnimationFrame(session.timerId);
   session = null;
+  clearStage();
   $('viewPlay').hidden = true;
   $('viewMap').hidden = false;
   $('resultModal').hidden = true;
@@ -208,6 +214,7 @@ function exitSession() {
 
 function nextTask() {
   if (session.index >= session.length) return finishSession();
+  session.prevTask = session.task;
   session.task = session.queue.shift();
   fillQueue();
   session.matcher = new ArpeggioMatcher(session.task);
@@ -289,12 +296,7 @@ function renderTask() {
   void instr.offsetWidth;
   instr.classList.add('pop');
 
-  const card = $('chordCard');
-  $('chordName').innerHTML = formatChordHtml(t.chord);
-  $('chordQuality').textContent = CHORD_FORMULAS[t.quality].name;
-  card.classList.remove('enter', 'leave', 'is-clean');
-  void card.offsetWidth;
-  card.classList.add('enter');
+  renderChordStage();
 
   const showNames = settings.showNames;
   $('steps').innerHTML = t.steps.map((s, i) => `
@@ -305,19 +307,19 @@ function renderTask() {
   $('steps').classList.toggle('hide-names', !showNames);
   feedback(' ');
 
-  renderUpcoming();
   keyboard.setChordTones(settings.guideKeys ? t.chord.pitchClasses : null);
   updateHint();
   $('timer').hidden = !(session.kind === 'level' && session.level.timed);
 }
 
-function renderUpcoming() {
-  $('upcoming').innerHTML = session.queue.slice(0, 2).map((t, i) => `
-    <div class="up-card" style="--i:${i}">
-      <span class="up-arrow">${ARROWS[t.direction]}</span>
-      <span class="up-name">${formatChordHtml(t.chord)}</span>
-      <span class="up-from">${startLabel(t)}</span>
-    </div>`).join('');
+// Previous, current and the next two chords, chord-trainer style. Upcoming
+// cards carry their pattern (↑ 3rd) so the next move can be planned ahead.
+function renderChordStage() {
+  const entries = [];
+  if (session.prevTask) entries.push({ task: session.prevTask, slot: -1 });
+  entries.push({ task: session.task, slot: 0 });
+  session.queue.slice(0, 2).forEach((task, i) => entries.push({ task, slot: i + 1 }));
+  renderStage($('stageTrack'), entries, t => `${ARROWS[t.direction]} ${startLabel(t)}`);
 }
 
 function updateHint() {
@@ -345,7 +347,6 @@ function floatText(text, kind = '') {
 const REASONS = {
   pitch: 'Not a chord tone here',
   direction: 'Wrong way',
-  leap: 'Too far — stay within an octave',
 };
 
 // ---- Input ----
@@ -432,36 +433,28 @@ function completeTask(result, { timedOut = false } = {}) {
 
   // Weak-spot memory (not on timeouts with zero notes — those say nothing about the pattern).
   if (!(timedOut && result.correct === 0)) {
-    const before = weakStats[result.task.key];
-    const missesBefore = before ? before.tries - before.clean : 0;
     recordWeak(weakStats, { ...result, clean });
     saveWeak(weakStats);
-    if (clean && s.kind === 'weak' && missesBefore >= 10) grant('redemption');
   }
 
   markDot(s.index, clean ? 'clean' : timedOut ? 'miss' : 'rough');
   if (!timedOut) {
     floatText(`+${pts}`, clean ? 'gold' : '');
-    const card = $('chordCard');
-    card.classList.toggle('is-clean', clean);
+    currentCard()?.classList.toggle('is-clean', clean);
     if (clean) {
       const top = result.notes[result.notes.length - 1]?.midi ?? 72;
       const step = Math.min(s.combo, 8);
       chime([hz(top + 12), hz(top + 12 + (step >= 4 ? 7 : 4)), hz(top + 24)], { gain: 0.05 + Math.min(step, 8) * 0.004 });
       if (s.combo > 0 && s.combo % 4 === 0) floatText(`${s.combo} combo!`, 'combo');
     }
-    feedback(clean ? praise(result, s.combo) : `${result.mistakes} slip${result.mistakes > 1 ? 's' : ''} — keep going`, clean ? 'good' : 'meh');
+    feedback(clean ? praise(result, s.combo) : `${result.mistakes} slip${result.mistakes > 1 ? 's' : ''}, keep going`, clean ? 'good' : 'meh');
   }
   renderHud();
   arpeggioAchievements(result, clean, timedOut);
 
   s.index++;
   const delay = clean ? 450 : 750;
-  setTimeout(() => {
-    if (session !== s) return;
-    $('chordCard').classList.add('leave');
-    setTimeout(() => { if (session === s) nextTask(); }, 160);
-  }, delay);
+  setTimeout(() => { if (session === s) nextTask(); }, delay);
 }
 
 const PRAISE = ['Clean', 'Nice', 'Smooth', 'Lovely', 'Crisp', 'Bravo', 'Elegant', 'Spot on'];
@@ -479,7 +472,6 @@ function arpeggioAchievements(result, clean, timedOut) {
   bump('arps.total');
   setMax('combo.best', s.combo);
   if (now.getHours() >= 2 && now.getHours() < 5) grant('nightOwl');
-  if (now.getDay() === 5 && now.getDate() === 13) grant('friday13');
 
   const notes = result.notes;
   const midis = notes.map(n => n.midi);
@@ -549,7 +541,6 @@ function finishSession() {
     }
     if (stars === 3) setValue('stars3.count', LEVELS.filter(l => progress.levels[l.id]?.stars === 3).length);
     if (LEVELS.every(l => progress.levels[l.id]?.stars === 3)) grant('constell');
-    if (s.mistakes === 0 && s.timeouts === 0) grant('flawless');
 
     if (stars === 0) note = `Reach ${Math.round(STAR_RULES.one * 100)}% accuracy to clear the level.`;
     else if (stars < 3) note = stars === 1
@@ -627,6 +618,7 @@ function renderMap() {
         <span class="level-body">
           <span class="level-name">${level.name}${level.timed ? ' <span class="level-tag">timed</span>' : ''}</span>
           <span class="level-blurb">${level.blurb}</span>
+          <span class="level-pool">${poolLabel(level)}</span>
         </span>
         <span class="level-meta">
           <span class="level-dirs">${dirs}</span>
@@ -647,6 +639,14 @@ $('levelPath').addEventListener('click', (e) => {
 $('freeCard').addEventListener('click', () => startSession('free'));
 $('weakCard').addEventListener('click', () => startSession('weak'));
 
+// "C · Cm · Cdim — up to 2♯/♭" under each level.
+function poolLabel(level) {
+  const chords = level.qualities.length >= 8 ? 'every quality'
+    : level.qualities.map(q => `C${CHORD_FORMULAS[q].suffix}`).join(' · ');
+  const keys = level.keys >= 6 ? 'all 12 keys' : `up to ${level.keys}&#9839;/&#9837;`;
+  return `${chords} · ${keys}`;
+}
+
 const DIR_NAMES = { up: 'up', down: 'down', updown: 'up & back' };
 
 function renderWeak() {
@@ -655,7 +655,7 @@ function renderWeak() {
   $('weakCard').disabled = !list.length;
   $('weakDesc').textContent = list.length
     ? 'Drills the chords and patterns you miss the most.'
-    : 'Play a few levels first — your misses are remembered here.';
+    : 'Play a few levels first. Your misses are remembered here.';
   $('weakList').innerHTML = list.length
     ? list.map(w => {
       const name = NOTE_DISPLAY[w.root] + CHORD_FORMULAS[w.quality].suffix;
@@ -684,7 +684,7 @@ function chip(group, value, label, on) {
 
 function renderSettings() {
   $('qualityChips').innerHTML = QUALITY_ORDER.map(q =>
-    chip('qualities', q, `<span class="chip-sym">C${CHORD_FORMULAS[q].suffix}</span> ${CHORD_FORMULAS[q].name}`, settings.qualities.includes(q))).join('');
+    `<label class="checkbox-item"><input type="checkbox" data-group="qualities" value="${q}" ${settings.qualities.includes(q) ? 'checked' : ''}>${QUALITY_LABELS[q]}</label>`).join('');
   $('rootChips').innerHTML = NOTE_NAMES.map(r => chip('roots', r, NOTE_DISPLAY[r], settings.roots.includes(r))).join('');
   $('freeDirChips').innerHTML = Object.entries(DIR_LABELS).map(([d, l]) => chip('freeDirections', d, `${ARROWS[d]} ${l}`, settings.freeDirections.includes(d))).join('');
   $('freeStartChips').innerHTML = Object.entries(START_LABELS).map(([st, l]) => chip('freeStarts', st, `from ${l}`, settings.freeStarts.includes(st))).join('');
@@ -722,5 +722,6 @@ $('settingsPanel').addEventListener('click', (e) => {
 // ---- Boot ----
 
 initAchievements();
+bindInfoTips();
 renderSettings();
 renderMap();

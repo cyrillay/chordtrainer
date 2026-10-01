@@ -37,7 +37,7 @@ export const LEVELS = [
     keys: ['C'], times: ['4/4'], bars: 4, tempo: 72,
   },
   {
-    id: 'l4', name: 'Two Clefs', blurb: 'Grand staff — the hands take turns, one bar each.',
+    id: 'l4', name: 'Two Clefs', blurb: 'Grand staff. The hands take turns, one bar each.',
     staves: ['treble', 'bass'], hands: 'alt', altEvery: 1,
     rh: { range: [60, 72], rhythms: [W, H, Q], maxLeap: 2 },
     lh: { range: [48, 60], rhythms: [W, H, Q], maxLeap: 2 }, lhTexture: 'melody',
@@ -58,7 +58,7 @@ export const LEVELS = [
     keys: ['C'], times: ['4/4', '3/4'], bars: 4, tempo: 66,
   },
   {
-    id: 'rep1', name: 'Repertoire I', blurb: 'Folk tunes you may already know — in both clefs.',
+    id: 'rep1', name: 'Repertoire I', blurb: 'Folk tunes you may already know, in both clefs.',
     repertoire: true, tempo: 80,
   },
   {
@@ -76,7 +76,7 @@ export const LEVELS = [
     keys: ['C', 'G', 'F'], times: ['4/4', '3/4'], bars: 8, restProb: 0.05, tempo: 72,
   },
   {
-    id: 'rep2', name: 'Repertoire II', blurb: 'Beethoven, Mozart, Petzold — and a canon.',
+    id: 'rep2', name: 'Repertoire II', blurb: 'Beethoven, Mozart, Petzold, and a canon.',
     repertoire: true, tempo: 90,
   },
   {
@@ -88,7 +88,7 @@ export const LEVELS = [
     chromatic: 0.12, restProb: 0.05, tempo: 72,
   },
   {
-    id: 'l10', name: 'Compound Time', blurb: '6/8 — the beat is a dotted quarter.',
+    id: 'l10', name: 'Compound Time', blurb: '6/8. The beat is a dotted quarter.',
     staves: ['treble', 'bass'], hands: 'both',
     rh: { range: [60, 77], rhythms: [HD, QD, Q, E], maxLeap: 3 },
     lh: { range: [40, 57], rhythms: [HD, QD] }, lhTexture: 'dyads',

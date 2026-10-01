@@ -3,6 +3,7 @@ import { state } from '../core/state.js';
 import { applyHeardPitchClasses } from '../instruments/chordDisplay.js';
 import { $ } from '../core/dom.js';
 import { recordAction } from '../ux/achievements.js';
+import { noDeviceHelpHtml, isIOS } from './midiHelp.js';
 
 function refreshHeardFromHeld() {
   const pcs = new Set();
@@ -27,35 +28,6 @@ function handleMidiMessage(event) {
 
 function attachInputs(access) {
   for (const input of access.inputs.values()) input.onmidimessage = handleMidiMessage;
-}
-
-const MIDI_BLE_CONNECT_URL = 'https://play.google.com/store/apps/details?id=com.mobileer.example.midibtlepairing';
-const WEB_MIDI_BROWSER_URL = 'https://apps.apple.com/fr/app/web-midi-browser/id953846217';
-
-const isAndroid = () => /Android/i.test(navigator.userAgent);
-const isIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent)
-  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-// Browsers only list MIDI devices the OS has already opened, so the fix for
-// "No device" depends on the platform — Android in particular never exposes
-// Bluetooth MIDI to Chrome unless another app opens the link first.
-function noDeviceHelpHtml() {
-  // iOS browsers have no Web MIDI at all; Web MIDI Browser is a WebKit
-  // wrapper that adds it.
-  if (isIOS()) {
-    return `Use the <a href="${WEB_MIDI_BROWSER_URL}" target="_blank" rel="noopener">Web MIDI Browser</a> app `
-      + `and open this site in it — iPhone/iPad browsers don't support MIDI.`;
-  }
-  if (isAndroid()) {
-    return `<strong>Bluetooth:</strong> Chrome can't scan for Bluetooth MIDI on Android. Install the free app `
-      + `<a href="${MIDI_BLE_CONNECT_URL}" target="_blank" rel="noopener">MIDI BLE Connect</a>, `
-      + `connect your keyboard there, then come back here.<br><br>`
-      + `Close your keyboard's own app first (e.g. Roland Piano App): only one app can hold the Bluetooth link. `
-      + `Don't pair the keyboard in Android's Bluetooth settings.`;
-  }
-  return `<strong>Bluetooth:</strong> connect your keyboard in your system's MIDI settings first `
-    + `(Mac: Audio MIDI Setup → Window → Show MIDI Studio → Bluetooth).<br><br>`
-    + `Still nothing? Check the site's MIDI permission (icon left of the URL) and reload.`;
 }
 
 // Tapping anywhere closes an auto-opened hint; registered once.

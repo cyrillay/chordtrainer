@@ -87,105 +87,6 @@ body {
   .app { padding: 1.5rem 0.75rem 4rem; }
 }
 
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 3rem;
-  gap: 1.5rem;
-}
-
-.header-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.55rem;
-  position: relative;
-}
-
-/* Above the mobile breakpoint, keep the meta line ("Op. 2 No 62") and the
-   Achievements button on the same row to compact the header vertically.
-   Achievements sits to the left of the meta label. */
-@media (min-width: 601px) {
-  .header-right {
-    display: grid;
-    grid-template-columns: auto auto;
-    grid-template-areas:
-      "ach  meta"
-      "input input";
-    align-items: center;
-    justify-items: end;
-    column-gap: 0.8rem;
-    row-gap: 0.55rem;
-  }
-  .header-right .ach-btn        { grid-area: ach; }
-  .header-right .meta           { grid-area: meta; }
-  .header-right .input-selector { grid-area: input; justify-self: end; }
-}
-
-.wordmark {
-  font-family: var(--font-body);
-  font-weight: 500;
-  font-size: 1.8rem;
-  letter-spacing: 0.02em;
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.45rem;
-  flex-wrap: wrap;
-}
-
-.wordmark em {
-  font-style: italic;
-  color: var(--gold);
-  font-weight: 400;
-}
-
-.wm-brand, .wm-suffix { white-space: nowrap; }
-
-/* Trainer-mode toggle baked into the wordmark. The pill matches the
-   visual language of .input-selector (Mic / MIDI) so the header reads as
-   a single coherent control surface rather than two unrelated widgets. */
-.mode-pill {
-  display: inline-flex;
-  border: 1px solid var(--gold);
-  border-radius: var(--radius-md);
-  background: rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-  align-self: center;
-  /* Sized so the pill height matches the wordmark cap-height region —
-     visually anchored to the brand without overpowering it. */
-  font-family: var(--font-display);
-  font-size: 0.62rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  line-height: 1;
-}
-.mp-opt {
-  padding: 0.55rem 0.95rem;
-  color: var(--ivory-dim);
-  text-decoration: none;
-  border-right: 1px solid var(--line);
-  transition: color var(--ease-fast), background var(--ease-fast);
-}
-.mp-opt:last-child { border-right: none; }
-.mp-opt:hover { color: var(--ivory); background: rgba(var(--gold-bright-rgb), 0.06); }
-.mp-opt.is-active {
-  color: var(--gold);
-  background: rgba(var(--gold-bright-rgb), 0.12);
-  box-shadow: inset 0 -2px 0 var(--gold);
-  pointer-events: none;
-}
-
-.meta {
-  font-family: var(--font-display);
-  font-size: 0.7rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--ivory-dim);
-}
-
 .input-selector {
   display: inline-flex;
   border: 1px solid var(--gold);
@@ -1183,7 +1084,6 @@ header {
   text-decoration: underline;
 }
 
-
 button {
   font-family: var(--font-body);
   font-size: 1.1rem;
@@ -2086,10 +1986,6 @@ footer em {
 
 @media (max-width: 600px) {
   .controls { grid-template-columns: 1fr; }
-  /* `align-items: stretch` lets `.header-right` span full width so its own
-     `align-items: flex-end` actually pushes mic/midi/achievements to the right
-     edge instead of pinning them under the wordmark on the left. */
-  header { flex-direction: column; gap: 0.5rem; align-items: stretch; }
   .piano { height: 140px; }
   .black-keys { height: 85px; }
   .chord-queue { gap: 0.6rem; padding: 0.6rem 0.5rem; }
@@ -2345,7 +2241,6 @@ footer em {
   stroke-width: 1;
   transition: all var(--ease);
 }
-
 
 .cof-slot.active .cof-wedge {
   fill: var(--gold);
@@ -2992,38 +2887,6 @@ body.reward-shake {
 
 /* ---- Mobile perf & touch polish ---- */
 
-/* `background-attachment: fixed` on body forces full-document repaints on
-   scroll and kills frame rates on mid-range phones. Marble themes still rely
-   on it (single PNG, cheap to sample) — fall back to scrolling under 900px.
-   Boudoir/Urtext don't appear here anymore: their gradients moved to a
-   fixed `::after` pseudo with `translateZ(0)`, which gets its own compositor
-   layer and isn't affected by scroll. */
-@media (max-width: 900px) {
-  body,
-  body[data-theme="marble"],
-  body[data-theme="marble-musical"] {
-    background-attachment: scroll;
-    position: relative; /* positioning context for ::before */
-  }
-  /* Urtext: the SVG turbulence grain blended with `mix-blend-mode: multiply`
-     across the full document height repaints every scroll tile — drop it on
-     mobile, the paper texture is barely noticeable on phone screens anyway. */
-  body[data-theme="urtext"]::before {
-    display: none;
-  }
-  /* Boudoir: even on the GPU-composited layer, 8 gradients are heavier to
-     rasterize once than 2. Strip to just the warm pool + vertical fall —
-     the look is preserved, the initial paint is cheaper. */
-  body[data-theme="boudoir"]::after {
-    background-image:
-      radial-gradient(ellipse 90% 55% at 50% -10%, rgba(var(--gold-rgb), 0.10), transparent 60%),
-      linear-gradient(180deg,
-        rgba(0, 0, 0, 0) 0%,
-        rgba(0, 0, 0, 0.10) 45%,
-        rgba(0, 0, 0, 0.25) 100%);
-  }
-}
-
 /* Larger touch targets. Native inputs (sliders) use invisible padding around
    the thumb so the hit area is ≥ 44px without changing the visual size. */
 @media (pointer: coarse) {
@@ -3059,183 +2922,6 @@ body.reward-shake {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-}
-
-/* ============================================================
-   THEME VARIANTS — toggle via [data-theme] on <body>.
-   The base palette in :root is the original "Ink" theme; each
-   variant overrides the same tokens and lets the cascade flow.
-   Piano keys remain skeuomorphic across themes (real keys are
-   always ivory/black).
-   ============================================================ */
-
-/* — Urtext — Henle-style ivory paper, charcoal ink, deep gold. */
-body[data-theme="urtext"] {
-  --ink: #ede2ca;
-  --paper: #e3d6b8;
-  --ivory: #1a1410;
-  --ivory-dim: #5a4f42;
-  --gold: #8a6a2c;
-  --gold-bright: #a8843a;
-  --crimson: #7a2828;
-  --sage: #4a6b4a;
-  --line: #c4b69a;
-  background: var(--ink);
-}
-/* Gradients live on a viewport-sized fixed pseudo with `translateZ(0)` so Chrome
-   promotes them to their own compositor layer. Scroll doesn't tile-rasterize the
-   gradient across the full document height — that was the source of mobile jank. */
-body[data-theme="urtext"]::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  transform: translateZ(0);
-  background-image:
-    radial-gradient(ellipse at 50% -10%, rgba(138, 106, 44, 0.10), transparent 60%),
-    radial-gradient(ellipse at 50% 110%, rgba(26, 20, 16, 0.06), transparent 50%);
-}
-/* Paper grain — only Urtext uses it (multiply blend on the cream paper turns
-   the SVG turbulence into a subtle printing texture). Other themes don't
-   declare ::before, so the pseudo-element doesn't exist for them. */
-body[data-theme="urtext"]::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: var(--z-grain);
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
-  opacity: 0.18;
-  mix-blend-mode: multiply;
-}
-/* The current-chord halo uses --ink as a solid center to occlude prev/next
-   cards on dark themes — they share the same near-black, so the halo blends
-   in. On urtext the paper texture (body::before, multiply) shows through
-   everywhere except over the halo, leaving the halo as a visible cream patch.
-   Replace the colour fill with a backdrop blur masked by the same elliptical
-   shape: the texture stays continuous while prev/next cards still soften
-   behind the current chord. */
-body[data-theme="urtext"] .chord-card.is-current::before {
-  background: none;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  mask-image: radial-gradient(ellipse at center, #000 18%, transparent 70%);
-}
-/* On a paper background, black-translucent panel surfaces darken nicely.
-   But the rgba(255,255,255,X) lighten gradients vanish — replace those
-   spots with a faint warm-paper tint via a sibling override. */
-body[data-theme="urtext"] .piano-wrap,
-body[data-theme="urtext"] .guitar-wrap {
-  background: rgba(26, 20, 16, 0.04);
-}
-/* Guitar dot strokes/labels reference --ink (the page background colour,
-   which is cream in Urtext). On a dark theme that gives a dark outline;
-   on cream paper it dissolves. Re-anchor to --ivory (the ink colour). */
-body[data-theme="urtext"] .gtr-dot {
-  stroke: var(--ivory);
-}
-body[data-theme="urtext"] .gtr-dot.open {
-  stroke: var(--ivory);
-}
-body[data-theme="urtext"] .gtr-dot-label {
-  fill: var(--ivory);
-}
-
-/* — Boudoir — library/lounge: warm reading-lamp pool, leather-corner
-   vignettes, vertical curtain fall (subtle velvet ribbing). No grain. */
-body[data-theme="boudoir"] {
-  --ink: #1a1410;
-  --paper: #25201a;
-  --line: #3a302a;
-  background: var(--ink);
-}
-/* Same trick as Urtext — gradients on a fixed, GPU-composited pseudo so the
-   8-layer stack is rasterized once at viewport size, not tiled across the
-   full body height on every scroll. */
-body[data-theme="boudoir"]::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  transform: translateZ(0);
-  background-image:
-    /* warm reading-lamp pool, top-center */
-    radial-gradient(ellipse 90% 55% at 50% -10%, rgba(var(--gold-rgb), 0.10), transparent 60%),
-    /* secondary pool, bottom for balance */
-    radial-gradient(ellipse 70% 40% at 50% 100%, rgba(var(--gold-rgb), 0.04), transparent 60%),
-    /* leather darkening at the four corners */
-    radial-gradient(ellipse 60% 60% at 0% 0%, rgba(0, 0, 0, 0.45), transparent 55%),
-    radial-gradient(ellipse 60% 60% at 100% 0%, rgba(0, 0, 0, 0.45), transparent 55%),
-    radial-gradient(ellipse 70% 70% at 0% 100%, rgba(0, 0, 0, 0.55), transparent 55%),
-    radial-gradient(ellipse 70% 70% at 100% 100%, rgba(0, 0, 0, 0.55), transparent 55%),
-    /* vertical "curtain" — soft dark folds spaced like velvet pleats */
-    repeating-linear-gradient(
-      to right,
-      transparent 0,
-      rgba(0, 0, 0, 0.13) 70px,
-      transparent 140px
-    ),
-    /* vertical fall — top brighter, mid pooled, bottom darker */
-    linear-gradient(180deg,
-      rgba(0, 0, 0, 0) 0%,
-      rgba(0, 0, 0, 0.10) 45%,
-      rgba(0, 0, 0, 0.25) 100%);
-}
-
-/* — Marble — real black-marble photograph with gold veins. */
-body[data-theme="marble"] {
-  --ink: #07070a;
-  --paper: #14141a;
-  --line: #2a2a30;
-  --gold: #d4a85e;
-  --gold-bright: #f0c878;
-  background-image: url("./marble-background.png");
-  background-color: var(--ink);
-  background-attachment: fixed;
-  background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
-}
-
-/* — Marble · Musical — same black marble but with an engraved gold
-   treble clef and staves photographed into the surface. */
-body[data-theme="marble-musical"] {
-  --ink: #07070a;
-  --paper: #14141a;
-  --line: #2a2a30;
-  --gold: #d4a85e;
-  --gold-bright: #f0c878;
-  background-image: url("./marble-background-musical.png");
-  background-color: var(--ink);
-  background-attachment: fixed;
-  background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
-}
-
-/* ---- Achievements ---- */
-
-.ach-btn {
-  background: none;
-  border: 1px solid var(--line);
-  color: var(--ivory-dim);
-  cursor: pointer;
-  padding: 0.32rem 0.6rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  border-radius: var(--radius-md);
-  transition: color 0.15s, border-color 0.15s;
-}
-.ach-btn:hover { color: var(--gold-bright); border-color: var(--gold-bright); }
-
-.ach-btn-label {
-  font-family: var(--font-display);
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 
 .ach-count {

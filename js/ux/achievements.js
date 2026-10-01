@@ -141,6 +141,13 @@ function load() {
 
 function save() {
   localStorage.setItem(LS.ACHIEVEMENTS, JSON.stringify(store));
+  paintBadge();
+}
+
+// Unlocked count next to the header trophy (empty until the first one).
+function paintBadge() {
+  const el = document.getElementById('achBadge');
+  if (el) el.textContent = Object.keys(store.unlocked).length || '';
 }
 
 // ---- Metric reads ----
@@ -399,7 +406,7 @@ function resetResetButton() {
 function handleResetClick() {
   if (!resetArmed) {
     resetArmed = true;
-    resetBtnEl.textContent = 'Click again to confirm — this cannot be undone';
+    resetBtnEl.textContent = 'Click again to confirm. This cannot be undone.';
     resetBtnEl.classList.add('armed');
     clearTimeout(resetArmTimeout);
     resetArmTimeout = setTimeout(resetResetButton, 5000);
@@ -434,6 +441,7 @@ export function recordStreak(value) {
 
 export function initAchievements() {
   load();
+  paintBadge();
 
   modalEl    = document.getElementById('achModalOverlay');
   gridEl     = document.getElementById('achGrid');

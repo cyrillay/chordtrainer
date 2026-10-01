@@ -3,25 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Score Trainer · Random Practice Chunks from PDF or MIDI</title>
+<title>Repertoire · Interleaved Practice from PDF or MIDI</title>
 <meta name="description" content="Upload a PDF or MIDI score, split it into random measure-chunks and rotate through them at your own pace. Free, in-browser practice companion to chordtrainer.io.">
 <link rel="canonical" href="https://chordtrainer.io/scoretrainer/">
 
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://chordtrainer.io/scoretrainer/">
-<meta property="og:title" content="Score Trainer · Random Practice Chunks">
+<meta property="og:title" content="Repertoire · Interleaved Practice">
 <meta property="og:description" content="Upload a PDF or MIDI score, get random measure-chunks rotated on a timer.">
 <meta property="og:image" content="https://chordtrainer.io/og-image.jpg">
 <meta property="og:locale" content="en_US">
-<meta property="og:site_name" content="Étude · Score Trainer">
+<meta property="og:site_name" content="Étude · Repertoire">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="../favico.png">
 <link rel="stylesheet" href="scoretrainer.css">
+<link rel="stylesheet" href="../themes.css">
+<link rel="stylesheet" href="../header.css">
 </head>
 <body>
+<script>
+  /* Same theme as the Chords trainer (picked in its options), applied before
+     first paint. No key yet means the Boudoir default; '' means Ink. */
+  (function () {
+    var saved = null;
+    try { saved = localStorage.getItem('etude.theme'); } catch (e) {}
+    if (saved === null) document.body.dataset.theme = 'boudoir';
+    else if (saved) document.body.dataset.theme = saved;
+  })();
+</script>
 <script>
   (function () {
     var saved = localStorage.getItem('etude.theme');
@@ -32,20 +44,22 @@
 
 <div class="app">
 
-  <header>
-    <div class="wordmark">
-      <span class="wm-brand">Étude <em>—</em></span>
-      <span class="mode-pill" role="tablist" aria-label="Switch trainer">
-        <a href="../" class="mp-opt" role="tab" aria-selected="false">Chord</a>
-        <a href="./" class="mp-opt is-active" role="tab" aria-selected="true">Score</a>
-        <a href="../arpeggio/" class="mp-opt" role="tab" aria-selected="false">Arpeggio</a>
-        <a href="../sightreading/" class="mp-opt" role="tab" aria-selected="false">Read</a>
-      </span>
-      <span class="wm-suffix">Trainer</span>
+  <header class="site-header">
+    <div class="hd-top">
+      <a href="../" class="hd-brand" aria-label="Étude, home">
+        <span class="hd-name">Étude</span>
+        <span class="hd-opus">Op. 5 No 8</span>
+      </a>
+      <div class="hd-actions">
+        <span class="hd-opus">Interleaved practice</span>
+      </div>
     </div>
-    <div class="header-right">
-      <div class="meta">Op. 3 No 1</div>
-    </div>
+    <nav class="hd-nav" aria-label="Trainers" title="I, vi, ii, V: the turnaround that always comes home to I">
+      <a href="../" class="hd-link"><span class="hd-num">I</span>Chords</a>
+      <a href="../sightreading/" class="hd-link"><span class="hd-num">vi</span>Sight-reading</a>
+      <a href="../arpeggio/" class="hd-link"><span class="hd-num">ii</span>Arpeggios</a>
+      <a href="./" class="hd-link is-active" aria-current="page"><span class="hd-num">V</span>Repertoire</a>
+    </nav>
   </header>
 
   <main>
@@ -56,15 +70,15 @@
         <h1 class="hero-title">Random <em>chunks</em>, on rotation.</h1>
         <p class="hero-sub">
           Drop a score in <strong>PDF</strong> or <strong>MIDI</strong> form. We slice it into measure-chunks,
-          then put one on screen — randomly chosen, one at a time, until every chunk has had its turn.
+          then put one on screen at random, one at a time, until every chunk has had its turn.
           Then we reshuffle and start again.
         </p>
         <p class="hero-rationale">
-          <em>Why random?</em> Interleaved practice — jumping between unfamiliar fragments instead of
-          drilling them in order — makes recall harder in the moment, and that struggle is what
+          <em>Why random?</em> Interleaved practice, jumping between unfamiliar fragments instead of
+          drilling them in order, makes recall harder in the moment, and that struggle is what
           consolidates the music into long-term memory. A piece you can play <em>start to finish</em>
           isn't truly learned until you can also play it <em>from any measure</em>. The approach is
-          drawn from <a href="../articles/learn-faster-perform-better/" style="color: inherit;"><em>Learn Faster, Perform Better</em></a> — same principles, applied to the page in front of you.
+          drawn from <a href="../articles/learn-faster-perform-better/" style="color: inherit;"><em>Learn Faster, Perform Better</em></a>. Same principles, applied to the page in front of you.
         </p>
       </div>
 
@@ -83,7 +97,7 @@
           </svg>
         </div>
         <div class="drop-title">Drop your score here</div>
-        <div class="drop-sub">or <button type="button" class="link-btn" id="browseBtn">browse</button> — PDF or MIDI</div>
+        <div class="drop-sub">or <button type="button" class="link-btn" id="browseBtn">browse</button> · PDF or MIDI</div>
         <div class="drop-hint">Everything runs in your browser. Nothing leaves your machine.</div>
       </div>
 
@@ -110,7 +124,7 @@
       <div class="mark-header">
         <div class="mark-title">
           <span class="filename" id="markFilename"></span>
-          <span class="hint" id="markHint">Drag to box each <strong>system</strong> (one music line). The first and last barlines are the edges of the box — only the <strong>internal</strong> barlines need clicking afterwards.</span>
+          <span class="hint" id="markHint">Drag to box each <strong>system</strong> (one music line). The first and last barlines are the edges of the box. Only the <strong>internal</strong> barlines need clicking afterwards.</span>
         </div>
         <div class="mark-toolbar">
           <div class="mode-toggle" role="tablist">

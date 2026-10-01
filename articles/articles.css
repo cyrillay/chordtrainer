@@ -290,3 +290,13 @@ footer.site-footer a:hover {
   border-bottom: 1px solid rgba(200, 164, 100, 0.3);
   text-decoration: none;
 }
+
+/* Short answer box at the top of a how-to article. */
+.tldr {
+  border-left: 2px solid var(--gold);
+  background: rgba(200, 164, 100, 0.05);
+  padding: 1rem 1.3rem;
+  margin: 1.5rem 0 2rem;
+}
+.tldr p { margin-bottom: 0.4rem; }
+.tldr ul { margin: 0; }

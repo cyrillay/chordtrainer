@@ -4,7 +4,7 @@ import {
   buildTask, ArpeggioMatcher, toneOrder, startIndex, starsFor, scoreArpeggio, parseWeakKey,
 } from '../arpeggio/js/engine.js';
 import {
-  LEVELS, makeTask, poolFrom, recordWeak, weakList, makeWeakTask, rootsUpTo,
+  LEVELS, makeTask, poolFrom, levelPool, recordWeak, weakList, makeWeakTask, rootsUpTo,
 } from '../arpeggio/js/levels.js';
 import {
   detectMelody, detectBach, detectTristan, detectChromatic, detectGlissando, detectPalindrome,
@@ -43,18 +43,25 @@ test('matcher accepts a correct arpeggio in any octave', () => {
   assert.equal(m.result().clean, true);
 });
 
-test('matcher rejects wrong pitch, wrong direction and octave leaps, then recovers', () => {
+test('matcher rejects wrong pitch and wrong direction, then recovers', () => {
   const t = buildTask({ root: 'C', quality: 'maj', direction: 'up', start: 'root' });
   const m = new ArpeggioMatcher(t);
   assert.equal(m.press(62).type, 'wrong');            // D: wrong pitch
   assert.equal(m.press(60).type, 'correct');          // C4
   assert.equal(m.press(52).reason, 'direction');      // E3: below
-  assert.equal(m.press(76).reason, 'leap');           // E5: too far
   assert.equal(m.press(60).type, 'ignore');           // restrike C4
   assert.equal(m.expectedMidi(), 64);
   assert.equal(m.press(64).type, 'correct');
   assert.equal(m.press(67).done, true);
-  assert.equal(m.result().mistakes, 3);
+  assert.equal(m.result().mistakes, 2);
+});
+
+test('matcher accepts the next chord tone in a higher octave', () => {
+  const t = buildTask({ root: 'C', quality: 'maj', direction: 'up', start: 'root' });
+  const m = new ArpeggioMatcher(t);
+  const res = play(m, [48, 76, 91]); // C3, E5, G6
+  assert.ok(res.every(r => r.type === 'correct'));
+  assert.equal(m.result().clean, true);
 });
 
 test('descending matcher crosses octave boundaries', () => {
@@ -84,13 +91,14 @@ test('stars and score reward clean, steady play', () => {
   assert.ok(scoreArpeggio({ clean: false, mistakes: 2 }, 0) < scoreArpeggio(clean, 1));
 });
 
-test('every level generates playable tasks from a triad-only pool', () => {
-  const pool = poolFrom({ roots: ['C', 'F', 'G'], qualities: ['maj', 'min'] });
+test('every level generates playable tasks from its own pool', () => {
   for (const level of LEVELS) {
+    const pool = levelPool(level);
     let prev = null;
     for (let k = 0; k < 6; k++) {
       const t = makeTask(level, pool, k, prev);
       assert.ok(t.steps.length >= 3, `level ${level.id}`);
+      assert.ok(pool.qualities.includes(t.quality) && pool.roots.includes(t.root), `level ${level.id}`);
       if (level.alternate) assert.equal(t.direction, level.directions[k % 2]);
       prev = t;
     }
@@ -109,6 +117,16 @@ test('weak spots surface the most-missed pattern and forgive recovered ones', ()
   assert.deepEqual(parseWeakKey(bad.key), { root: 'F#', quality: 'm7b5', direction: 'down', start: 1 });
   const t = makeWeakTask(weak, null, () => 0);
   assert.equal(t.key, bad.key);
+});
+
+test('levels widen chord qualities and key signatures along the path', () => {
+  const first = levelPool(LEVELS[0]);
+  const last = levelPool(LEVELS[LEVELS.length - 1]);
+  assert.ok(first.qualities.length < last.qualities.length);
+  assert.ok(first.roots.length < last.roots.length);
+  assert.equal(last.roots.length, 12);
+  assert.ok(LEVELS.some(l => l.qualities.includes('min7')));
+  assert.equal(poolFrom({ roots: ['C', 'X'], qualities: ['maj'] }).roots.length, 1);
 });
 
 test('rootsUpTo grows by key signature', () => {

@@ -14,7 +14,7 @@ export const ACH = [
   { id: 'level1',     vis: 'visible', icon: '\u{2B06}\u{FE0F}', name: 'Stairway',      desc: 'Clear level 1',                                 metric: 'level.1',        target: 1 },
   { id: 'level2',     vis: 'visible', icon: '\u{2B07}\u{FE0F}', name: 'Basement Tapes', desc: 'Clear level 2',                                metric: 'level.2',        target: 1 },
   { id: 'level5',     vis: 'visible', icon: '\u{1F3E2}', name: 'Halfway House',        desc: 'Clear level 5',                                 metric: 'level.5',        target: 1 },
-  { id: 'levelsAll',  vis: 'visible', icon: '\u{1F5FA}\u{FE0F}', name: 'Grand Tour',   desc: 'Clear all 10 levels',                           metric: 'levels.cleared', target: 10 },
+  { id: 'levelsAll',  vis: 'visible', icon: '\u{1F5FA}\u{FE0F}', name: 'Grand Tour',   desc: 'Clear all 15 levels',                           metric: 'levels.cleared', target: 15 },
   { id: 'stars3',     vis: 'visible', icon: '\u{2B50}',  name: 'Three Michelin Stars', desc: 'Earn three stars on any level',                 metric: 'stars3.count',   target: 1 },
   { id: 'combo12',    vis: 'visible', icon: '\u{1F525}', name: 'On Fire',              desc: '12 clean arpeggios in a row',                   metric: 'combo.best',     target: 12 },
   { id: 'weakDone',   vis: 'visible', icon: '\u{1FA79}', name: 'Physiotherapy',        desc: 'Finish a Weak Spots session',                   metric: 'weak.sessions',  target: 1 },
@@ -53,11 +53,8 @@ export const ACH = [
   { id: 'cluster',    vis: 'secret', icon: '\u{1F4A5}', name: 'Forearm Smash',         desc: 'Ten keys down at once',                         hint: 'Use more of your arm.' },
 
   // ---- Ultra-rare ----
-  { id: 'flawless',   vis: 'ultra',  icon: '\u{1F48E}', name: 'Flawless',              desc: 'Finish a level without a single wrong note',    hint: 'Not one stray note, start to finish.' },
-  { id: 'constell',   vis: 'ultra',  icon: '\u{1F30C}', name: 'Constellation',         desc: 'Three stars on every level',                    hint: 'Thirty lights in the sky.' },
-  { id: 'redemption', vis: 'ultra',  icon: '\u{1F54A}\u{FE0F}', name: 'Redemption Arc', desc: 'Nail a pattern you had missed ten times or more', hint: 'The one that haunted you.' },
+  { id: 'constell',   vis: 'ultra',  icon: '\u{1F30C}', name: 'Constellation',         desc: 'Three stars on every level',                    hint: 'Forty-five lights in the sky.' },
   { id: 'twelveGates', vis: 'ultra', icon: '\u{1F511}', name: 'Twelve Gates',          desc: 'Clean arpeggios of one quality on all 12 roots in one session', hint: 'Twelve doors, one key.' },
-  { id: 'friday13',   vis: 'ultra',  icon: '\u{1F408}\u{200D}\u{2B1B}', name: 'Paraskevidekatriaphobia', desc: 'Practise on a Friday the 13th', hint: 'An unlucky date, for some.' },
 ];
 
 const byId = Object.fromEntries(ACH.map(a => [a.id, a]));
@@ -161,7 +158,7 @@ export function isUnlocked(id) { return !!store.unlocked[id]; }
 let modalEl, gridEl, countEl, badgeEl, resetBtnEl;
 
 function refreshBadge() {
-  if (badgeEl) badgeEl.textContent = `${Object.keys(store.unlocked).filter(id => byId[id]).length}`;
+  if (badgeEl) badgeEl.textContent = Object.keys(store.unlocked).filter(id => byId[id]).length || '';
 }
 
 function tile(a) {
@@ -222,7 +219,7 @@ let resetArmed = false;
 function handleReset() {
   if (!resetArmed) {
     resetArmed = true;
-    resetBtnEl.textContent = 'Click again to confirm — this cannot be undone';
+    resetBtnEl.textContent = 'Click again to confirm. This cannot be undone.';
     resetBtnEl.classList.add('armed');
     return;
   }

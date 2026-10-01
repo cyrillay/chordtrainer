@@ -39,7 +39,6 @@ const ACH = [
 
   // ---- Ultra ----
   { id: 'prima',   vis: 'ultra', icon: '\u{1F451}', name: 'Prima Vista',           desc: 'Three stars on every level',               hint: 'Every star in the sky.',                target: LEVELS.length, value: threeStarLevels },
-  { id: 'notes10k', vis: 'ultra', icon: '\u{1F9E0}', name: 'Sight-Reading Machine', desc: 'Read 10,000 notes',                       hint: 'Ten thousand glances.',                 target: 10000, value: () => counter('notes') },
 ];
 
 let unlocked = {};
@@ -51,6 +50,12 @@ function load() {
 }
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(unlocked)); } catch { /* ignore */ }
+  paintBadge();
+}
+// Unlocked count next to the header trophy (empty until the first one).
+function paintBadge() {
+  const el = document.getElementById('achBadge');
+  if (el) el.textContent = ACH.filter((a) => unlocked[a.id]).length || '';
 }
 
 let toastQueue = Promise.resolve();
@@ -111,7 +116,7 @@ function renderTile(a) {
 
 const SECTIONS = [
   { vis: 'visible', label: 'Common',     blurb: 'Earned through steady practice.' },
-  { vis: 'secret',  label: 'Rare',       blurb: 'Trigger conditions are hidden — some things you stumble on.' },
+  { vis: 'secret',  label: 'Rare',       blurb: 'Trigger conditions are hidden. Some things you stumble on.' },
   { vis: 'ultra',   label: 'Ultra-rare', blurb: 'Reserved for those who go truly far.' },
 ];
 
@@ -125,7 +130,7 @@ function renderModal() {
       <div class="ach-section-blurb">${sec.blurb}</div>
       <div class="ach-grid">${items.map(renderTile).join('')}</div></div>`;
   }).join('');
-  countEl.textContent = `${Object.keys(unlocked).length} / ${ACH.length}`;
+  countEl.textContent = `${ACH.filter((a) => unlocked[a.id]).length} / ${ACH.length}`;
 }
 
 let armed = false, armTimer = null;
@@ -138,6 +143,7 @@ function disarm() {
 
 export function initAchievements({ onReset }) {
   load();
+  paintBadge();
   modalEl = document.getElementById('achModalOverlay');
   gridEl = document.getElementById('achGrid');
   countEl = document.getElementById('achCount');

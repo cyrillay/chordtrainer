@@ -67,82 +67,6 @@ body {
   .app { padding: 1.5rem 0.75rem 4rem; }
 }
 
-/* ---------- header ---------- */
-
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 3rem;
-  gap: 1.5rem;
-}
-
-.wordmark {
-  font-family: var(--font-body);
-  font-weight: 500;
-  font-size: 1.8rem;
-  letter-spacing: 0.02em;
-  color: var(--ivory);
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.45rem;
-  flex-wrap: wrap;
-}
-.wordmark em {
-  font-style: italic;
-  color: var(--gold);
-  font-weight: 400;
-}
-.wm-brand, .wm-suffix { white-space: nowrap; }
-
-.header-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.55rem;
-}
-
-/* Mirrors the .mode-pill rule on the chord trainer's stylesheet so the
-   two pages share one control. If you change one, change the other. */
-.mode-pill {
-  display: inline-flex;
-  border: 1px solid var(--gold);
-  border-radius: var(--radius-md);
-  background: rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-  align-self: center;
-  font-family: var(--font-display);
-  font-size: 0.62rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  line-height: 1;
-}
-.mp-opt {
-  padding: 0.55rem 0.95rem;
-  color: var(--ivory-dim);
-  text-decoration: none;
-  border-right: 1px solid var(--line);
-  transition: color var(--ease-fast), background var(--ease-fast);
-}
-.mp-opt:last-child { border-right: none; }
-.mp-opt:hover { color: var(--ivory); background: rgba(var(--gold-bright-rgb), 0.06); }
-.mp-opt.is-active {
-  color: var(--gold);
-  background: rgba(var(--gold-bright-rgb), 0.12);
-  box-shadow: inset 0 -2px 0 var(--gold);
-  pointer-events: none;
-}
-
-.meta {
-  font-family: var(--font-display);
-  font-size: 0.7rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--ivory-dim);
-}
-
 /* ---------- generic buttons ---------- */
 
 button {
@@ -226,7 +150,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-
 /* ---------- achievements (mirrors /styles.css) ---------- */
 
 .prog-modal-overlay {
@@ -279,33 +202,11 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
 
 .prog-modal-close:hover { color: var(--gold-bright); }
 
-
 .prog-modal-body {
   flex: 1;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--line) transparent;
-}
-
-.ach-btn {
-  background: none;
-  border: 1px solid var(--line);
-  color: var(--ivory-dim);
-  cursor: pointer;
-  padding: 0.32rem 0.6rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  border-radius: var(--radius-md);
-  transition: color 0.15s, border-color 0.15s;
-}
-.ach-btn:hover { color: var(--gold-bright); border-color: var(--gold-bright); }
-
-.ach-btn-label {
-  font-family: var(--font-display);
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 
 .ach-count {
@@ -659,7 +560,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   line-height: 1.2;
 }
 
-
 /* ---------- page footer ---------- */
 
 .page-footer {
@@ -675,7 +575,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
 }
 .page-footer a { color: var(--gold); text-decoration: none; }
 .page-footer a:hover { color: var(--gold-bright); }
-
 
 /* ---------- toast / errors ---------- */
 
@@ -702,7 +601,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   to { opacity: 0; transform: translate(-50%, 12px); }
 }
 
-
 /* ==================== READ TRAINER ==================== */
 
 :root {
@@ -714,39 +612,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
 }
 
 [hidden] { display: none !important; }
-
-/* ---------- header actions ---------- */
-
-.header-actions { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
-.midi-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.45rem 0.9rem;
-  font-family: var(--font-display);
-  font-size: 0.68rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  max-width: 260px;
-}
-.midi-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.midi-btn.is-on {
-  border-color: var(--sage);
-  color: var(--sage);
-  background: rgba(107, 142, 107, 0.08);
-  text-transform: none;
-  letter-spacing: 0.04em;
-  font-family: var(--font-mono);
-}
-.midi-btn.is-on:hover { background: rgba(107, 142, 107, 0.16); color: var(--ivory); }
-.midi-help {
-  max-width: 420px;
-  font-size: 0.92rem;
-  line-height: 1.4;
-  color: var(--ivory-dim);
-  text-align: right;
-}
-.midi-help a { color: var(--gold); }
 
 /* ---------- hero + level map ---------- */
 
@@ -760,6 +625,7 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
 }
 .hero-title em { color: var(--gold); }
 .hero-sub { font-size: 1.15rem; line-height: 1.55; color: var(--ivory-dim); }
+.hero-sub a { color: var(--gold); }
 .hero-sub strong { color: var(--ivory); font-weight: 500; }
 .hero-stats {
   margin-top: 1.3rem;
@@ -785,14 +651,14 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   text-align: left;
   padding: 1rem 1.1rem;
   border: 1px solid var(--line);
-  background: rgba(26, 22, 20, 0.6);
+  background: color-mix(in srgb, var(--paper) 60%, transparent);
   color: var(--ivory);
 }
 .level-card:hover { background: rgba(var(--gold-rgb), 0.07); border-color: var(--gold); color: var(--ivory); }
 .level-card.is-rep { border-color: rgba(var(--gold-rgb), 0.45); background: rgba(var(--gold-rgb), 0.05); }
 .level-card.is-gold { box-shadow: inset 0 0 0 1px rgba(var(--gold-bright-rgb), 0.35); }
 .level-card.is-locked { opacity: 0.42; cursor: not-allowed; }
-.level-card.is-locked:hover { background: rgba(26, 22, 20, 0.6); border-color: var(--line); }
+.level-card.is-locked:hover { background: color-mix(in srgb, var(--paper) 60%, transparent); border-color: var(--line); }
 .level-card.shake { animation: shake 0.35s; }
 @keyframes shake {
   20%, 60% { transform: translateX(-4px); }
@@ -985,10 +851,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
 .results-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; }
 
 @media (max-width: 600px) {
-  header { flex-direction: column; align-items: stretch; margin-bottom: 1.6rem; }
-  .header-right { align-items: stretch; }
-  .header-actions { justify-content: flex-start; }
-  .midi-help { text-align: left; }
   .hero-title { font-size: 1.9rem; }
   .level-grid { grid-template-columns: 1fr; }
   .play-head { flex-wrap: wrap; gap: 0.6rem; }
