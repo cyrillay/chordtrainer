@@ -2,32 +2,6 @@
 // timestamp (same clock as performance.now()) so tempo grading isn't
 // skewed by main-thread jank.
 
-const MIDI_BLE_CONNECT_URL = 'https://play.google.com/store/apps/details?id=com.mobileer.example.midibtlepairing';
-const WEB_MIDI_BROWSER_URL = 'https://apps.apple.com/fr/app/web-midi-browser/id953846217';
-
-const isAndroid = () => /Android/i.test(navigator.userAgent);
-export const isIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent)
-  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-// Same guidance as the chord trainer: the fix for "no device" depends on the
-// platform, Android in particular never exposes Bluetooth MIDI to Chrome
-// unless another app opens the link first.
-export function noDeviceHelpHtml() {
-  if (isIOS()) {
-    return `iPhone and iPad browsers don't support MIDI. Use the <a href="${WEB_MIDI_BROWSER_URL}" target="_blank" rel="noopener">Web MIDI Browser</a> app `
-      + 'and open this page in it.';
-  }
-  if (isAndroid()) {
-    return `<strong>Bluetooth:</strong> Chrome can't scan for Bluetooth MIDI on Android. Install the free app `
-      + `<a href="${MIDI_BLE_CONNECT_URL}" target="_blank" rel="noopener">MIDI BLE Connect</a>, `
-      + 'connect your keyboard there, then come back here. Close your keyboard\'s own app first: only one app can hold the Bluetooth link.';
-  }
-  return '<strong>USB:</strong> plug the keyboard in, then reload if it does not appear. '
-    + '<strong>Bluetooth:</strong> connect it in your system\'s MIDI settings first '
-    + '(Mac: Audio MIDI Setup → Window → Show MIDI Studio → Bluetooth). '
-    + 'Still nothing? Check the site\'s MIDI permission (icon left of the URL).';
-}
-
 // handlers: { onNoteOn(midi, velocity, timeStamp), onNoteOff(midi), onStatus(status) }
 // status: { state: 'unsupported' | 'denied' | 'none' | 'connected', names: [] }
 export async function connectMidi(handlers) {

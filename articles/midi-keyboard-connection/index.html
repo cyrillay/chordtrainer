@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Connecting a MIDI keyboard on PC, Mac, iPhone and Android · Étude</title>
-<meta name="description" content="USB, 5 pin MIDI or Bluetooth: how to connect a MIDI keyboard to a browser app on Windows, Mac, iPhone and Android, and why it sometimes does not show up.">
+<meta name="description" content="Bluetooth or USB: how to connect a MIDI keyboard to a browser app on Mac, PC, iPhone and Android, and why it sometimes does not show up.">
 <link rel="canonical" href="https://chordtrainer.io/articles/midi-keyboard-connection/">
 
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://chordtrainer.io/articles/midi-keyboard-connection/">
 <meta property="og:title" content="Connecting a MIDI keyboard on PC, Mac, iPhone and Android">
-<meta property="og:description" content="USB, 5 pin or Bluetooth, and what changes on Windows, Mac, iPhone and Android.">
+<meta property="og:description" content="Bluetooth or USB, and what changes on Mac, PC, iPhone and Android.">
 <meta property="og:image" content="https://chordtrainer.io/og-image.jpg">
 <meta property="og:locale" content="en_US">
 <meta property="og:site_name" content="Étude · Chord Trainer">
@@ -20,7 +20,7 @@
   "@context": "https://schema.org",
   "@type": "Article",
   "headline": "Connecting a MIDI keyboard on PC, Mac, iPhone and Android",
-  "description": "USB, 5 pin MIDI or Bluetooth: how to connect a MIDI keyboard to a browser app on Windows, Mac, iPhone and Android, and why it sometimes does not show up.",
+  "description": "Bluetooth or USB: how to connect a MIDI keyboard to a browser app on Mac, PC, iPhone and Android, and why it sometimes does not show up.",
   "url": "https://chordtrainer.io/articles/midi-keyboard-connection/",
   "inLanguage": "en",
   "isPartOf": {
@@ -46,59 +46,35 @@
 
   <article>
     <h1>Connecting a MIDI keyboard on PC, Mac, iPhone and Android</h1>
-    <p class="subtitle">USB, 5 pin or Bluetooth, and the traps on each system.</p>
+    <p class="subtitle">Bluetooth or USB, and the one trap on each system.</p>
 
-<p>Plugging a keyboard into a computer should be simple. Sometimes it is. Sometimes you spend 40 minutes wondering why nothing shows up. Here is everything I learned about connecting a MIDI keyboard to a browser app like this one, depending on what you are on.</p>
+    <div class="tldr">
+      <p><strong>TL;DR</strong></p>
+      <ul>
+        <li><strong>iPhone / iPad</strong> → open the site in the <a href="https://apps.apple.com/fr/app/web-midi-browser/id953846217" target="_blank" rel="noopener">Web MIDI Browser</a> app.</li>
+        <li><strong>Android</strong> → <a href="https://play.google.com/store/apps/details?id=com.mobileer.example.midibtlepairing" target="_blank" rel="noopener">MIDI BLE Connect</a> + Chrome, or a USB cable.</li>
+        <li><strong>PC, Mac</strong> → works out of the box in Chrome, Edge or Firefox.</li>
+      </ul>
+    </div>
 
-    <h2>First, the browser</h2>
-    <p>Web apps talk to your keyboard through something called Web MIDI. Not every browser has it.</p>
-    <ul>
-      <li><strong>Chrome, Edge, Opera, Brave</strong> on Windows, Mac, Linux and Android: yes.</li>
-      <li><strong>Firefox</strong> on desktop: yes, it asks for a permission the first time.</li>
-      <li><strong>Safari</strong> on Mac: no.</li>
-      <li><strong>Any browser on iPhone or iPad</strong>: no. More on that below.</li>
-    </ul>
-    <p>The first time you turn MIDI on, the browser asks if the site can use your MIDI devices. Say yes. If you said no by accident, click the icon next to the address bar and reset the permission.</p>
+    <p>Everything below was tested on a Roland FP-30X, with a Mac over Bluetooth and with an Android phone.</p>
 
-    <h2>The three ways to connect</h2>
-    <p><strong>USB.</strong> Most keyboards from the last 15 years have a square USB port on the back, the same as on a printer. One USB cable to your computer and you are done. No driver needed for almost all of them, they are "class compliant".</p>
-    <p><strong>5 pin MIDI.</strong> Older keyboards and stage pianos have round DIN sockets labelled MIDI IN and MIDI OUT. You need a USB MIDI interface. Plug its IN cable into the keyboard's MIDI OUT (yes, out to in), and the USB end into the computer.</p>
-    <p><strong>Bluetooth.</strong> Some recent keyboards have Bluetooth MIDI built in. For the others, small adapters plug into the MIDI or USB port and make it wireless. Handy, but it is also where most of the headaches are, see below.</p>
-    <p>If you can, use a cable. Less latency, nothing to pair, it just works.</p>
+    <h2>Before anything: one device at a time</h2>
+    <p>A keyboard only talks MIDI to one device at a time. If it is already connected somewhere else, your browser will not see it. Bluetooth pianos reconnect on their own to a device they know: a Mac you used before, a tablet, the piano's own app. Turn Bluetooth off on that device (or close the app) first.</p>
 
-    <h2>Windows</h2>
-    <p>USB works out of the box. Two things to know:</p>
-    <p><strong>One app at a time.</strong> On Windows a MIDI device can usually only be opened by one program. If your DAW, Synthesia or another tab already has the keyboard, the browser will not see it, or will see it and get nothing. Close the other app and reload the page.</p>
-    <p><strong>Bluetooth MIDI is a pain.</strong> Windows can pair a Bluetooth MIDI keyboard, but browsers do not see it through the classic Windows MIDI system. The workaround is a bridge: a small app like MIDIberry receives the Bluetooth MIDI and sends it to a virtual port created with loopMIDI, and the browser listens to that port. It works but it is fiddly. A cable is way easier. Microsoft is rolling out a new MIDI system for Windows 11 that should fix this, I would not count on it yet.</p>
+    <h2>The browser</h2>
+    <p>Chrome, Edge, Opera and Brave work on computers and Android. Firefox works on computers. Safari does not, and no browser on iPhone does. The first time, the browser asks if the site can use MIDI devices: say yes.</p>
 
-    <h2>Mac</h2>
-    <p>USB works out of the box. Use Chrome, Edge or Firefox, not Safari.</p>
-    <p>For Bluetooth, do not pair in the normal Bluetooth settings. Open <strong>Audio MIDI Setup</strong> (in Applications, Utilities), then Window, Show MIDI Studio, then click the Bluetooth icon. Your keyboard shows up there, click Connect. After that the browser sees it like a cable.</p>
+    <h2>Bluetooth</h2>
+    <p><strong>Mac.</strong> Don't pair in the normal Bluetooth settings. Open <strong>Audio MIDI Setup</strong> (Applications → Utilities), then Window → Show MIDI Studio, click the Bluetooth icon and Connect your keyboard. The browser then sees it like a cable.</p>
+    <p><strong>Android.</strong> Android doesn't show Bluetooth MIDI in its Bluetooth settings, and Chrome can't scan for it. Install the free app <a href="https://play.google.com/store/apps/details?id=com.mobileer.example.midibtlepairing" target="_blank" rel="noopener">MIDI BLE Connect</a>, connect the keyboard there, then open the site in Chrome.</p>
+    <p><strong>iPhone and iPad.</strong> iOS browsers have no Web MIDI (they are all Safari underneath). Open the site in the <a href="https://apps.apple.com/fr/app/web-midi-browser/id953846217" target="_blank" rel="noopener">Web MIDI Browser</a> app instead, it adds MIDI support.</p>
+    <p><strong>Windows.</strong> Browsers don't see Bluetooth MIDI on Windows yet. Use a USB cable.</p>
 
-    <h2>iPhone and iPad</h2>
-    <p>Bad news: no browser on iOS supports Web MIDI. Chrome and Firefox on iPhone are Safari underneath (Apple requires it), so they have the same limits. Cable or Bluetooth, it does not matter, the web page cannot see the keyboard.</p>
-    <p>What you can do:</p>
-    <ul>
-      <li>Use the <strong>microphone mode</strong> of the trainer instead. It listens to your piano through the phone's mic. Less precise than MIDI but it works fine for chords.</li>
-      <li>Use one of the small App Store browsers that add Web MIDI support (search "Web MIDI browser"). They open the site inside their own view and pass MIDI through.</li>
-    </ul>
-    <p>For native iOS apps, MIDI over USB works with a USB C cable on recent iPhones, or Apple's Lightning to USB Camera Adapter on older ones.</p>
-
-    <h2>Android</h2>
-    <p>Chrome on Android supports Web MIDI, so this one works.</p>
-    <p><strong>USB.</strong> You need an OTG cable or adapter: USB C (or micro USB) on the phone side, USB B on the keyboard side. If nothing happens, pull down the notifications. There is often a "USB" notification where you can switch from "Charging only" to "MIDI". Some keyboards also need their own power supply because the phone cannot power them.</p>
-    <p><strong>Bluetooth.</strong> Android does not show Bluetooth MIDI devices in the normal Bluetooth settings, you will not find your keyboard there. Pair it first with a free app like "MIDI BLE Connect", then open Chrome. Once paired, the browser sees it.</p>
-
-    <h2>Still nothing? Checklist</h2>
-    <ol>
-      <li>Is the site on https? Web MIDI only works on secure pages.</li>
-      <li>Did you allow MIDI in the browser prompt?</li>
-      <li>Is another app using the keyboard? (Windows especially.)</li>
-      <li>Is your USB cable a data cable? Some cables only charge. Try another one.</li>
-      <li>Is the keyboard on the right mode? Some keyboards have a USB mode or a Bluetooth mode setting.</li>
-      <li>Reload the page after plugging in. The trainer picks up new devices on the fly, but a reload never hurts.</li>
-    </ol>
-    <p>Once it works, it keeps working. It is the first connection that is annoying.</p>
+    <h2>USB</h2>
+    <p>Most keyboards have a square USB port on the back, like a printer. One cable and you are done, no driver needed.</p>
+    <p><strong>Android:</strong> you need an OTG cable or adapter (USB C on the phone side). If nothing happens, pull down the notifications and switch "USB charging" to "MIDI".</p>
+    <p><strong>iPhone:</strong> same as Bluetooth, use the Web MIDI Browser app.</p>
 
     <div class="cta-box">
       <p>Once your keyboard is connected, turn on MIDI in the trainer and play the chord on screen. It checks the notes you hold, inversions included.</p>

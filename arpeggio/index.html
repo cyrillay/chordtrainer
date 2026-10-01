@@ -20,6 +20,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="../favico.png">
 <link rel="stylesheet" href="arpeggio.css">
+<link rel="stylesheet" href="../midi-help.css">
 </head>
 <body>
 
@@ -30,11 +31,10 @@
       <span class="wm-brand">Étude <em>—</em></span>
       <span class="mode-pill" role="tablist" aria-label="Switch trainer">
         <a href="../" class="mp-opt" role="tab" aria-selected="false">Chord</a>
-        <a href="../scoretrainer/" class="mp-opt" role="tab" aria-selected="false">Score</a>
+        <a href="../scoretrainer/" class="mp-opt" role="tab" aria-selected="false">Interleaved practice</a>
+        <a href="../sightreading/" class="mp-opt" role="tab" aria-selected="false">Sight reading</a>
         <a href="./" class="mp-opt is-active" role="tab" aria-selected="true">Arpeggio</a>
-        <a href="../sightreading/" class="mp-opt" role="tab" aria-selected="false">Read</a>
       </span>
-      <span class="wm-suffix">Trainer</span>
     </div>
     <div class="header-right">
       <div class="meta">Op. 4 No 1</div>
@@ -51,6 +51,7 @@
           <span id="midiLabel">Connect MIDI</span>
         </button>
       </div>
+      <div class="midi-status" id="midiStatus" aria-live="polite" hidden></div>
     </div>
   </header>
 
@@ -60,10 +61,7 @@
     <section class="view" id="viewMap">
       <div class="hero">
         <h1 class="hero-title">Every chord, <em>every way in.</em></h1>
-        <p class="hero-sub">
-          Arpeggiate the chord on screen — up, down, from the root, the 3rd, the 5th or the 7th.
-          Your MIDI keyboard is checked note by note, in any octave. Clear a level to unlock the next.
-        </p>
+        <p class="hero-sub">Play the chord on screen as an arpeggio, in any octave. Clear a level to unlock the next.</p>
       </div>
 
       <div class="midi-gate" id="midiGate">
@@ -72,7 +70,7 @@
         </div>
         <div class="gate-text">
           <div class="gate-title" id="gateTitle">This trainer listens to a MIDI keyboard.</div>
-          <div class="gate-sub" id="gateSub">Plug in your keyboard (USB or Bluetooth MIDI), then connect. Chrome, Edge and Firefox on desktop or Android work; on iPhone/iPad use the Web MIDI Browser app.</div>
+          <div class="gate-sub"><span id="gateSub">Plug in your keyboard (USB or Bluetooth), then connect.</span> <a href="/articles/midi-keyboard-connection/" target="_blank" rel="noopener">How to connect →</a></div>
         </div>
         <button type="button" class="primary-btn" id="gateConnectBtn">Connect MIDI</button>
       </div>
@@ -85,7 +83,7 @@
           <span class="mode-card-icon" aria-hidden="true">&#8734;</span>
           <span class="mode-card-body">
             <span class="mode-card-title">Free practice</span>
-            <span class="mode-card-desc">Endless. Pick the directions and starting tones below.</span>
+            <span class="mode-card-desc">Endless. Your own chords and patterns, set below.</span>
           </span>
         </button>
         <button type="button" class="mode-card" id="weakCard">
@@ -98,7 +96,7 @@
       </div>
 
       <details class="panel" id="settingsPanel" open>
-        <summary class="panel-summary">Chord pool <span class="panel-summary-hint" id="poolSummary"></span></summary>
+        <summary class="panel-summary">Free practice &amp; display <span class="panel-summary-hint" id="poolSummary"></span></summary>
         <div class="panel-body">
           <div class="setting-row">
             <div class="setting-label">Qualities</div>
@@ -123,7 +121,7 @@
             </div>
           </div>
           <div class="setting-row">
-            <div class="setting-label">Free practice</div>
+            <div class="setting-label">Patterns</div>
             <div class="chip-row" id="freeDirChips"></div>
             <div class="chip-row" id="freeStartChips"></div>
           </div>
@@ -171,9 +169,8 @@
           </span>
         </div>
 
-        <div class="chord-card" id="chordCard">
-          <div class="chord-name" id="chordName">C</div>
-          <div class="chord-quality" id="chordQuality">Major</div>
+        <div class="chord-stage" id="chordStage">
+          <div class="stage-track" id="stageTrack"></div>
         </div>
 
         <div class="steps" id="steps"></div>
@@ -181,7 +178,6 @@
 
         <div class="timer" id="timer" hidden><div class="timer-fill" id="timerFill"></div></div>
 
-        <div class="upcoming" id="upcoming"></div>
         <div class="float-layer" id="floatLayer" aria-hidden="true"></div>
       </div>
 
@@ -189,13 +185,13 @@
         <div class="kb" id="keyboard"></div>
       </div>
 
-      <div class="play-hint" id="playHint">Any octave. Each next note must be the next chord tone, less than an octave away.</div>
+      <div class="play-hint" id="playHint">Any octave. Each next note must be the next chord tone, in the right direction.</div>
     </section>
 
   </main>
 
   <footer class="page-footer">
-    <span>Companion to <a href="../">chordtrainer.io</a> · <a href="../scoretrainer/">Score Trainer</a> · <a href="../pdf2midi/">PDF to MIDI</a></span>
+    <span>Companion to <a href="../">chordtrainer.io</a> · <a href="../scoretrainer/">Interleaved Practice</a> · <a href="../pdf2midi/">PDF to MIDI</a></span>
   </footer>
 </div>
 

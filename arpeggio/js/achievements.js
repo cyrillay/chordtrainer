@@ -14,7 +14,7 @@ export const ACH = [
   { id: 'level1',     vis: 'visible', icon: '\u{2B06}\u{FE0F}', name: 'Stairway',      desc: 'Clear level 1',                                 metric: 'level.1',        target: 1 },
   { id: 'level2',     vis: 'visible', icon: '\u{2B07}\u{FE0F}', name: 'Basement Tapes', desc: 'Clear level 2',                                metric: 'level.2',        target: 1 },
   { id: 'level5',     vis: 'visible', icon: '\u{1F3E2}', name: 'Halfway House',        desc: 'Clear level 5',                                 metric: 'level.5',        target: 1 },
-  { id: 'levelsAll',  vis: 'visible', icon: '\u{1F5FA}\u{FE0F}', name: 'Grand Tour',   desc: 'Clear all 10 levels',                           metric: 'levels.cleared', target: 10 },
+  { id: 'levelsAll',  vis: 'visible', icon: '\u{1F5FA}\u{FE0F}', name: 'Grand Tour',   desc: 'Clear all 15 levels',                           metric: 'levels.cleared', target: 15 },
   { id: 'stars3',     vis: 'visible', icon: '\u{2B50}',  name: 'Three Michelin Stars', desc: 'Earn three stars on any level',                 metric: 'stars3.count',   target: 1 },
   { id: 'combo12',    vis: 'visible', icon: '\u{1F525}', name: 'On Fire',              desc: '12 clean arpeggios in a row',                   metric: 'combo.best',     target: 12 },
   { id: 'weakDone',   vis: 'visible', icon: '\u{1FA79}', name: 'Physiotherapy',        desc: 'Finish a Weak Spots session',                   metric: 'weak.sessions',  target: 1 },

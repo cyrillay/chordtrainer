@@ -3,23 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Read Trainer · Sight-Reading Practice for Piano with MIDI</title>
+<title>Sight Reading Trainer · Sight-Reading Practice for Piano with MIDI</title>
 <meta name="description" content="Sight-reading practice for piano: read short generated studies and public-domain excerpts on the grand staff, play them on your MIDI keyboard, earn stars and unlock levels. Free, in the browser.">
 <link rel="canonical" href="https://chordtrainer.io/sightreading/">
 
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://chordtrainer.io/sightreading/">
-<meta property="og:title" content="Read Trainer · Sight-Reading Practice">
+<meta property="og:title" content="Sight Reading Trainer · Sight-Reading Practice">
 <meta property="og:description" content="Read it, play it on your MIDI keyboard, unlock the next level.">
 <meta property="og:image" content="https://chordtrainer.io/og-image.jpg">
 <meta property="og:locale" content="en_US">
-<meta property="og:site_name" content="Étude · Read Trainer">
+<meta property="og:site_name" content="Étude · Sight Reading Trainer">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="../favico.png">
 <link rel="stylesheet" href="sightreading.css">
+<link rel="stylesheet" href="../midi-help.css">
 </head>
 <body>
 
@@ -30,11 +31,10 @@
       <span class="wm-brand">Étude <em>—</em></span>
       <span class="mode-pill" role="tablist" aria-label="Switch trainer">
         <a href="../" class="mp-opt" role="tab" aria-selected="false">Chord</a>
-        <a href="../scoretrainer/" class="mp-opt" role="tab" aria-selected="false">Score</a>
+        <a href="../scoretrainer/" class="mp-opt" role="tab" aria-selected="false">Interleaved practice</a>
+        <a href="./" class="mp-opt is-active" role="tab" aria-selected="true">Sight reading</a>
         <a href="../arpeggio/" class="mp-opt" role="tab" aria-selected="false">Arpeggio</a>
-        <a href="./" class="mp-opt is-active" role="tab" aria-selected="true">Read</a>
       </span>
-      <span class="wm-suffix">Trainer</span>
     </div>
     <div class="header-right">
       <div class="header-actions">
@@ -56,7 +56,7 @@
           <span id="midiLabel">Connect MIDI</span>
         </button>
       </div>
-      <div class="midi-help" id="midiHelp" aria-live="polite" hidden></div>
+      <div class="midi-status" id="midiHelp" aria-live="polite" hidden></div>
     </div>
   </header>
 
@@ -67,7 +67,7 @@
       <div class="hero">
         <h1 class="hero-title">Read it <em>once</em>. Play it <em>now</em>.</h1>
         <p class="hero-sub">
-          Short studies on the grand staff, played on your <strong>MIDI keyboard</strong>.
+          Short studies on the grand staff, played on your <strong>MIDI keyboard</strong> (<a href="/articles/midi-keyboard-connection/">how to connect</a>).
           Practise in <strong>Wait</strong> mode — the score waits for the right notes — then earn the
           third star in <strong>Tempo</strong> mode, where the metronome keeps going whether you do or not.
         </p>
@@ -141,7 +141,7 @@
   </main>
 
   <footer class="page-footer">
-    <span>Companion to <a href="../">chordtrainer.io</a> · <a href="../scoretrainer/">Score Trainer</a> · <a href="../pdf2midi/">PDF to MIDI</a></span>
+    <span>Companion to <a href="../">chordtrainer.io</a> · <a href="../scoretrainer/">Interleaved Practice</a> · <a href="../pdf2midi/">PDF to MIDI</a></span>
   </footer>
 
 </div>

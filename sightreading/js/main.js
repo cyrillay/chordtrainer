@@ -8,7 +8,8 @@ import { exerciseFromText, midiName, timeSignature } from './notation.js';
 import { generateExercise } from './generator.js';
 import { buildTimeline, WaitRun, TempoRun, tempoStars } from './engine.js';
 import { renderExercise, refKey } from './renderer.js';
-import { connectMidi, noDeviceHelpHtml } from './midi.js';
+import { connectMidi } from './midi.js';
+import { renderMidiHint, DENIED_HELP_HTML } from '../../js/midi/midiHelp.js';
 import { scheduleClicks, unlockAudio, outputLatencyMs } from './metronome.js';
 import {
   loadProgress, levelStars, isUnlocked, totalStars, recordRun, focusMap,
@@ -534,9 +535,9 @@ function midiStatus({ state, names }) {
   btn.setAttribute('aria-pressed', String(state === 'connected'));
   $('midiLabel').textContent = state === 'connected' ? names.join(' · ') : 'Connect MIDI';
   help.hidden = state === 'connected';
-  if (state === 'none') help.innerHTML = `<strong>No MIDI device found.</strong> ${noDeviceHelpHtml()}`;
-  else if (state === 'unsupported') help.innerHTML = `<strong>This browser has no Web MIDI.</strong> Use Chrome, Edge, Firefox or Opera on a computer or Android. ${noDeviceHelpHtml()}`;
-  else if (state === 'denied') help.innerHTML = '<strong>MIDI access was blocked.</strong> Allow it from the icon left of the address bar, then try again.';
+  if (state === 'none') renderMidiHint(help, 'No device found', { open: true });
+  else if (state === 'unsupported') renderMidiHint(help, 'MIDI not supported here', { open: true });
+  else if (state === 'denied') renderMidiHint(help, 'MIDI access denied', { open: true, html: DENIED_HELP_HTML });
   if (state === 'connected') setSetting('midiAuto', true);
   if (S.exercise && !S.running && !S.finished) armRun();
 }

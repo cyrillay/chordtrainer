@@ -120,6 +120,7 @@ header {
   line-height: 1;
 }
 .mp-opt {
+  white-space: nowrap;
   padding: 0.55rem 0.95rem;
   color: var(--ivory-dim);
   text-decoration: none;
@@ -133,6 +134,13 @@ header {
   background: rgba(var(--gold-bright-rgb), 0.12);
   box-shadow: inset 0 -2px 0 var(--gold);
   pointer-events: none;
+}
+/* Four long labels don't fit one row on phones: fold the pill into 2×2. */
+@media (max-width: 760px) {
+  .mode-pill { display: inline-grid; grid-template-columns: auto auto; }
+  .mp-opt { text-align: center; }
+  .mp-opt:nth-child(2n) { border-right: none; }
+  .mp-opt:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
 }
 
 .meta {
@@ -739,14 +747,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   font-family: var(--font-mono);
 }
 .midi-btn.is-on:hover { background: rgba(107, 142, 107, 0.16); color: var(--ivory); }
-.midi-help {
-  max-width: 420px;
-  font-size: 0.92rem;
-  line-height: 1.4;
-  color: var(--ivory-dim);
-  text-align: right;
-}
-.midi-help a { color: var(--gold); }
 
 /* ---------- hero + level map ---------- */
 
@@ -760,6 +760,7 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
 }
 .hero-title em { color: var(--gold); }
 .hero-sub { font-size: 1.15rem; line-height: 1.55; color: var(--ivory-dim); }
+.hero-sub a { color: var(--gold); }
 .hero-sub strong { color: var(--ivory); font-weight: 500; }
 .hero-stats {
   margin-top: 1.3rem;
@@ -988,7 +989,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   header { flex-direction: column; align-items: stretch; margin-bottom: 1.6rem; }
   .header-right { align-items: stretch; }
   .header-actions { justify-content: flex-start; }
-  .midi-help { text-align: left; }
   .hero-title { font-size: 1.9rem; }
   .level-grid { grid-template-columns: 1fr; }
   .play-head { flex-wrap: wrap; gap: 0.6rem; }

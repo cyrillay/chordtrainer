@@ -16,7 +16,7 @@ Detection works with a microphone (FFT-based polyphonic pitch detection) or a MI
 - **Chord progressions** — walk through named progressions (Amen, Autumnal, Body & Soul, …) by roman numerals. Smart pivot keys can modulate between progressions.
 - **Dynamic mode** — a metronome paces you: 4 beats per chord, advance on the downbeat.
 
-## Score Trainer
+## Interleaved Practice (Score Trainer)
 
 `/scoretrainer/` is a companion tool: load a PDF or MIDI score, split it into
 random measure-chunks and rotate through them on a timer.
@@ -26,15 +26,16 @@ random measure-chunks and rotate through them on a timer.
 `/arpeggio/` drills chord arpeggios and inversions on a MIDI keyboard (MIDI is
 required). Each chord comes with an instruction — ascending, descending or up
 and back, starting on the root, 3rd, 5th or 7th — and every note is checked
-live: right pitch class, right direction, next chord tone within an octave,
-any register. A 10-level path unlocks step by step (stars on accuracy and
-tempo), free practice uses your own chord pool, and a *Weak spots* session
+live: right pitch class, right direction, any octave. A 15-level path
+unlocks step by step (stars on accuracy and tempo), widening the chord
+qualities (major → minor → dim/aug → sevenths) and the key signatures
+(1♯/♭ → all 12 roots) as it goes. Free practice uses your own chord pool, and a *Weak spots* session
 drills the chord/pattern combinations you miss most. It has its own set of
 achievements, mostly secret: touch, timing and a few hidden melodies.
 
 Add `?keys` to the URL to play with the computer keyboard while developing.
 
-## Read Trainer
+## Sight Reading (Read Trainer)
 
 `/sightreading/` is a sight-reading trainer for piano with a MIDI keyboard.
 It shows a short score on the grand staff (4–8 bars, engraved with

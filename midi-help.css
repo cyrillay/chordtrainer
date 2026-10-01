@@ -1,0 +1,97 @@
+/* MIDI status + "?" help bubble for the companion trainers (arpeggio, sight
+   reading). Mirrors .midi-status / .info-tip / .midi-help in styles.css so
+   every page explains MIDI the same way. Markup comes from
+   js/midi/midiHelp.js → renderMidiHint(). */
+.midi-status[hidden] { display: none; }
+.midi-status {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-align: right;
+  color: var(--ivory-dim);
+  line-height: 1.4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+.info-tip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.35rem;
+  cursor: help;
+  outline: none;
+}
+.info-tip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 50%;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.info-tip:hover .info-tip-icon,
+.info-tip:focus .info-tip-icon {
+  opacity: 1;
+  color: var(--gold-bright);
+  border-color: var(--gold-bright);
+}
+.midi-help { pointer-events: auto; vertical-align: middle; }
+.midi-help .info-tip-bubble {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: -0.4rem;
+  width: min(280px, calc(100vw - 32px));
+  white-space: normal;
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  background: rgba(20, 18, 16, 0.97);
+  border: 1px solid rgba(var(--gold-bright-rgb), 0.35);
+  border-radius: 4px;
+  color: #f2e9dc;
+  font-family: var(--font-display, serif);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-transform: none;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  z-index: 1000;
+}
+.midi-help:hover .info-tip-bubble,
+.midi-help:focus .info-tip-bubble,
+.midi-help:focus-within .info-tip-bubble,
+.midi-help.open .info-tip-bubble {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.midi-help .info-tip-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  right: 0.55rem;
+  border: 5px solid transparent;
+  border-bottom-color: rgba(var(--gold-bright-rgb), 0.35);
+}
+.midi-help .info-tip-bubble a { color: var(--gold-bright); text-decoration: underline; }
+
+/* On phones the header stacks left-aligned: anchor the bubble to the whole
+   status line so it opens rightward and stays on screen. */
+@media (max-width: 600px) {
+  .midi-status { position: relative; justify-content: flex-start; }
+  .midi-status .midi-help { position: static; }
+  .midi-help .info-tip-bubble { right: auto; left: 0; }
+  .midi-help .info-tip-bubble::after { display: none; }
+}

@@ -1,13 +1,15 @@
 // Arpeggio Trainer — page controller. Views: the level path (map) and the
 // play stage. MIDI is required to play; everything else is local state.
 
-import { CHORD_FORMULAS, NOTE_NAMES, NOTE_DISPLAY, formatChordHtml } from '../../js/core/theory.js';
+import { CHORD_FORMULAS, NOTE_NAMES, NOTE_DISPLAY } from '../../js/core/theory.js';
 import { ArpeggioMatcher, scoreArpeggio, comboMultiplier, starsFor, degreeName, STAR_RULES } from './engine.js';
 import {
-  LEVELS, levelById, levelLength, makeTask, poolFrom, timeLimitMs,
+  LEVELS, levelById, levelLength, makeTask, poolFrom, levelPool, timeLimitMs,
   weakList, makeWeakTask, recordWeak, rootsUpTo,
 } from './levels.js';
 import { createKeyboard } from './keyboard.js';
+import { renderStage, clearStage, currentCard } from './stage.js';
+import { renderMidiHint, DENIED_HELP_HTML } from '../../js/midi/midiHelp.js';
 import { createMidi, attachComputerKeyboard } from './midi.js';
 import { loadSettings, saveSettings, loadProgress, saveProgress, loadWeak, saveWeak, clearWeak } from './storage.js';
 import { initAchievements, grant, bump, setMax, setValue } from './achievements.js';
@@ -56,26 +58,26 @@ function renderMidiStatus({ state, names }) {
   midiState = state;
   const btn = $('midiBtn');
   btn.dataset.state = state;
-  const label = {
-    connected: names.join(' · '),
-    nodevice: 'No device found',
-    denied: 'MIDI access denied',
-    unsupported: 'MIDI not supported',
-  }[state] || 'Connect MIDI';
+  const label = state === 'connected' ? names.join(' · ') : 'Connect MIDI';
   $('midiLabel').textContent = label;
   btn.title = state === 'connected' ? 'MIDI connected' : 'Connect a MIDI keyboard';
 
   const gate = $('midiGate');
   gate.hidden = state === 'connected';
+  const status = $('midiStatus');
+  status.hidden = state === 'connected' || state === 'off';
   if (state === 'nodevice') {
+    renderMidiHint(status, 'No device found', { open: true });
     $('gateTitle').textContent = 'MIDI is on, but no keyboard was found.';
-    $('gateSub').textContent = 'Check the cable, or pair your Bluetooth keyboard in your system MIDI settings first. It will appear here automatically.';
+    $('gateSub').textContent = 'It will appear here as soon as it connects.';
   } else if (state === 'unsupported') {
+    renderMidiHint(status, 'MIDI not supported here', { open: true });
     $('gateTitle').textContent = 'This browser has no Web MIDI.';
-    $('gateSub').textContent = 'Use Chrome, Edge or Firefox on desktop or Android. On iPhone/iPad, open this page in the Web MIDI Browser app.';
+    $('gateSub').textContent = 'Use Chrome, Edge or Firefox on a computer or Android.';
   } else if (state === 'denied') {
+    renderMidiHint(status, 'MIDI access denied', { open: true, html: DENIED_HELP_HTML });
     $('gateTitle').textContent = 'MIDI permission was refused.';
-    $('gateSub').textContent = 'Allow MIDI for this site (icon left of the address bar), then reload.';
+    $('gateSub').textContent = 'Allow MIDI for this site, then reload.';
   }
   document.body.classList.toggle('midi-ready', state === 'connected');
 }
@@ -161,7 +163,8 @@ function spec() {
 
 function generate(prev, k) {
   if (session.kind === 'weak') return makeWeakTask(session.weakPool, prev);
-  return makeTask(spec(), poolFrom(settings), k, prev);
+  const pool = session.kind === 'level' ? levelPool(session.level) : poolFrom(settings);
+  return makeTask(spec(), pool, k, prev);
 }
 
 function fillQueue() {
@@ -191,6 +194,7 @@ function startSession(kind, level = null) {
   renderDots();
   renderHud();
   keyboard.clearAll();
+  clearStage();
   requestAnimationFrame(() => keyboard.reveal(60));
   fillQueue();
   nextTask();
@@ -200,6 +204,7 @@ function startSession(kind, level = null) {
 function exitSession() {
   if (session?.timerId) cancelAnimationFrame(session.timerId);
   session = null;
+  clearStage();
   $('viewPlay').hidden = true;
   $('viewMap').hidden = false;
   $('resultModal').hidden = true;
@@ -208,6 +213,7 @@ function exitSession() {
 
 function nextTask() {
   if (session.index >= session.length) return finishSession();
+  session.prevTask = session.task;
   session.task = session.queue.shift();
   fillQueue();
   session.matcher = new ArpeggioMatcher(session.task);
@@ -289,12 +295,7 @@ function renderTask() {
   void instr.offsetWidth;
   instr.classList.add('pop');
 
-  const card = $('chordCard');
-  $('chordName').innerHTML = formatChordHtml(t.chord);
-  $('chordQuality').textContent = CHORD_FORMULAS[t.quality].name;
-  card.classList.remove('enter', 'leave', 'is-clean');
-  void card.offsetWidth;
-  card.classList.add('enter');
+  renderChordStage();
 
   const showNames = settings.showNames;
   $('steps').innerHTML = t.steps.map((s, i) => `
@@ -305,19 +306,19 @@ function renderTask() {
   $('steps').classList.toggle('hide-names', !showNames);
   feedback(' ');
 
-  renderUpcoming();
   keyboard.setChordTones(settings.guideKeys ? t.chord.pitchClasses : null);
   updateHint();
   $('timer').hidden = !(session.kind === 'level' && session.level.timed);
 }
 
-function renderUpcoming() {
-  $('upcoming').innerHTML = session.queue.slice(0, 2).map((t, i) => `
-    <div class="up-card" style="--i:${i}">
-      <span class="up-arrow">${ARROWS[t.direction]}</span>
-      <span class="up-name">${formatChordHtml(t.chord)}</span>
-      <span class="up-from">${startLabel(t)}</span>
-    </div>`).join('');
+// Previous, current and the next two chords, chord-trainer style. Upcoming
+// cards carry their pattern (↑ 3rd) so the next move can be planned ahead.
+function renderChordStage() {
+  const entries = [];
+  if (session.prevTask) entries.push({ task: session.prevTask, slot: -1 });
+  entries.push({ task: session.task, slot: 0 });
+  session.queue.slice(0, 2).forEach((task, i) => entries.push({ task, slot: i + 1 }));
+  renderStage($('stageTrack'), entries, t => `${ARROWS[t.direction]} ${startLabel(t)}`);
 }
 
 function updateHint() {
@@ -345,7 +346,6 @@ function floatText(text, kind = '') {
 const REASONS = {
   pitch: 'Not a chord tone here',
   direction: 'Wrong way',
-  leap: 'Too far — stay within an octave',
 };
 
 // ---- Input ----
@@ -442,8 +442,7 @@ function completeTask(result, { timedOut = false } = {}) {
   markDot(s.index, clean ? 'clean' : timedOut ? 'miss' : 'rough');
   if (!timedOut) {
     floatText(`+${pts}`, clean ? 'gold' : '');
-    const card = $('chordCard');
-    card.classList.toggle('is-clean', clean);
+    currentCard()?.classList.toggle('is-clean', clean);
     if (clean) {
       const top = result.notes[result.notes.length - 1]?.midi ?? 72;
       const step = Math.min(s.combo, 8);
@@ -457,11 +456,7 @@ function completeTask(result, { timedOut = false } = {}) {
 
   s.index++;
   const delay = clean ? 450 : 750;
-  setTimeout(() => {
-    if (session !== s) return;
-    $('chordCard').classList.add('leave');
-    setTimeout(() => { if (session === s) nextTask(); }, 160);
-  }, delay);
+  setTimeout(() => { if (session === s) nextTask(); }, delay);
 }
 
 const PRAISE = ['Clean', 'Nice', 'Smooth', 'Lovely', 'Crisp', 'Bravo', 'Elegant', 'Spot on'];
@@ -627,6 +622,7 @@ function renderMap() {
         <span class="level-body">
           <span class="level-name">${level.name}${level.timed ? ' <span class="level-tag">timed</span>' : ''}</span>
           <span class="level-blurb">${level.blurb}</span>
+          <span class="level-pool">${poolLabel(level)}</span>
         </span>
         <span class="level-meta">
           <span class="level-dirs">${dirs}</span>
@@ -646,6 +642,14 @@ $('levelPath').addEventListener('click', (e) => {
 });
 $('freeCard').addEventListener('click', () => startSession('free'));
 $('weakCard').addEventListener('click', () => startSession('weak'));
+
+// "C · Cm · Cdim — up to 2♯/♭" under each level.
+function poolLabel(level) {
+  const chords = level.qualities.length >= 8 ? 'every quality'
+    : level.qualities.map(q => `C${CHORD_FORMULAS[q].suffix}`).join(' · ');
+  const keys = level.keys >= 6 ? 'all 12 keys' : `up to ${level.keys}&#9839;/&#9837;`;
+  return `${chords} — ${keys}`;
+}
 
 const DIR_NAMES = { up: 'up', down: 'down', updown: 'up & back' };
 

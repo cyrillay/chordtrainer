@@ -1,23 +1,38 @@
-// Level path + task generation. Levels only decide the *pattern*
-// (direction and starting tone); the chord pool comes from the player's
-// settings, so the same path works for triads-in-C or every 7th in 12 keys.
+// Level path + task generation. Each level sets the pattern (direction and
+// starting tone) *and* its chord pool: chord qualities widen and key
+// signatures gain sharps/flats as the path goes on. Free practice uses the
+// player's own pool from the settings instead.
 
 import { NOTE_NAMES } from '../../js/core/theory.js';
 import { buildTask, parseWeakKey } from './engine.js';
 
 const pick = (arr, rng) => arr[Math.floor(rng() * arr.length)];
 
+const MAJ_MIN = ['maj', 'min'];
+const TRIADS = ['maj', 'min', 'dim', 'aug'];
+const SEVENTHS = ['maj7', 'min7', 'dom7'];
+const ALL_SEVENTHS = ['maj7', 'min7', 'dom7', 'm7b5'];
+const EVERYTHING = ['maj', 'min', 'dim', 'aug', 'maj7', 'min7', 'dom7', 'm7b5'];
+const ANY_START = ['root', 'third', 'fifth', 'top'];
+
+// keys: highest number of sharps/flats in the key signature of the roots
+// (see ROOTS_BY_ACCIDENTALS below; 6 = all twelve roots).
 export const LEVELS = [
-  { id: 1,  name: 'Ascent',          blurb: 'Ascending, from the root.',                  directions: ['up'],          starts: ['root'] },
-  { id: 2,  name: 'Descent',         blurb: 'Descending, from the root.',                 directions: ['down'],        starts: ['root'] },
-  { id: 3,  name: 'Tides',           blurb: 'Up, then down, then up again — alternating.', directions: ['up', 'down'], alternate: true, starts: ['root'] },
-  { id: 4,  name: 'Second Floor',    blurb: 'Ascending, from the 3rd.',                   directions: ['up'],          starts: ['third'] },
-  { id: 5,  name: 'Mezzanine',       blurb: 'Ascending, from the 5th.',                   directions: ['up'],          starts: ['fifth'] },
-  { id: 6,  name: 'Rooftop',         blurb: 'Ascending, from the top tone (7th, or 5th on triads).', directions: ['up'], starts: ['top'] },
-  { id: 7,  name: 'Rappel',          blurb: 'Descending, from the 3rd, 5th or top.',     directions: ['down'],        starts: ['third', 'fifth', 'top'] },
-  { id: 8,  name: 'Kaleidoscope',    blurb: 'Any direction, any starting tone.',          directions: ['up', 'down'],  starts: ['root', 'third', 'fifth', 'top'] },
-  { id: 9,  name: 'Against the Clock', blurb: 'Kaleidoscope, with a timer on every chord.', directions: ['up', 'down'], starts: ['root', 'third', 'fifth', 'top'], timed: true },
-  { id: 10, name: 'Round Trip',      blurb: 'Up and straight back down, without stopping.', directions: ['updown'],    starts: ['root', 'third', 'fifth', 'top'], length: 8 },
+  { id: 1,  name: 'Ascent',       blurb: 'Ascending, from the root.',                 qualities: ['maj'],  keys: 1, directions: ['up'],   starts: ['root'] },
+  { id: 2,  name: 'Descent',      blurb: 'Descending, from the root.',                qualities: ['maj'],  keys: 1, directions: ['down'], starts: ['root'] },
+  { id: 3,  name: 'Light & Shade', blurb: 'Minor chords join in, up or down.',        qualities: MAJ_MIN,  keys: 1, directions: ['up', 'down'], starts: ['root'] },
+  { id: 4,  name: 'Tides',        blurb: 'Up, then down, then up again — alternating.', qualities: MAJ_MIN, keys: 2, directions: ['up', 'down'], alternate: true, starts: ['root'] },
+  { id: 5,  name: 'Second Floor', blurb: 'Ascending, from the 3rd.',                  qualities: MAJ_MIN,  keys: 2, directions: ['up'],   starts: ['third'] },
+  { id: 6,  name: 'Mezzanine',    blurb: 'Ascending, from the 5th.',                  qualities: MAJ_MIN,  keys: 3, directions: ['up'],   starts: ['fifth'] },
+  { id: 7,  name: 'Rappel',       blurb: 'Descending, from the 3rd or the 5th.',      qualities: MAJ_MIN,  keys: 3, directions: ['down'], starts: ['third', 'fifth'] },
+  { id: 8,  name: 'Twilight',     blurb: 'Diminished and augmented triads.',          qualities: TRIADS,   keys: 3, directions: ['up', 'down'], starts: ['root'] },
+  { id: 9,  name: 'Every Key',    blurb: 'All twelve roots, any triad tone.',         qualities: MAJ_MIN,  keys: 6, directions: ['up', 'down'], starts: ['root', 'third', 'fifth'] },
+  { id: 10, name: 'Sevenths',     blurb: 'Four-note chords: maj7, m7 and 7.',         qualities: SEVENTHS, keys: 2, directions: ['up', 'down'], starts: ['root'] },
+  { id: 11, name: 'Rooftop',      blurb: 'Ascending, from the 7th. Half-diminished too.', qualities: ALL_SEVENTHS, keys: 3, directions: ['up'], starts: ['top'] },
+  { id: 12, name: 'Freefall',     blurb: 'Descending sevenths, from the 3rd, 5th or 7th.', qualities: ALL_SEVENTHS, keys: 4, directions: ['down'], starts: ['third', 'fifth', 'top'] },
+  { id: 13, name: 'Kaleidoscope', blurb: 'Any chord, any direction, any starting tone.', qualities: EVERYTHING, keys: 5, directions: ['up', 'down'], starts: ANY_START },
+  { id: 14, name: 'Against the Clock', blurb: 'Kaleidoscope in every key, with a timer.', qualities: EVERYTHING, keys: 6, directions: ['up', 'down'], starts: ANY_START, timed: true },
+  { id: 15, name: 'Round Trip',   blurb: 'Up and straight back down, without stopping.', qualities: EVERYTHING, keys: 6, directions: ['updown'], starts: ANY_START, length: 8 },
 ];
 
 export const LEVEL_LENGTH = 12;
@@ -37,6 +52,11 @@ export function timeLimitMs(task) {
 }
 
 // ---- Chord pool ----
+
+// A level's own chord pool.
+export function levelPool(level) {
+  return { roots: rootsUpTo(level.keys), qualities: level.qualities.slice() };
+}
 
 export function poolFrom(settings) {
   const roots = settings.roots.filter(r => NOTE_NAMES.includes(r));

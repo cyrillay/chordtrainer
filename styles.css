@@ -163,6 +163,7 @@ header {
   line-height: 1;
 }
 .mp-opt {
+  white-space: nowrap;
   padding: 0.55rem 0.95rem;
   color: var(--ivory-dim);
   text-decoration: none;
@@ -176,6 +177,13 @@ header {
   background: rgba(var(--gold-bright-rgb), 0.12);
   box-shadow: inset 0 -2px 0 var(--gold);
   pointer-events: none;
+}
+/* Four long labels don't fit one row on phones: fold the pill into 2×2. */
+@media (max-width: 760px) {
+  .mode-pill { display: inline-grid; grid-template-columns: auto auto; }
+  .mp-opt { text-align: center; }
+  .mp-opt:nth-child(2n) { border-right: none; }
+  .mp-opt:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
 }
 
 .meta {
