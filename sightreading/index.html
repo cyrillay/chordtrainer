@@ -21,9 +21,20 @@
 <link rel="icon" type="image/png" href="../favico.png">
 <link rel="stylesheet" href="sightreading.css">
 <link rel="stylesheet" href="../midi-help.css">
+<link rel="stylesheet" href="../themes.css">
 <link rel="stylesheet" href="../header.css">
 </head>
 <body>
+<script>
+  /* Same theme as the Chords trainer (picked in its options), applied before
+     first paint. No key yet means the Boudoir default; '' means Ink. */
+  (function () {
+    var saved = null;
+    try { saved = localStorage.getItem('etude.theme'); } catch (e) {}
+    if (saved === null) document.body.dataset.theme = 'boudoir';
+    else if (saved) document.body.dataset.theme = saved;
+  })();
+</script>
 
 <div class="app">
 
@@ -31,7 +42,7 @@
     <div class="hd-top">
       <a href="../" class="hd-brand" aria-label="Étude, home">
         <span class="hd-name">Étude</span>
-        <span class="hd-opus">Op. 5 No 1</span>
+        <span class="hd-opus">Op. 6 No 4</span>
       </a>
       <div class="hd-actions">
         <button type="button" id="midiBtn" class="hd-btn">
@@ -48,11 +59,11 @@
         </div>
       </div>
     </div>
-    <nav class="hd-nav" aria-label="Trainers">
+    <nav class="hd-nav" aria-label="Trainers" title="I, vi, ii, V: the turnaround that always comes home to I">
       <a href="../" class="hd-link"><span class="hd-num">I</span>Chords</a>
-      <a href="./" class="hd-link is-active" aria-current="page"><span class="hd-num">II</span>Sight-reading</a>
-      <a href="../arpeggio/" class="hd-link"><span class="hd-num">III</span>Arpeggios</a>
-      <a href="../scoretrainer/" class="hd-link"><span class="hd-num">IV</span>Repertoire</a>
+      <a href="./" class="hd-link is-active" aria-current="page"><span class="hd-num">vi</span>Sight-reading</a>
+      <a href="../arpeggio/" class="hd-link"><span class="hd-num">ii</span>Arpeggios</a>
+      <a href="../scoretrainer/" class="hd-link"><span class="hd-num">V</span>Repertoire</a>
     </nav>
   </header>
 
@@ -63,11 +74,22 @@
       <div class="hero">
         <h1 class="hero-title">Read it <em>once</em>. Play it <em>now</em>.</h1>
         <p class="hero-sub">
-          Short studies on the grand staff, played on your <strong>MIDI keyboard</strong> (<a href="/articles/midi-keyboard-connection/">how to connect</a>).
+          Short studies on the grand staff, played on your <strong>MIDI keyboard</strong>.
           Practise in <strong>Wait</strong> mode, where the score waits for the right notes. Then earn the
           third star in <strong>Tempo</strong> mode, where the metronome keeps going whether you do or not.
         </p>
         <div class="hero-stats" id="heroStats"></div>
+      </div>
+
+      <div class="midi-gate" id="midiGate">
+        <div class="gate-icon" aria-hidden="true">
+          <svg viewBox="0 0 48 48" width="40" height="40"><rect x="4" y="14" width="40" height="22" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 14v12M20 14v12M28 14v12M36 14v12" stroke="currentColor" stroke-width="1.4"/><rect x="10" y="14" width="4" height="8" fill="currentColor"/><rect x="18" y="14" width="4" height="8" fill="currentColor"/><rect x="30" y="14" width="4" height="8" fill="currentColor"/></svg>
+        </div>
+        <div class="gate-text">
+          <div class="gate-title" id="gateTitle">This trainer listens to a MIDI keyboard.</div>
+          <div class="gate-sub"><span id="gateSub">Connect your keyboard by Bluetooth or USB, then press Connect.</span> <a href="/articles/midi-keyboard-connection/" target="_blank" rel="noopener">How to connect →</a></div>
+        </div>
+        <button type="button" class="primary-btn" id="gateConnectBtn">Connect MIDI</button>
       </div>
       <ol class="level-grid" id="levelGrid"></ol>
     </section>

@@ -3,6 +3,8 @@
 // fix for "No device" depends on the platform — Android in particular never
 // exposes Bluetooth MIDI to Chrome unless another app opens the link first.
 
+import { bindInfoTips } from '../ux/infoTip.js';
+
 export const MIDI_BLE_CONNECT_URL = 'https://play.google.com/store/apps/details?id=com.mobileer.example.midibtlepairing';
 export const WEB_MIDI_BROWSER_URL = 'https://apps.apple.com/fr/app/web-midi-browser/id953846217';
 export const MIDI_GUIDE_URL = '/articles/midi-keyboard-connection/';
@@ -37,26 +39,31 @@ export function noDeviceHelpHtml() {
 
 export const DENIED_HELP_HTML = 'Allow MIDI for this site (icon left of the address bar), then reload.<br><br>' + GUIDE_LINK;
 
-// Tapping anywhere closes an auto-opened hint; registered once.
-let dismissBound = false;
-function bindDismiss() {
-  if (dismissBound) return;
-  dismissBound = true;
-  document.addEventListener('pointerdown', (e) => {
-    const tip = document.querySelector('.midi-help.open');
-    if (tip && !tip.contains(e.target)) tip.classList.remove('open');
-  });
-}
-
 // "No device found ?" status line: a short label plus a "?" that reveals the
-// platform help on hover/focus, or right away with { open: true }. Same
-// markup as the chord trainer's header status.
+// platform help when clicked (or right away with { open: true }). Same markup
+// as the chord trainer's header status.
 export function renderMidiHint(el, label, { open = false, html = noDeviceHelpHtml() } = {}) {
   el.innerHTML = `<span>${label}</span>`
-    + '<span class="info-tip midi-help" tabindex="0" aria-label="How to connect a MIDI keyboard">'
+    + '<span class="info-tip midi-help" tabindex="0" role="button" aria-label="How to connect a MIDI keyboard">'
     + '<span class="info-tip-icon" aria-hidden="true">?</span>'
     + `<span class="info-tip-bubble" role="tooltip">${html}</span></span>`;
   el.hidden = false;
-  bindDismiss();
+  bindInfoTips();
   if (open) el.querySelector('.midi-help').classList.add('open');
+}
+
+// Title + line for the "connect your keyboard" card, per MIDI state.
+// Accepts both pages' names for "no device" ('nodevice' / 'none').
+export function gateCopy(state) {
+  switch (state) {
+    case 'nodevice':
+    case 'none':
+      return { title: 'MIDI is on, but no keyboard was found.', sub: 'It will appear here as soon as it connects.' };
+    case 'unsupported':
+      return { title: 'This browser has no Web MIDI.', sub: 'Use Chrome, Edge or Firefox on a computer or Android.' };
+    case 'denied':
+      return { title: 'MIDI permission was refused.', sub: 'Allow MIDI for this site, then reload.' };
+    default:
+      return { title: 'This trainer listens to a MIDI keyboard.', sub: 'Connect your keyboard by Bluetooth or USB, then press Connect.' };
+  }
 }

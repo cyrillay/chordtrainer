@@ -53,11 +53,8 @@ export const ACH = [
   { id: 'cluster',    vis: 'secret', icon: '\u{1F4A5}', name: 'Forearm Smash',         desc: 'Ten keys down at once',                         hint: 'Use more of your arm.' },
 
   // ---- Ultra-rare ----
-  { id: 'flawless',   vis: 'ultra',  icon: '\u{1F48E}', name: 'Flawless',              desc: 'Finish a level without a single wrong note',    hint: 'Not one stray note, start to finish.' },
-  { id: 'constell',   vis: 'ultra',  icon: '\u{1F30C}', name: 'Constellation',         desc: 'Three stars on every level',                    hint: 'Thirty lights in the sky.' },
-  { id: 'redemption', vis: 'ultra',  icon: '\u{1F54A}\u{FE0F}', name: 'Redemption Arc', desc: 'Nail a pattern you had missed ten times or more', hint: 'The one that haunted you.' },
+  { id: 'constell',   vis: 'ultra',  icon: '\u{1F30C}', name: 'Constellation',         desc: 'Three stars on every level',                    hint: 'Forty-five lights in the sky.' },
   { id: 'twelveGates', vis: 'ultra', icon: '\u{1F511}', name: 'Twelve Gates',          desc: 'Clean arpeggios of one quality on all 12 roots in one session', hint: 'Twelve doors, one key.' },
-  { id: 'friday13',   vis: 'ultra',  icon: '\u{1F408}\u{200D}\u{2B1B}', name: 'Paraskevidekatriaphobia', desc: 'Practise on a Friday the 13th', hint: 'An unlucky date, for some.' },
 ];
 
 const byId = Object.fromEntries(ACH.map(a => [a.id, a]));

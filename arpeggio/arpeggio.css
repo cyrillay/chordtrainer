@@ -164,25 +164,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
 .hero-title em { color: var(--gold); font-style: italic; }
 .hero-sub { font-size: 1.2rem; line-height: 1.5; color: var(--ivory-dim); }
 
-.midi-gate {
-  display: flex;
-  align-items: center;
-  gap: 1.2rem;
-  padding: 1.1rem 1.3rem;
-  margin-bottom: 2.4rem;
-  border: 1px solid rgba(var(--gold-rgb), 0.5);
-  border-radius: var(--radius-xl);
-  background: linear-gradient(135deg, rgba(var(--gold-rgb), 0.08), rgba(var(--gold-rgb), 0.02));
-}
-.midi-gate.shake { animation: shake 0.45s ease; }
-.gate-icon { color: var(--gold); flex-shrink: 0; }
-.gate-text { flex: 1; min-width: 0; }
-.gate-title { font-size: 1.2rem; font-weight: 500; }
-.gate-sub { color: var(--ivory-dim); font-size: 1rem; line-height: 1.4; margin-top: 0.2rem; }
-.gate-sub a { color: var(--gold); white-space: nowrap; }
-@media (max-width: 600px) {
-  .midi-gate { flex-direction: column; align-items: flex-start; }
-}
 
 .section-label {
   font-family: var(--font-display);
@@ -290,7 +271,7 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   border: 1px solid var(--line);
   border-radius: var(--radius-xl);
   margin-bottom: 1rem;
-  background: rgba(0, 0, 0, 0.15);
+  background: color-mix(in srgb, var(--paper) 40%, transparent);
 }
 .panel-summary {
   cursor: pointer;
@@ -339,6 +320,7 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
 .quick-btn:hover { background: transparent; border-color: var(--gold); color: var(--gold); }
 .quick-label { font-family: var(--font-mono); font-size: 0.66rem; color: var(--ivory-dim); margin-left: 0.4rem; }
 .toggles { flex-direction: row; flex-wrap: wrap; gap: 1.2rem; }
+.toggle-item { display: inline-flex; align-items: center; }
 .toggle { display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer; font-size: 1.02rem; }
 .toggle input { accent-color: var(--gold); width: 1rem; height: 1rem; }
 
@@ -402,7 +384,7 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   border-radius: var(--radius-xl);
   background:
     radial-gradient(ellipse at 50% 0%, rgba(var(--gold-rgb), 0.08), transparent 60%),
-    rgba(0, 0, 0, 0.2);
+    color-mix(in srgb, var(--paper) 50%, transparent);
   margin-bottom: 1rem;
   min-height: 22rem;
 }
@@ -517,7 +499,7 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   min-width: 3.1rem; padding: 0.45rem 0.6rem 0.3rem;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  background: rgba(0, 0, 0, 0.25);
+  background: color-mix(in srgb, var(--paper) 75%, transparent);
   transition: all 0.18s ease;
 }
 .step-note { font-family: var(--font-display); font-size: 1.5rem; line-height: 1.1; }
@@ -759,4 +741,43 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+/* Chord qualities: same checkbox grid as the Chords trainer's options. */
+.quality-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 0.05rem 0.8rem;
+  margin-bottom: 0.4rem;
+}
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  padding: 0.3rem 0;
+  font-size: 1.05rem;
+}
+.checkbox-item input {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1px solid var(--gold);
+  border-radius: 2px;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+}
+.checkbox-item input:checked { background: var(--gold); }
+.checkbox-item input:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--ink);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }

@@ -93,6 +93,8 @@ it back before download.
 - Guitar fretboard — one playable shape on a 6-string in standard tuning.
 - Circle of fifths — current chord highlighted on the major/minor wheel.
 
+Conventions for contributors and agents (opus/version numbers, shared files, copy style) are in [AGENTS.md](AGENTS.md).
+
 ## Running
 
 No build step. Open `index.html` in any modern browser, or serve the directory:

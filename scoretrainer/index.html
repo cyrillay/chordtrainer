@@ -20,9 +20,20 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="../favico.png">
 <link rel="stylesheet" href="scoretrainer.css">
+<link rel="stylesheet" href="../themes.css">
 <link rel="stylesheet" href="../header.css">
 </head>
 <body>
+<script>
+  /* Same theme as the Chords trainer (picked in its options), applied before
+     first paint. No key yet means the Boudoir default; '' means Ink. */
+  (function () {
+    var saved = null;
+    try { saved = localStorage.getItem('etude.theme'); } catch (e) {}
+    if (saved === null) document.body.dataset.theme = 'boudoir';
+    else if (saved) document.body.dataset.theme = saved;
+  })();
+</script>
 <script>
   (function () {
     var saved = localStorage.getItem('etude.theme');
@@ -37,17 +48,17 @@
     <div class="hd-top">
       <a href="../" class="hd-brand" aria-label="Étude, home">
         <span class="hd-name">Étude</span>
-        <span class="hd-opus">Op. 3 No 1</span>
+        <span class="hd-opus">Op. 5 No 8</span>
       </a>
       <div class="hd-actions">
         <span class="hd-opus">Interleaved practice</span>
       </div>
     </div>
-    <nav class="hd-nav" aria-label="Trainers">
+    <nav class="hd-nav" aria-label="Trainers" title="I, vi, ii, V: the turnaround that always comes home to I">
       <a href="../" class="hd-link"><span class="hd-num">I</span>Chords</a>
-      <a href="../sightreading/" class="hd-link"><span class="hd-num">II</span>Sight-reading</a>
-      <a href="../arpeggio/" class="hd-link"><span class="hd-num">III</span>Arpeggios</a>
-      <a href="./" class="hd-link is-active" aria-current="page"><span class="hd-num">IV</span>Repertoire</a>
+      <a href="../sightreading/" class="hd-link"><span class="hd-num">vi</span>Sight-reading</a>
+      <a href="../arpeggio/" class="hd-link"><span class="hd-num">ii</span>Arpeggios</a>
+      <a href="./" class="hd-link is-active" aria-current="page"><span class="hd-num">V</span>Repertoire</a>
     </nav>
   </header>
 

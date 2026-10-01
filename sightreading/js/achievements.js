@@ -39,7 +39,6 @@ const ACH = [
 
   // ---- Ultra ----
   { id: 'prima',   vis: 'ultra', icon: '\u{1F451}', name: 'Prima Vista',           desc: 'Three stars on every level',               hint: 'Every star in the sky.',                target: LEVELS.length, value: threeStarLevels },
-  { id: 'notes10k', vis: 'ultra', icon: '\u{1F9E0}', name: 'Sight-Reading Machine', desc: 'Read 10,000 notes',                       hint: 'Ten thousand glances.',                 target: 10000, value: () => counter('notes') },
 ];
 
 let unlocked = {};
@@ -56,7 +55,7 @@ function save() {
 // Unlocked count next to the header trophy (empty until the first one).
 function paintBadge() {
   const el = document.getElementById('achBadge');
-  if (el) el.textContent = Object.keys(unlocked).length || '';
+  if (el) el.textContent = ACH.filter((a) => unlocked[a.id]).length || '';
 }
 
 let toastQueue = Promise.resolve();
@@ -131,7 +130,7 @@ function renderModal() {
       <div class="ach-section-blurb">${sec.blurb}</div>
       <div class="ach-grid">${items.map(renderTile).join('')}</div></div>`;
   }).join('');
-  countEl.textContent = `${Object.keys(unlocked).length} / ${ACH.length}`;
+  countEl.textContent = `${ACH.filter((a) => unlocked[a.id]).length} / ${ACH.length}`;
 }
 
 let armed = false, armTimer = null;

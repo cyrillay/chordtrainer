@@ -39,17 +39,55 @@
   transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .info-tip:hover .info-tip-icon,
-.info-tip:focus .info-tip-icon {
+.info-tip.open .info-tip-icon {
   opacity: 1;
   color: var(--gold-bright);
   border-color: var(--gold-bright);
 }
+.info-tip:focus { outline: none; }
+.info-tip:focus-visible .info-tip-icon { outline: 1px solid var(--gold-bright); outline-offset: 2px; }
+
+/* Generic bubble (settings help): opens above the "?", centered. */
+.info-tip-bubble {
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  left: 50%;
+  transform: translate(-50%, 4px);
+  width: max-content;
+  max-width: min(260px, calc(100vw - 32px));
+  white-space: normal;
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  background: rgba(20, 18, 16, 0.97);
+  border: 1px solid rgba(var(--gold-bright-rgb), 0.35);
+  border-radius: 4px;
+  color: #f2e9dc;
+  font-family: var(--font-display, serif);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-transform: none;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  z-index: 1000;
+}
+.info-tip.open .info-tip-bubble {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+
 .midi-help { pointer-events: auto; vertical-align: middle; }
 .midi-help .info-tip-bubble {
   position: absolute;
   top: calc(100% + 0.5rem);
+  bottom: auto;
+  left: auto;
   right: -0.4rem;
   width: min(280px, calc(100vw - 32px));
+  max-width: none;
   white-space: normal;
   text-align: left;
   padding: 0.55rem 0.75rem;
@@ -69,9 +107,6 @@
   transition: opacity 0.18s ease, transform 0.18s ease;
   z-index: 1000;
 }
-.midi-help:hover .info-tip-bubble,
-.midi-help:focus .info-tip-bubble,
-.midi-help:focus-within .info-tip-bubble,
 .midi-help.open .info-tip-bubble {
   opacity: 1;
   transform: translateY(0);
@@ -86,3 +121,32 @@
   border-bottom-color: rgba(var(--gold-bright-rgb), 0.35);
 }
 .midi-help .info-tip-bubble a { color: var(--gold-bright); text-decoration: underline; }
+
+/* "This trainer listens to a MIDI keyboard" card on the arpeggio and
+   sight-reading level maps. Copy comes from gateCopy() in midiHelp.js. */
+.midi-gate {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  padding: 1.1rem 1.3rem;
+  margin-bottom: 2.4rem;
+  border: 1px solid rgba(var(--gold-rgb), 0.5);
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(var(--gold-rgb), 0.08), rgba(var(--gold-rgb), 0.02));
+}
+.midi-gate.shake { animation: gateShake 0.45s ease; }
+.gate-icon { color: var(--gold); flex-shrink: 0; }
+.gate-text { flex: 1; min-width: 0; }
+.gate-title { font-size: 1.2rem; font-weight: 500; }
+.gate-sub { color: var(--ivory-dim); font-size: 1rem; line-height: 1.4; margin-top: 0.2rem; }
+.gate-sub a { color: var(--gold); white-space: nowrap; }
+@media (max-width: 600px) {
+  .midi-gate { flex-direction: column; align-items: flex-start; }
+}
+@keyframes gateShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}

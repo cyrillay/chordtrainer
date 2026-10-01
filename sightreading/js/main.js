@@ -9,7 +9,7 @@ import { generateExercise } from './generator.js';
 import { buildTimeline, WaitRun, TempoRun, tempoStars } from './engine.js';
 import { renderExercise, refKey } from './renderer.js';
 import { connectMidi } from './midi.js';
-import { renderMidiHint, DENIED_HELP_HTML } from '../../js/midi/midiHelp.js';
+import { renderMidiHint, gateCopy, DENIED_HELP_HTML } from '../../js/midi/midiHelp.js';
 import { scheduleClicks, unlockAudio, outputLatencyMs } from './metronome.js';
 import {
   loadProgress, levelStars, isUnlocked, totalStars, recordRun, focusMap,
@@ -536,17 +536,23 @@ function midiStatus({ state, names }) {
   btn.setAttribute('aria-pressed', String(state === 'connected'));
   $('midiLabel').textContent = state === 'connected' ? names.join(' · ') : 'Connect MIDI';
   help.hidden = state === 'connected';
-  if (state === 'none') renderMidiHint(help, 'No device found', { open: true });
-  else if (state === 'unsupported') renderMidiHint(help, 'MIDI not supported here', { open: true });
-  else if (state === 'denied') renderMidiHint(help, 'MIDI access denied', { open: true, html: DENIED_HELP_HTML });
+  if (state === 'none') renderMidiHint(help, 'No device found');
+  else if (state === 'unsupported') renderMidiHint(help, 'MIDI not supported here');
+  else if (state === 'denied') renderMidiHint(help, 'MIDI access denied', { html: DENIED_HELP_HTML });
+  $('midiGate').hidden = state === 'connected';
+  const copy = gateCopy(state);
+  $('gateTitle').textContent = copy.title;
+  $('gateSub').textContent = copy.sub;
   if (state === 'connected') setSetting('midiAuto', true);
   if (S.exercise && !S.running && !S.finished) armRun();
 }
 
-$('midiBtn').addEventListener('click', () => {
+function connect() {
   unlockAudio();
   connectMidi({ onNoteOn, onNoteOff, onStatus: midiStatus });
-});
+}
+$('midiBtn').addEventListener('click', connect);
+$('gateConnectBtn').addEventListener('click', connect);
 
 // ---- Boot -----------------------------------------------------------------------
 

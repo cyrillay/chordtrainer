@@ -9,7 +9,8 @@ import {
 } from './levels.js';
 import { createKeyboard } from './keyboard.js';
 import { renderStage, clearStage, currentCard } from './stage.js';
-import { renderMidiHint, DENIED_HELP_HTML } from '../../js/midi/midiHelp.js';
+import { renderMidiHint, gateCopy, DENIED_HELP_HTML } from '../../js/midi/midiHelp.js';
+import { bindInfoTips } from '../../js/ux/infoTip.js';
 import { createMidi, attachComputerKeyboard } from './midi.js';
 import { loadSettings, saveSettings, loadProgress, saveProgress, loadWeak, saveWeak, clearWeak } from './storage.js';
 import { initAchievements, grant, bump, setMax, setValue } from './achievements.js';
@@ -24,6 +25,12 @@ let weakStats = loadWeak();
 
 const WEAK_SESSION_LENGTH = 12;
 const QUALITY_ORDER = ['maj', 'min', 'dim', 'aug', 'maj7', 'min7', 'dom7', 'm7b5', 'mMaj7'];
+// Same list and wording as the Chords trainer's "Chord qualities" grid.
+const QUALITY_LABELS = {
+  maj: 'Major', min: 'Minor', dim: 'Diminished', aug: 'Augmented',
+  maj7: 'Major 7th', min7: 'Minor 7th', dom7: 'Dominant 7th',
+  m7b5: 'Half-diminished (ø)', mMaj7: 'Minor major 7th',
+};
 const Q_PRESETS = {
   triads: ['maj', 'min'],
   allTriads: ['maj', 'min', 'dim', 'aug'],
@@ -67,19 +74,12 @@ function renderMidiStatus({ state, names }) {
   gate.hidden = state === 'connected';
   const status = $('midiStatus');
   status.hidden = state === 'connected' || state === 'off';
-  if (state === 'nodevice') {
-    renderMidiHint(status, 'No device found', { open: true });
-    $('gateTitle').textContent = 'MIDI is on, but no keyboard was found.';
-    $('gateSub').textContent = 'It will appear here as soon as it connects.';
-  } else if (state === 'unsupported') {
-    renderMidiHint(status, 'MIDI not supported here', { open: true });
-    $('gateTitle').textContent = 'This browser has no Web MIDI.';
-    $('gateSub').textContent = 'Use Chrome, Edge or Firefox on a computer or Android.';
-  } else if (state === 'denied') {
-    renderMidiHint(status, 'MIDI access denied', { open: true, html: DENIED_HELP_HTML });
-    $('gateTitle').textContent = 'MIDI permission was refused.';
-    $('gateSub').textContent = 'Allow MIDI for this site, then reload.';
-  }
+  if (state === 'nodevice') renderMidiHint(status, 'No device found');
+  else if (state === 'unsupported') renderMidiHint(status, 'MIDI not supported here');
+  else if (state === 'denied') renderMidiHint(status, 'MIDI access denied', { html: DENIED_HELP_HTML });
+  const copy = gateCopy(state);
+  $('gateTitle').textContent = copy.title;
+  $('gateSub').textContent = copy.sub;
   document.body.classList.toggle('midi-ready', state === 'connected');
 }
 
@@ -433,11 +433,8 @@ function completeTask(result, { timedOut = false } = {}) {
 
   // Weak-spot memory (not on timeouts with zero notes — those say nothing about the pattern).
   if (!(timedOut && result.correct === 0)) {
-    const before = weakStats[result.task.key];
-    const missesBefore = before ? before.tries - before.clean : 0;
     recordWeak(weakStats, { ...result, clean });
     saveWeak(weakStats);
-    if (clean && s.kind === 'weak' && missesBefore >= 10) grant('redemption');
   }
 
   markDot(s.index, clean ? 'clean' : timedOut ? 'miss' : 'rough');
@@ -475,7 +472,6 @@ function arpeggioAchievements(result, clean, timedOut) {
   bump('arps.total');
   setMax('combo.best', s.combo);
   if (now.getHours() >= 2 && now.getHours() < 5) grant('nightOwl');
-  if (now.getDay() === 5 && now.getDate() === 13) grant('friday13');
 
   const notes = result.notes;
   const midis = notes.map(n => n.midi);
@@ -545,7 +541,6 @@ function finishSession() {
     }
     if (stars === 3) setValue('stars3.count', LEVELS.filter(l => progress.levels[l.id]?.stars === 3).length);
     if (LEVELS.every(l => progress.levels[l.id]?.stars === 3)) grant('constell');
-    if (s.mistakes === 0 && s.timeouts === 0) grant('flawless');
 
     if (stars === 0) note = `Reach ${Math.round(STAR_RULES.one * 100)}% accuracy to clear the level.`;
     else if (stars < 3) note = stars === 1
@@ -689,7 +684,7 @@ function chip(group, value, label, on) {
 
 function renderSettings() {
   $('qualityChips').innerHTML = QUALITY_ORDER.map(q =>
-    chip('qualities', q, `<span class="chip-sym">C${CHORD_FORMULAS[q].suffix}</span> ${CHORD_FORMULAS[q].name}`, settings.qualities.includes(q))).join('');
+    `<label class="checkbox-item"><input type="checkbox" data-group="qualities" value="${q}" ${settings.qualities.includes(q) ? 'checked' : ''}>${QUALITY_LABELS[q]}</label>`).join('');
   $('rootChips').innerHTML = NOTE_NAMES.map(r => chip('roots', r, NOTE_DISPLAY[r], settings.roots.includes(r))).join('');
   $('freeDirChips').innerHTML = Object.entries(DIR_LABELS).map(([d, l]) => chip('freeDirections', d, `${ARROWS[d]} ${l}`, settings.freeDirections.includes(d))).join('');
   $('freeStartChips').innerHTML = Object.entries(START_LABELS).map(([st, l]) => chip('freeStarts', st, `from ${l}`, settings.freeStarts.includes(st))).join('');
@@ -727,5 +722,6 @@ $('settingsPanel').addEventListener('click', (e) => {
 // ---- Boot ----
 
 initAchievements();
+bindInfoTips();
 renderSettings();
 renderMap();
