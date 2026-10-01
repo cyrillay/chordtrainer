@@ -21,6 +21,19 @@ Detection works with a microphone (FFT-based polyphonic pitch detection) or a MI
 `/scoretrainer/` is a companion tool: load a PDF or MIDI score, split it into
 random measure-chunks and rotate through them on a timer.
 
+## Arpeggio Trainer
+
+`/arpeggio/` drills chord arpeggios and inversions on a MIDI keyboard (MIDI is
+required). Each chord comes with an instruction — ascending, descending or up
+and back, starting on the root, 3rd, 5th or 7th — and every note is checked
+live: right pitch class, right direction, next chord tone within an octave,
+any register. A 10-level path unlocks step by step (stars on accuracy and
+tempo), free practice uses your own chord pool, and a *Weak spots* session
+drills the chord/pattern combinations you miss most. It has its own set of
+achievements, mostly secret: touch, timing and a few hidden melodies.
+
+Add `?keys` to the URL to play with the computer keyboard while developing.
+
 ## PDF → MIDI converter
 
 `/pdf2midi/` turns a sheet-music PDF into a MIDI file, in the browser.
