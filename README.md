@@ -21,6 +21,23 @@ Detection works with a microphone (FFT-based polyphonic pitch detection) or a MI
 `/scoretrainer/` is a companion tool: load a PDF or MIDI score, split it into
 random measure-chunks and rotate through them on a timer.
 
+## Read Trainer
+
+`/sightreading/` is a sight-reading trainer for piano with a MIDI keyboard.
+It shows a short score on the grand staff (4–8 bars, engraved with
+[VexFlow](https://www.vexflow.com/)) and follows what you play:
+
+- **Wait** — the cursor waits until every note of the current onset is played; wrong keys are counted.
+- **Tempo** — one bar of count-in, then the metronome drives the cursor; each note is graded perfect / close / missed against its beat.
+- **Read ahead** — notes vanish as the cursor reaches them, so you have to read ahead.
+
+Twelve generated levels (`sightreading/js/levels.js`) go from five notes in the right hand to
+sixteenths, Alberti bass and four-flat keys. The generator (`sightreading/js/generator.js`) builds
+each study from a chord progression, mostly stepwise melodies and a left-hand texture, and plays
+your most-missed notes more often. Three repertoire levels use public-domain excerpts
+(`sightreading/js/excerpts.js`). Stars (Wait mode tops out at two, the third needs Tempo mode at the
+target tempo) unlock the next level, and there is a separate set of achievements.
+
 ## PDF → MIDI converter
 
 `/pdf2midi/` turns a sheet-music PDF into a MIDI file, in the browser.
