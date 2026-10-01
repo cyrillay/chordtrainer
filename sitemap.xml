@@ -16,6 +16,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://chordtrainer.io/sightreading/</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://chordtrainer.io/pdf2midi/</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
