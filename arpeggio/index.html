@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arpeggio Trainer · Chord Arpeggios &amp; Inversions with MIDI</title>
+<meta name="description" content="Practise chord arpeggios up and down, from every inversion, on your MIDI keyboard. Live note detection, levels, stars, and a few secrets. Free, in your browser.">
+<link rel="canonical" href="https://chordtrainer.io/arpeggio/">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chordtrainer.io/arpeggio/">
+<meta property="og:title" content="Arpeggio Trainer · Arpeggios &amp; Inversions">
+<meta property="og:description" content="Arpeggios up, down, from the 3rd, 5th or 7th — checked live from your MIDI keyboard.">
+<meta property="og:image" content="https://chordtrainer.io/og-image.jpg">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="Étude · Arpeggio Trainer">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="../favico.png">
+<link rel="stylesheet" href="arpeggio.css">
+</head>
+<body>
+
+<div class="app">
+
+  <header>
+    <div class="wordmark">
+      <span class="wm-brand">Étude <em>—</em></span>
+      <span class="mode-pill" role="tablist" aria-label="Switch trainer">
+        <a href="../" class="mp-opt" role="tab" aria-selected="false">Chord</a>
+        <a href="../scoretrainer/" class="mp-opt" role="tab" aria-selected="false">Score</a>
+        <a href="./" class="mp-opt is-active" role="tab" aria-selected="true">Arpeggio</a>
+        <a href="../sightreading/" class="mp-opt" role="tab" aria-selected="false">Read</a>
+      </span>
+      <span class="wm-suffix">Trainer</span>
+    </div>
+    <div class="header-right">
+      <div class="meta">Op. 4 No 1</div>
+      <div class="header-actions">
+        <button type="button" id="achBtn" class="ach-btn" title="Achievements" aria-label="Achievements">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path d="M7 4h10v2h3v3a4 4 0 0 1-4 4h-.34A5 5 0 0 1 13 15.9V18h3v2H8v-2h3v-2.1A5 5 0 0 1 7.34 13H7a4 4 0 0 1-4-4V6h3V4h1zm10 4V6h-2v5a3 3 0 0 0 3-3V8h-1zm-12 0v-2h-1v1a2 2 0 0 0 2 2V8H5z" fill="currentColor"/>
+          </svg>
+          <span class="ach-btn-label">Achievements</span>
+          <span class="ach-badge" id="achBadge">0</span>
+        </button>
+        <button type="button" id="midiBtn" class="midi-btn" data-state="off">
+          <span class="midi-dot" aria-hidden="true"></span>
+          <span id="midiLabel">Connect MIDI</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ==================== MAP VIEW ==================== -->
+    <section class="view" id="viewMap">
+      <div class="hero">
+        <h1 class="hero-title">Every chord, <em>every way in.</em></h1>
+        <p class="hero-sub">
+          Arpeggiate the chord on screen — up, down, from the root, the 3rd, the 5th or the 7th.
+          Your MIDI keyboard is checked note by note, in any octave. Clear a level to unlock the next.
+        </p>
+      </div>
+
+      <div class="midi-gate" id="midiGate">
+        <div class="gate-icon" aria-hidden="true">
+          <svg viewBox="0 0 48 48" width="40" height="40"><rect x="4" y="14" width="40" height="22" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 14v12M20 14v12M28 14v12M36 14v12" stroke="currentColor" stroke-width="1.4"/><rect x="10" y="14" width="4" height="8" fill="currentColor"/><rect x="18" y="14" width="4" height="8" fill="currentColor"/><rect x="30" y="14" width="4" height="8" fill="currentColor"/></svg>
+        </div>
+        <div class="gate-text">
+          <div class="gate-title" id="gateTitle">This trainer listens to a MIDI keyboard.</div>
+          <div class="gate-sub" id="gateSub">Plug in your keyboard (USB or Bluetooth MIDI), then connect. Chrome, Edge and Firefox on desktop or Android work; on iPhone/iPad use the Web MIDI Browser app.</div>
+        </div>
+        <button type="button" class="primary-btn" id="gateConnectBtn">Connect MIDI</button>
+      </div>
+
+      <div class="section-label">The path</div>
+      <ol class="level-path" id="levelPath"></ol>
+
+      <div class="side-modes">
+        <button type="button" class="mode-card" id="freeCard">
+          <span class="mode-card-icon" aria-hidden="true">&#8734;</span>
+          <span class="mode-card-body">
+            <span class="mode-card-title">Free practice</span>
+            <span class="mode-card-desc">Endless. Pick the directions and starting tones below.</span>
+          </span>
+        </button>
+        <button type="button" class="mode-card" id="weakCard">
+          <span class="mode-card-icon" aria-hidden="true">&#10010;</span>
+          <span class="mode-card-body">
+            <span class="mode-card-title">Weak spots <span class="weak-count" id="weakCount"></span></span>
+            <span class="mode-card-desc" id="weakDesc">Drills the chords and patterns you miss the most.</span>
+          </span>
+        </button>
+      </div>
+
+      <details class="panel" id="settingsPanel" open>
+        <summary class="panel-summary">Chord pool <span class="panel-summary-hint" id="poolSummary"></span></summary>
+        <div class="panel-body">
+          <div class="setting-row">
+            <div class="setting-label">Qualities</div>
+            <div class="chip-row" id="qualityChips"></div>
+            <div class="quick-row">
+              <button type="button" class="quick-btn" data-qpreset="triads">Major &amp; minor</button>
+              <button type="button" class="quick-btn" data-qpreset="allTriads">All triads</button>
+              <button type="button" class="quick-btn" data-qpreset="sevenths">Common 7ths</button>
+              <button type="button" class="quick-btn" data-qpreset="all">Everything</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">Roots</div>
+            <div class="chip-row" id="rootChips"></div>
+            <div class="quick-row">
+              <button type="button" class="quick-btn" data-rpreset="naturals">White keys</button>
+              <span class="quick-label">Key signatures up to</span>
+              <button type="button" class="quick-btn" data-rpreset="acc1">1&#9839;/&#9837;</button>
+              <button type="button" class="quick-btn" data-rpreset="acc3">3</button>
+              <button type="button" class="quick-btn" data-rpreset="acc5">5</button>
+              <button type="button" class="quick-btn" data-rpreset="acc6">All 12</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">Free practice</div>
+            <div class="chip-row" id="freeDirChips"></div>
+            <div class="chip-row" id="freeStartChips"></div>
+          </div>
+          <div class="setting-row toggles">
+            <label class="toggle"><input type="checkbox" id="showNamesCb"><span>Show note names</span></label>
+            <label class="toggle"><input type="checkbox" id="guideKeysCb"><span>Guide keys</span></label>
+            <label class="toggle"><input type="checkbox" id="soundCb"><span>Reward chimes</span></label>
+          </div>
+        </div>
+      </details>
+
+      <details class="panel" id="weakPanel">
+        <summary class="panel-summary">Your weak spots</summary>
+        <div class="panel-body">
+          <ol class="weak-list" id="weakList"></ol>
+          <div class="panel-foot">
+            <button type="button" class="ghost-btn small danger" id="weakResetBtn">Forget weak spots</button>
+            <button type="button" class="ghost-btn small" id="unlockAllBtn">Unlock all levels</button>
+          </div>
+        </div>
+      </details>
+    </section>
+
+
+    <!-- ==================== PLAY VIEW ==================== -->
+    <section class="view view-play" id="viewPlay" hidden>
+      <div class="play-top">
+        <button type="button" class="ghost-btn small" id="exitBtn">&larr; Path</button>
+        <div class="play-title" id="playTitle">Level 1 · Ascent</div>
+        <div class="play-dots" id="playDots" aria-label="Progress"></div>
+      </div>
+
+      <div class="hud">
+        <div class="hud-cell"><div class="hud-val" id="hudScore">0</div><div class="hud-lbl">Score</div></div>
+        <div class="hud-cell hud-combo" id="hudComboCell"><div class="hud-val" id="hudCombo">0</div><div class="hud-lbl">Combo <span id="hudMult"></span></div></div>
+        <div class="hud-cell"><div class="hud-val" id="hudAcc">—</div><div class="hud-lbl">Accuracy</div></div>
+      </div>
+
+      <div class="stage" id="stage">
+        <div class="instruction" id="instruction">
+          <span class="instr-arrow" id="instrArrow">&uarr;</span>
+          <span class="instr-text">
+            <span class="instr-dir" id="instrDir">Ascending</span>
+            <span class="instr-from">from the <strong id="instrFrom">root</strong></span>
+          </span>
+        </div>
+
+        <div class="chord-card" id="chordCard">
+          <div class="chord-name" id="chordName">C</div>
+          <div class="chord-quality" id="chordQuality">Major</div>
+        </div>
+
+        <div class="steps" id="steps"></div>
+        <div class="feedback-line" id="feedbackLine">&nbsp;</div>
+
+        <div class="timer" id="timer" hidden><div class="timer-fill" id="timerFill"></div></div>
+
+        <div class="upcoming" id="upcoming"></div>
+        <div class="float-layer" id="floatLayer" aria-hidden="true"></div>
+      </div>
+
+      <div class="kb-frame">
+        <div class="kb" id="keyboard"></div>
+      </div>
+
+      <div class="play-hint" id="playHint">Any octave. Each next note must be the next chord tone, less than an octave away.</div>
+    </section>
+
+  </main>
+
+  <footer class="page-footer">
+    <span>Companion to <a href="../">chordtrainer.io</a> · <a href="../scoretrainer/">Score Trainer</a> · <a href="../pdf2midi/">PDF to MIDI</a></span>
+  </footer>
+</div>
+
+
+<!-- Level result -->
+<div class="modal" id="resultModal" hidden>
+  <div class="modal-box result-box">
+    <div class="result-eyebrow" id="resultEyebrow">Level 1 · Ascent</div>
+    <div class="result-title" id="resultTitle">Cleared</div>
+    <div class="result-stars" id="resultStars"></div>
+    <div class="result-stats" id="resultStats"></div>
+    <div class="result-note" id="resultNote"></div>
+    <div class="result-actions">
+      <button type="button" class="ghost-btn" id="resultMapBtn">Path</button>
+      <button type="button" class="ghost-btn" id="resultRetryBtn">Retry</button>
+      <button type="button" class="primary-btn" id="resultNextBtn">Next level &rarr;</button>
+    </div>
+  </div>
+</div>
+
+<!-- Achievements -->
+<div class="modal" id="achModal" hidden>
+  <div class="modal-box ach-modal-box">
+    <div class="modal-header">
+      <h3 class="modal-title">Achievements <span id="achCount" class="ach-count">0 / 0</span></h3>
+      <button type="button" id="achClose" class="modal-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body"><div id="achGrid"></div></div>
+    <div class="ach-modal-footer">
+      <button type="button" id="achResetBtn" class="ach-reset-btn">Reset arpeggio achievements</button>
+    </div>
+  </div>
+</div>
+<div id="achToast" class="ach-toast" aria-live="polite"></div>
+
+<script type="module" src="js/main.js"></script>
+<script data-goatcounter="https://chordtrainer.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>
