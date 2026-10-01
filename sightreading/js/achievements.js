@@ -51,6 +51,12 @@ function load() {
 }
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(unlocked)); } catch { /* ignore */ }
+  paintBadge();
+}
+// Unlocked count next to the header trophy (empty until the first one).
+function paintBadge() {
+  const el = document.getElementById('achBadge');
+  if (el) el.textContent = Object.keys(unlocked).length || '';
 }
 
 let toastQueue = Promise.resolve();
@@ -111,7 +117,7 @@ function renderTile(a) {
 
 const SECTIONS = [
   { vis: 'visible', label: 'Common',     blurb: 'Earned through steady practice.' },
-  { vis: 'secret',  label: 'Rare',       blurb: 'Trigger conditions are hidden — some things you stumble on.' },
+  { vis: 'secret',  label: 'Rare',       blurb: 'Trigger conditions are hidden. Some things you stumble on.' },
   { vis: 'ultra',   label: 'Ultra-rare', blurb: 'Reserved for those who go truly far.' },
 ];
 
@@ -138,6 +144,7 @@ function disarm() {
 
 export function initAchievements({ onReset }) {
   load();
+  paintBadge();
   modalEl = document.getElementById('achModalOverlay');
   gridEl = document.getElementById('achGrid');
   countEl = document.getElementById('achCount');

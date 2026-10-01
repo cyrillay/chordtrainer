@@ -57,7 +57,8 @@ const midi = createMidi({
 function renderMidiStatus({ state, names }) {
   midiState = state;
   const btn = $('midiBtn');
-  btn.dataset.state = state;
+  btn.classList.toggle('is-connected', state === 'connected');
+  btn.classList.toggle('is-error', ['nodevice', 'denied', 'unsupported'].includes(state));
   const label = state === 'connected' ? names.join(' · ') : 'Connect MIDI';
   $('midiLabel').textContent = label;
   btn.title = state === 'connected' ? 'MIDI connected' : 'Connect a MIDI keyboard';
@@ -449,7 +450,7 @@ function completeTask(result, { timedOut = false } = {}) {
       chime([hz(top + 12), hz(top + 12 + (step >= 4 ? 7 : 4)), hz(top + 24)], { gain: 0.05 + Math.min(step, 8) * 0.004 });
       if (s.combo > 0 && s.combo % 4 === 0) floatText(`${s.combo} combo!`, 'combo');
     }
-    feedback(clean ? praise(result, s.combo) : `${result.mistakes} slip${result.mistakes > 1 ? 's' : ''} — keep going`, clean ? 'good' : 'meh');
+    feedback(clean ? praise(result, s.combo) : `${result.mistakes} slip${result.mistakes > 1 ? 's' : ''}, keep going`, clean ? 'good' : 'meh');
   }
   renderHud();
   arpeggioAchievements(result, clean, timedOut);
@@ -648,7 +649,7 @@ function poolLabel(level) {
   const chords = level.qualities.length >= 8 ? 'every quality'
     : level.qualities.map(q => `C${CHORD_FORMULAS[q].suffix}`).join(' · ');
   const keys = level.keys >= 6 ? 'all 12 keys' : `up to ${level.keys}&#9839;/&#9837;`;
-  return `${chords} — ${keys}`;
+  return `${chords} · ${keys}`;
 }
 
 const DIR_NAMES = { up: 'up', down: 'down', updown: 'up & back' };
@@ -659,7 +660,7 @@ function renderWeak() {
   $('weakCard').disabled = !list.length;
   $('weakDesc').textContent = list.length
     ? 'Drills the chords and patterns you miss the most.'
-    : 'Play a few levels first — your misses are remembered here.';
+    : 'Play a few levels first. Your misses are remembered here.';
   $('weakList').innerHTML = list.length
     ? list.map(w => {
       const name = NOTE_DISPLAY[w.root] + CHORD_FORMULAS[w.quality].suffix;

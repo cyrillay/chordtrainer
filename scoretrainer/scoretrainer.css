@@ -64,90 +64,6 @@ body {
   .app { padding: 1.5rem 0.75rem 4rem; }
 }
 
-/* ---------- header ---------- */
-
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 3rem;
-  gap: 1.5rem;
-}
-
-.wordmark {
-  font-family: var(--font-body);
-  font-weight: 500;
-  font-size: 1.8rem;
-  letter-spacing: 0.02em;
-  color: var(--ivory);
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.45rem;
-  flex-wrap: wrap;
-}
-.wordmark em {
-  font-style: italic;
-  color: var(--gold);
-  font-weight: 400;
-}
-.wm-brand, .wm-suffix { white-space: nowrap; }
-
-.header-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.55rem;
-}
-
-/* Mirrors the .mode-pill rule on the chord trainer's stylesheet so the
-   two pages share one control. If you change one, change the other. */
-.mode-pill {
-  display: inline-flex;
-  border: 1px solid var(--gold);
-  border-radius: var(--radius-md);
-  background: rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-  align-self: center;
-  font-family: var(--font-display);
-  font-size: 0.62rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  line-height: 1;
-}
-.mp-opt {
-  white-space: nowrap;
-  padding: 0.55rem 0.95rem;
-  color: var(--ivory-dim);
-  text-decoration: none;
-  border-right: 1px solid var(--line);
-  transition: color var(--ease-fast), background var(--ease-fast);
-}
-.mp-opt:last-child { border-right: none; }
-.mp-opt:hover { color: var(--ivory); background: rgba(var(--gold-bright-rgb), 0.06); }
-.mp-opt.is-active {
-  color: var(--gold);
-  background: rgba(var(--gold-bright-rgb), 0.12);
-  box-shadow: inset 0 -2px 0 var(--gold);
-  pointer-events: none;
-}
-/* Four long labels don't fit one row on phones: fold the pill into 2×2. */
-@media (max-width: 760px) {
-  .mode-pill { display: inline-grid; grid-template-columns: auto auto; }
-  .mp-opt { text-align: center; }
-  .mp-opt:nth-child(2n) { border-right: none; }
-  .mp-opt:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
-}
-
-.meta {
-  font-family: var(--font-display);
-  font-size: 0.7rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--ivory-dim);
-}
-
 /* ---------- generic buttons ---------- */
 
 button {
@@ -230,7 +146,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
 
 /* ==================== UPLOAD VIEW ==================== */
 
@@ -428,7 +343,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   background: rgba(160, 59, 59, 0.1);
 }
 
-
 /* ==================== MARK VIEW (PDF) ==================== */
 
 .mark-header {
@@ -618,7 +532,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   letter-spacing: 0;
 }
 
-
 /* ==================== CONFIG VIEW ==================== */
 
 .config-card {
@@ -764,7 +677,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   gap: 1rem;
   flex-wrap: wrap;
 }
-
 
 /* ==================== PLAYBACK VIEW ==================== */
 
@@ -946,7 +858,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   text-transform: none;
 }
 
-
 /* ---------- page footer ---------- */
 
 .page-footer {
@@ -962,7 +873,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
 }
 .page-footer a { color: var(--gold); text-decoration: none; }
 .page-footer a:hover { color: var(--gold-bright); }
-
 
 /* ---------- toast / errors ---------- */
 

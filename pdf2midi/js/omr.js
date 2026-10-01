@@ -214,7 +214,7 @@ export function recognize(doc, options = {}) {
 
   const numTracks = Math.max(...systems.map(s => s.staves.length));
   if (systems.some(s => s.staves.length !== numTracks)) {
-    warn('Some systems have a different number of staves (hidden empty staves?) — staves were matched top to bottom.');
+    warn('Some systems have a different number of staves (hidden empty staves?). Staves were matched top to bottom.');
   }
 
   // Carried across systems, per staff index.
@@ -297,7 +297,7 @@ export function recognize(doc, options = {}) {
     });
   }
 
-  if (!carry.timeSig.found) warn('No time signature found — assumed 4/4.');
+  if (!carry.timeSig.found) warn('No time signature found, assumed 4/4.');
 
   return {
     title,

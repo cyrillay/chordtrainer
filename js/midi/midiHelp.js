@@ -12,7 +12,7 @@ export const isIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent)
   || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 const GUIDE_LINK = `<a href="${MIDI_GUIDE_URL}" target="_blank" rel="noopener">Full connection guide →</a>`;
-const OTHER_DEVICE = 'Make sure the keyboard isn\'t already connected to another device or app (a Mac it paired with before, its own piano app…).';
+const OTHER_DEVICE = 'Make sure the keyboard isn\'t already connected to another device or app, such as a Mac it paired with before or its own piano app.';
 
 export function noDeviceHelpHtml() {
   // iOS browsers have no Web MIDI at all; Web MIDI Browser is a WebKit
@@ -23,14 +23,15 @@ export function noDeviceHelpHtml() {
       + GUIDE_LINK;
   }
   if (isAndroid()) {
-    return `<strong>Bluetooth:</strong> connect your keyboard in the free app `
+    return `<strong>Bluetooth</strong><br>Connect your keyboard in the free app `
       + `<a href="${MIDI_BLE_CONNECT_URL}" target="_blank" rel="noopener">MIDI BLE Connect</a> `
-      + `(not in Android's Bluetooth settings), then come back here.<br>`
-      + `<strong>USB:</strong> an OTG cable works too.<br><br>`
+      + `(not in Android's Bluetooth settings), then come back here.<br><br>`
+      + `<strong>USB</strong><br>An OTG cable works too.<br><br>`
       + `${OTHER_DEVICE}<br><br>${GUIDE_LINK}`;
   }
-  return `<strong>USB:</strong> plug it in, it just works.<br>`
-    + `<strong>Bluetooth (Mac):</strong> Audio MIDI Setup → Window → Show MIDI Studio → Bluetooth → Connect.<br><br>`
+  return `<strong>Bluetooth</strong><br>On Mac: Audio MIDI Setup, Window, Show MIDI Studio, `
+    + `then the Bluetooth icon and Connect. Windows browsers don't see Bluetooth MIDI yet.<br><br>`
+    + `<strong>USB</strong><br>Plug it in, it just works.<br><br>`
     + `${OTHER_DEVICE}<br><br>${GUIDE_LINK}`;
 }
 

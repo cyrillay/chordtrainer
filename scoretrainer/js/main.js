@@ -240,7 +240,7 @@ document.querySelectorAll('.mode-btn').forEach((btn) => {
     if (btn.dataset.mode === 'system') {
       hint.innerHTML = 'Drag to box each <strong>system</strong> (one music line). Use the × to remove a system. The box edges already count as the first and last barlines.';
     } else {
-      hint.innerHTML = 'Click each <strong>internal</strong> barline inside a system — no need to click the first and last (they\'re the system edges). Click an existing line to remove it.';
+      hint.innerHTML = 'Click each <strong>internal</strong> barline inside a system. No need to click the first and last (they\'re the system edges). Click an existing line to remove it.';
     }
   });
 });

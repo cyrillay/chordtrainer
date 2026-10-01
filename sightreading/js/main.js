@@ -234,7 +234,7 @@ function flashWrong(midi) {
   stage.classList.remove('flash-wrong');
   void stage.offsetWidth;
   stage.classList.add('flash-wrong');
-  setStatus(`<span class="wrong">${midiName(midi)}</span> — not that one.`);
+  setStatus(`<span class="wrong">${midiName(midi)}</span>, not that one.`);
 }
 
 function setStatus(html) { $('status').innerHTML = html; }
@@ -266,7 +266,7 @@ function armRun() {
     highlightCurrent();
     $('startBtn').textContent = 'Restart';
     setStatus(S.midi === 'connected'
-      ? 'Play the highlighted notes — the score waits for you.'
+      ? 'Play the highlighted notes. The score waits for you.'
       : 'Connect your MIDI keyboard (top right) to play.');
   } else {
     S.run = null;
@@ -331,7 +331,7 @@ function startTempo() {
       if (label) countEl.textContent = label;
     } else {
       countEl.hidden = true;
-      if ($('status').textContent === 'Count-in…') setStatus('Keep going — don\'t stop for mistakes.');
+      if ($('status').textContent === 'Count-in…') setStatus('Keep going, don\'t stop for mistakes.');
     }
     for (const e of run.tick(now)) {
       for (const k of groupKeys(tl.groups[e.group], e.midi)) mark(k, 'is-miss', ['is-current']);
@@ -366,7 +366,7 @@ function onNoteOn(midi, velocity, t) {
     if (res.kind !== 'hit') return;
     for (const k of groupKeys(g, midi)) mark(k, 'is-hit', ['is-current']);
     if (res.advanced) {
-      setStatus(S.run.streak >= 10 ? `<span class="good">${S.run.streak} in a row</span>` : 'Play the highlighted notes — the score waits for you.');
+      setStatus(S.run.streak >= 10 ? `<span class="good">${S.run.streak} in a row</span>` : 'Play the highlighted notes. The score waits for you.');
       if (res.done) finish();
       else highlightCurrent();
     }
@@ -430,10 +430,10 @@ function showResults(r, rec, before) {
   const pct = (x) => `${Math.round(x * 100)}%`;
   $('resStars').innerHTML = starsHtml(r.stars);
   $('resStars').querySelectorAll('.star.on').forEach((s, i) => { s.style.animationDelay = `${0.15 + i * 0.18}s`; });
-  const headlines = ['Not quite — try it slower.', 'Good reading.', 'Very clean.', 'Prima vista!'];
+  const headlines = ['Not quite. Try it slower.', 'Good reading.', 'Very clean.', 'Prima vista!'];
   let headline = headlines[r.stars];
   if (r.mode === 'wait' && r.stars === 2) headline = 'Very clean. Try Tempo mode for the third star.';
-  if (r.mode === 'tempo' && r.stars === 2 && r.accuracy >= 0.95) headline = `Spotless — now at ${targetTempo()} for the third star.`;
+  if (r.mode === 'tempo' && r.stars === 2 && r.accuracy >= 0.95) headline = `Spotless. Now try ${targetTempo()} for the third star.`;
   $('resHeadline').textContent = headline;
 
   const cells = [
@@ -453,7 +453,7 @@ function showResults(r, rec, before) {
   $('resGrid').innerHTML = cells.map(([k, v]) => `<div class="rg-cell"><div class="rg-val">${v}</div><div class="rg-key">${k}</div></div>`).join('');
 
   const weak = Object.entries(r.errorsByMidi).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([m]) => midiName(Number(m)));
-  $('resWeak').innerHTML = weak.length ? `Tricky this time: <strong>${weak.join(', ')}</strong> — they'll come up more often.` : '';
+  $('resWeak').innerHTML = weak.length ? `Tricky this time: <strong>${weak.join(', ')}</strong>. They'll come up more often.` : '';
   if (rec.unlockedNext) $('resWeak').innerHTML += `<div class="unlock-msg">🔓 ${LEVELS[S.levelIdx + 1].name} unlocked!</div>`;
   else if (rec.stars > before && before > 0) $('resWeak').innerHTML += '<div class="unlock-msg">New best for this level.</div>';
 
@@ -531,7 +531,8 @@ function midiStatus({ state, names }) {
   S.midi = state;
   const btn = $('midiBtn');
   const help = $('midiHelp');
-  btn.classList.toggle('is-on', state === 'connected');
+  btn.classList.toggle('is-connected', state === 'connected');
+  btn.classList.toggle('is-error', ['none', 'denied', 'unsupported'].includes(state));
   btn.setAttribute('aria-pressed', String(state === 'connected'));
   $('midiLabel').textContent = state === 'connected' ? names.join(' · ') : 'Connect MIDI';
   help.hidden = state === 'connected';

@@ -21,7 +21,7 @@ export const LEVELS = [
   { id: 1,  name: 'Ascent',       blurb: 'Ascending, from the root.',                 qualities: ['maj'],  keys: 1, directions: ['up'],   starts: ['root'] },
   { id: 2,  name: 'Descent',      blurb: 'Descending, from the root.',                qualities: ['maj'],  keys: 1, directions: ['down'], starts: ['root'] },
   { id: 3,  name: 'Light & Shade', blurb: 'Minor chords join in, up or down.',        qualities: MAJ_MIN,  keys: 1, directions: ['up', 'down'], starts: ['root'] },
-  { id: 4,  name: 'Tides',        blurb: 'Up, then down, then up again — alternating.', qualities: MAJ_MIN, keys: 2, directions: ['up', 'down'], alternate: true, starts: ['root'] },
+  { id: 4,  name: 'Tides',        blurb: 'Up, then down, then up again, alternating.', qualities: MAJ_MIN, keys: 2, directions: ['up', 'down'], alternate: true, starts: ['root'] },
   { id: 5,  name: 'Second Floor', blurb: 'Ascending, from the 3rd.',                  qualities: MAJ_MIN,  keys: 2, directions: ['up'],   starts: ['third'] },
   { id: 6,  name: 'Mezzanine',    blurb: 'Ascending, from the 5th.',                  qualities: MAJ_MIN,  keys: 3, directions: ['up'],   starts: ['fifth'] },
   { id: 7,  name: 'Rappel',       blurb: 'Descending, from the 3rd or the 5th.',      qualities: MAJ_MIN,  keys: 3, directions: ['down'], starts: ['third', 'fifth'] },

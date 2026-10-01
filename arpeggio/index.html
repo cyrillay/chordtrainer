@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Arpeggio Trainer · Chord Arpeggios &amp; Inversions with MIDI</title>
+<title>Arpeggios · Chord Arpeggios &amp; Inversions with MIDI</title>
 <meta name="description" content="Practise chord arpeggios up and down, from every inversion, on your MIDI keyboard. Live note detection, levels, stars, and a few secrets. Free, in your browser.">
 <link rel="canonical" href="https://chordtrainer.io/arpeggio/">
 
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://chordtrainer.io/arpeggio/">
-<meta property="og:title" content="Arpeggio Trainer · Arpeggios &amp; Inversions">
-<meta property="og:description" content="Arpeggios up, down, from the 3rd, 5th or 7th — checked live from your MIDI keyboard.">
+<meta property="og:title" content="Arpeggios · Arpeggios &amp; Inversions">
+<meta property="og:description" content="Arpeggios up, down, from the 3rd, 5th or 7th, checked live from your MIDI keyboard.">
 <meta property="og:image" content="https://chordtrainer.io/og-image.jpg">
 <meta property="og:locale" content="en_US">
-<meta property="og:site_name" content="Étude · Arpeggio Trainer">
+<meta property="og:site_name" content="Étude · Arpeggios">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,38 +21,39 @@
 <link rel="icon" type="image/png" href="../favico.png">
 <link rel="stylesheet" href="arpeggio.css">
 <link rel="stylesheet" href="../midi-help.css">
+<link rel="stylesheet" href="../header.css">
 </head>
 <body>
 
 <div class="app">
 
-  <header>
-    <div class="wordmark">
-      <span class="wm-brand">Étude <em>—</em></span>
-      <span class="mode-pill" role="tablist" aria-label="Switch trainer">
-        <a href="../" class="mp-opt" role="tab" aria-selected="false">Chord</a>
-        <a href="../scoretrainer/" class="mp-opt" role="tab" aria-selected="false">Interleaved practice</a>
-        <a href="../sightreading/" class="mp-opt" role="tab" aria-selected="false">Sight reading</a>
-        <a href="./" class="mp-opt is-active" role="tab" aria-selected="true">Arpeggio</a>
-      </span>
-    </div>
-    <div class="header-right">
-      <div class="meta">Op. 4 No 1</div>
-      <div class="header-actions">
-        <button type="button" id="achBtn" class="ach-btn" title="Achievements" aria-label="Achievements">
-          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-            <path d="M7 4h10v2h3v3a4 4 0 0 1-4 4h-.34A5 5 0 0 1 13 15.9V18h3v2H8v-2h3v-2.1A5 5 0 0 1 7.34 13H7a4 4 0 0 1-4-4V6h3V4h1zm10 4V6h-2v5a3 3 0 0 0 3-3V8h-1zm-12 0v-2h-1v1a2 2 0 0 0 2 2V8H5z" fill="currentColor"/>
-          </svg>
-          <span class="ach-btn-label">Achievements</span>
-          <span class="ach-badge" id="achBadge">0</span>
+  <header class="site-header">
+    <div class="hd-top">
+      <a href="../" class="hd-brand" aria-label="Étude, home">
+        <span class="hd-name">Étude</span>
+        <span class="hd-opus">Op. 4 No 1</span>
+      </a>
+      <div class="hd-actions">
+        <button type="button" id="midiBtn" class="hd-btn">
+          <span class="hd-dot" aria-hidden="true"></span>
+          <span class="hd-midi-label" id="midiLabel">Connect MIDI</span>
         </button>
-        <button type="button" id="midiBtn" class="midi-btn" data-state="off">
-          <span class="midi-dot" aria-hidden="true"></span>
-          <span id="midiLabel">Connect MIDI</span>
+        <button type="button" id="achBtn" class="hd-btn ach-btn" title="Achievements" aria-label="Achievements">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v2h3v3a4 4 0 0 1-4 4h-.34A5 5 0 0 1 13 15.9V18h3v2H8v-2h3v-2.1A5 5 0 0 1 7.34 13H7a4 4 0 0 1-4-4V6h3V4h1zm10 4V6h-2v5a3 3 0 0 0 3-3V8h-1zm-12 0v-2h-1v1a2 2 0 0 0 2 2V8H5z" fill="currentColor"/></svg>
+          <span class="hd-label">Achievements</span>
+          <span class="hd-count" id="achBadge"></span>
         </button>
+        <div class="hd-overlay">
+          <div class="midi-status" id="midiStatus" aria-live="polite" hidden></div>
+        </div>
       </div>
-      <div class="midi-status" id="midiStatus" aria-live="polite" hidden></div>
     </div>
+    <nav class="hd-nav" aria-label="Trainers">
+      <a href="../" class="hd-link"><span class="hd-num">I</span>Chords</a>
+      <a href="../sightreading/" class="hd-link"><span class="hd-num">II</span>Sight-reading</a>
+      <a href="./" class="hd-link is-active" aria-current="page"><span class="hd-num">III</span>Arpeggios</a>
+      <a href="../scoretrainer/" class="hd-link"><span class="hd-num">IV</span>Repertoire</a>
+    </nav>
   </header>
 
   <main>
@@ -191,7 +192,7 @@
   </main>
 
   <footer class="page-footer">
-    <span>Companion to <a href="../">chordtrainer.io</a> · <a href="../scoretrainer/">Interleaved Practice</a> · <a href="../pdf2midi/">PDF to MIDI</a></span>
+    <span>Companion to <a href="../">chordtrainer.io</a> · <a href="../scoretrainer/">Repertoire</a> · <a href="../pdf2midi/">PDF to MIDI</a></span>
   </footer>
 </div>
 

@@ -86,12 +86,3 @@
   border-bottom-color: rgba(var(--gold-bright-rgb), 0.35);
 }
 .midi-help .info-tip-bubble a { color: var(--gold-bright); text-decoration: underline; }
-
-/* On phones the header stacks left-aligned: anchor the bubble to the whole
-   status line so it opens rightward and stays on screen. */
-@media (max-width: 600px) {
-  .midi-status { position: relative; justify-content: flex-start; }
-  .midi-status .midi-help { position: static; }
-  .midi-help .info-tip-bubble { right: auto; left: 0; }
-  .midi-help .info-tip-bubble::after { display: none; }
-}

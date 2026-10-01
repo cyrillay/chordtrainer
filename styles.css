@@ -87,113 +87,6 @@ body {
   .app { padding: 1.5rem 0.75rem 4rem; }
 }
 
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 3rem;
-  gap: 1.5rem;
-}
-
-.header-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.55rem;
-  position: relative;
-}
-
-/* Above the mobile breakpoint, keep the meta line ("Op. 2 No 62") and the
-   Achievements button on the same row to compact the header vertically.
-   Achievements sits to the left of the meta label. */
-@media (min-width: 601px) {
-  .header-right {
-    display: grid;
-    grid-template-columns: auto auto;
-    grid-template-areas:
-      "ach  meta"
-      "input input";
-    align-items: center;
-    justify-items: end;
-    column-gap: 0.8rem;
-    row-gap: 0.55rem;
-  }
-  .header-right .ach-btn        { grid-area: ach; }
-  .header-right .meta           { grid-area: meta; }
-  .header-right .input-selector { grid-area: input; justify-self: end; }
-}
-
-.wordmark {
-  font-family: var(--font-body);
-  font-weight: 500;
-  font-size: 1.8rem;
-  letter-spacing: 0.02em;
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.45rem;
-  flex-wrap: wrap;
-}
-
-.wordmark em {
-  font-style: italic;
-  color: var(--gold);
-  font-weight: 400;
-}
-
-.wm-brand, .wm-suffix { white-space: nowrap; }
-
-/* Trainer-mode toggle baked into the wordmark. The pill matches the
-   visual language of .input-selector (Mic / MIDI) so the header reads as
-   a single coherent control surface rather than two unrelated widgets. */
-.mode-pill {
-  display: inline-flex;
-  border: 1px solid var(--gold);
-  border-radius: var(--radius-md);
-  background: rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-  align-self: center;
-  /* Sized so the pill height matches the wordmark cap-height region —
-     visually anchored to the brand without overpowering it. */
-  font-family: var(--font-display);
-  font-size: 0.62rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  line-height: 1;
-}
-.mp-opt {
-  white-space: nowrap;
-  padding: 0.55rem 0.95rem;
-  color: var(--ivory-dim);
-  text-decoration: none;
-  border-right: 1px solid var(--line);
-  transition: color var(--ease-fast), background var(--ease-fast);
-}
-.mp-opt:last-child { border-right: none; }
-.mp-opt:hover { color: var(--ivory); background: rgba(var(--gold-bright-rgb), 0.06); }
-.mp-opt.is-active {
-  color: var(--gold);
-  background: rgba(var(--gold-bright-rgb), 0.12);
-  box-shadow: inset 0 -2px 0 var(--gold);
-  pointer-events: none;
-}
-/* Four long labels don't fit one row on phones: fold the pill into 2×2. */
-@media (max-width: 760px) {
-  .mode-pill { display: inline-grid; grid-template-columns: auto auto; }
-  .mp-opt { text-align: center; }
-  .mp-opt:nth-child(2n) { border-right: none; }
-  .mp-opt:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
-}
-
-.meta {
-  font-family: var(--font-display);
-  font-size: 0.7rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--ivory-dim);
-}
-
 .input-selector {
   display: inline-flex;
   border: 1px solid var(--gold);
@@ -1191,7 +1084,6 @@ header {
   text-decoration: underline;
 }
 
-
 button {
   font-family: var(--font-body);
   font-size: 1.1rem;
@@ -2094,10 +1986,6 @@ footer em {
 
 @media (max-width: 600px) {
   .controls { grid-template-columns: 1fr; }
-  /* `align-items: stretch` lets `.header-right` span full width so its own
-     `align-items: flex-end` actually pushes mic/midi/achievements to the right
-     edge instead of pinning them under the wordmark on the left. */
-  header { flex-direction: column; gap: 0.5rem; align-items: stretch; }
   .piano { height: 140px; }
   .black-keys { height: 85px; }
   .chord-queue { gap: 0.6rem; padding: 0.6rem 0.5rem; }
@@ -2353,7 +2241,6 @@ footer em {
   stroke-width: 1;
   transition: all var(--ease);
 }
-
 
 .cof-slot.active .cof-wedge {
   fill: var(--gold);
@@ -3221,29 +3108,6 @@ body[data-theme="marble-musical"] {
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
-}
-
-/* ---- Achievements ---- */
-
-.ach-btn {
-  background: none;
-  border: 1px solid var(--line);
-  color: var(--ivory-dim);
-  cursor: pointer;
-  padding: 0.32rem 0.6rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  border-radius: var(--radius-md);
-  transition: color 0.15s, border-color 0.15s;
-}
-.ach-btn:hover { color: var(--gold-bright); border-color: var(--gold-bright); }
-
-.ach-btn-label {
-  font-family: var(--font-display);
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 
 .ach-count {

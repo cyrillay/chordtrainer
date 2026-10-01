@@ -161,7 +161,7 @@ export function isUnlocked(id) { return !!store.unlocked[id]; }
 let modalEl, gridEl, countEl, badgeEl, resetBtnEl;
 
 function refreshBadge() {
-  if (badgeEl) badgeEl.textContent = `${Object.keys(store.unlocked).filter(id => byId[id]).length}`;
+  if (badgeEl) badgeEl.textContent = Object.keys(store.unlocked).filter(id => byId[id]).length || '';
 }
 
 function tile(a) {
@@ -222,7 +222,7 @@ let resetArmed = false;
 function handleReset() {
   if (!resetArmed) {
     resetArmed = true;
-    resetBtnEl.textContent = 'Click again to confirm — this cannot be undone';
+    resetBtnEl.textContent = 'Click again to confirm. This cannot be undone.';
     resetBtnEl.classList.add('armed');
     return;
   }

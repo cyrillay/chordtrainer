@@ -67,90 +67,6 @@ body {
   .app { padding: 1.5rem 0.75rem 4rem; }
 }
 
-/* ---------- header ---------- */
-
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 3rem;
-  gap: 1.5rem;
-}
-
-.wordmark {
-  font-family: var(--font-body);
-  font-weight: 500;
-  font-size: 1.8rem;
-  letter-spacing: 0.02em;
-  color: var(--ivory);
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.45rem;
-  flex-wrap: wrap;
-}
-.wordmark em {
-  font-style: italic;
-  color: var(--gold);
-  font-weight: 400;
-}
-.wm-brand, .wm-suffix { white-space: nowrap; }
-
-.header-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.55rem;
-}
-
-/* Mirrors the .mode-pill rule on the chord trainer's stylesheet so the
-   two pages share one control. If you change one, change the other. */
-.mode-pill {
-  display: inline-flex;
-  border: 1px solid var(--gold);
-  border-radius: var(--radius-md);
-  background: rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-  align-self: center;
-  font-family: var(--font-display);
-  font-size: 0.62rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  line-height: 1;
-}
-.mp-opt {
-  white-space: nowrap;
-  padding: 0.55rem 0.95rem;
-  color: var(--ivory-dim);
-  text-decoration: none;
-  border-right: 1px solid var(--line);
-  transition: color var(--ease-fast), background var(--ease-fast);
-}
-.mp-opt:last-child { border-right: none; }
-.mp-opt:hover { color: var(--ivory); background: rgba(var(--gold-bright-rgb), 0.06); }
-.mp-opt.is-active {
-  color: var(--gold);
-  background: rgba(var(--gold-bright-rgb), 0.12);
-  box-shadow: inset 0 -2px 0 var(--gold);
-  pointer-events: none;
-}
-/* Four long labels don't fit one row on phones: fold the pill into 2×2. */
-@media (max-width: 760px) {
-  .mode-pill { display: inline-grid; grid-template-columns: auto auto; }
-  .mp-opt { text-align: center; }
-  .mp-opt:nth-child(2n) { border-right: none; }
-  .mp-opt:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
-}
-
-.meta {
-  font-family: var(--font-display);
-  font-size: 0.7rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--ivory-dim);
-}
-
 /* ---------- generic buttons ---------- */
 
 button {
@@ -234,7 +150,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-
 /* ---------- achievements (mirrors /styles.css) ---------- */
 
 .prog-modal-overlay {
@@ -287,33 +202,11 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
 
 .prog-modal-close:hover { color: var(--gold-bright); }
 
-
 .prog-modal-body {
   flex: 1;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--line) transparent;
-}
-
-.ach-btn {
-  background: none;
-  border: 1px solid var(--line);
-  color: var(--ivory-dim);
-  cursor: pointer;
-  padding: 0.32rem 0.6rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  border-radius: var(--radius-md);
-  transition: color 0.15s, border-color 0.15s;
-}
-.ach-btn:hover { color: var(--gold-bright); border-color: var(--gold-bright); }
-
-.ach-btn-label {
-  font-family: var(--font-display);
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 
 .ach-count {
@@ -667,7 +560,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   line-height: 1.2;
 }
 
-
 /* ---------- page footer ---------- */
 
 .page-footer {
@@ -683,7 +575,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
 }
 .page-footer a { color: var(--gold); text-decoration: none; }
 .page-footer a:hover { color: var(--gold-bright); }
-
 
 /* ---------- toast / errors ---------- */
 
@@ -710,7 +601,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   to { opacity: 0; transform: translate(-50%, 12px); }
 }
 
-
 /* ==================== READ TRAINER ==================== */
 
 :root {
@@ -722,31 +612,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
 }
 
 [hidden] { display: none !important; }
-
-/* ---------- header actions ---------- */
-
-.header-actions { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
-.midi-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.45rem 0.9rem;
-  font-family: var(--font-display);
-  font-size: 0.68rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  max-width: 260px;
-}
-.midi-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.midi-btn.is-on {
-  border-color: var(--sage);
-  color: var(--sage);
-  background: rgba(107, 142, 107, 0.08);
-  text-transform: none;
-  letter-spacing: 0.04em;
-  font-family: var(--font-mono);
-}
-.midi-btn.is-on:hover { background: rgba(107, 142, 107, 0.16); color: var(--ivory); }
 
 /* ---------- hero + level map ---------- */
 
@@ -986,9 +851,6 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
 .results-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; }
 
 @media (max-width: 600px) {
-  header { flex-direction: column; align-items: stretch; margin-bottom: 1.6rem; }
-  .header-right { align-items: stretch; }
-  .header-actions { justify-content: flex-start; }
   .hero-title { font-size: 1.9rem; }
   .level-grid { grid-template-columns: 1fr; }
   .play-head { flex-wrap: wrap; gap: 0.6rem; }

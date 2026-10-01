@@ -1,0 +1,234 @@
+/* ============================================================
+   Site header, shared by every page (chord, sight-reading,
+   arpeggios, repertoire, converter). Loaded after each page's
+   own stylesheet and built only from the tokens every page
+   defines, so it follows the chord trainer's themes too.
+
+   Étude                              [trophy 3]  [● Connect MIDI]
+   Op. 4 No 1                                    No device found ?
+   ─────────────────────────────────────────────────────────────
+   I Chords   II Sight-reading   III Arpeggios   IV Repertoire
+   ─────────────────────────────────────────────────────────────
+   ============================================================ */
+
+.site-header {
+  display: block;
+  margin-bottom: 2.8rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.hd-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  padding-bottom: 1.1rem;
+}
+
+/* ---- brand ---- */
+
+.hd-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  text-decoration: none;
+  color: var(--ivory);
+  line-height: 1;
+}
+.hd-name {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 2rem;
+  letter-spacing: 0.04em;
+}
+.hd-name em { font-style: italic; color: var(--gold); }
+.hd-opus {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  color: var(--ivory-dim);
+}
+
+/* ---- actions (achievements, MIDI, mic) ---- */
+
+.hd-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hd-btn,
+.site-header .input-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.3rem;
+  padding: 0 0.95rem;
+  margin: 0;
+  background: transparent;
+  border: 1px solid rgba(var(--gold-rgb), 0.4);
+  border-radius: 2px;
+  color: var(--ivory-dim);
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.hd-btn:hover,
+.site-header .input-mode-btn:hover {
+  color: var(--gold-bright);
+  border-color: var(--gold-bright);
+  background: transparent;
+}
+.hd-btn svg,
+.site-header .input-mode-btn svg { width: 15px; height: 15px; display: block; flex: none; }
+
+.hd-count {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0;
+  color: var(--gold);
+}
+
+/* MIDI button: a status dot, then "Connect MIDI" or the device name. */
+.hd-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--gold);
+  opacity: 0.55;
+  flex: none;
+}
+.hd-midi-label {
+  max-width: 13rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hd-btn.is-connected {
+  color: var(--ivory);
+  border-color: rgba(107, 142, 107, 0.55);
+  cursor: default;
+}
+.hd-btn.is-connected .hd-dot {
+  background: var(--sage);
+  opacity: 1;
+  box-shadow: 0 0 7px var(--sage);
+}
+.hd-btn.is-connected .hd-midi-label {
+  text-transform: none;
+  letter-spacing: 0.06em;
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 0.85rem;
+}
+.hd-btn.is-error .hd-dot { background: var(--crimson); opacity: 1; }
+
+/* Chord trainer: Mic | MIDI is one segmented control in the same style. */
+.site-header .input-selector {
+  display: inline-flex;
+  border: none;
+  background: transparent;
+  gap: 0;
+}
+.site-header .input-mode-btn + .input-mode-btn { margin-left: -1px; }
+.site-header .input-mode-btn.active {
+  color: var(--gold-bright);
+  border-color: var(--gold);
+  background: rgba(var(--gold-rgb), 0.12);
+  box-shadow: none;
+  position: relative;
+  z-index: 1;
+}
+
+/* Status line under the buttons ("No device found ?"): floats so it never
+   pushes the nav down. */
+.hd-overlay,
+.site-header .input-overlay {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.45rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+  z-index: 20;
+}
+.hd-overlay > *,
+.site-header .input-overlay > * {
+  background: color-mix(in srgb, var(--ink) 92%, transparent);
+  padding: 0.25rem 0.45rem;
+  border-radius: 2px;
+}
+
+/* ---- trainer navigation ---- */
+
+.hd-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 2.4rem;
+  border-top: 1px solid rgba(var(--gold-rgb), 0.22);
+}
+.hd-link {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  padding: 0.85rem 0 0.8rem;
+  text-decoration: none;
+  color: var(--ivory-dim);
+  font-family: var(--font-display);
+  font-size: 0.66rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+.hd-num {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--gold);
+  opacity: 0.7;
+  min-width: 1.4em;
+}
+.hd-link:hover { color: var(--ivory); }
+.hd-link:hover .hd-num { opacity: 1; }
+.hd-link.is-active { color: var(--ivory); }
+.hd-link.is-active .hd-num { opacity: 1; }
+.hd-link.is-active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: var(--gold);
+}
+
+/* ---- phones ---- */
+
+@media (max-width: 600px) {
+  .site-header { margin-bottom: 1.8rem; }
+  .hd-top { padding-bottom: 0.9rem; gap: 0.8rem; }
+  .hd-name { font-size: 1.7rem; }
+  .hd-opus { font-size: 0.78rem; }
+  .hd-btn,
+  .site-header .input-mode-btn { height: 2.2rem; padding: 0 0.7rem; }
+  .hd-btn .hd-label { display: none; }
+  .hd-midi-label { max-width: 7.5rem; }
+  .hd-overlay,
+  .site-header .input-overlay { left: auto; right: 0; }
+  /* Four entries as a 2×2 index, like a programme. */
+  .hd-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; }
+  .hd-link { justify-self: start; padding: 0.7rem 0 0.65rem; font-size: 0.6rem; letter-spacing: 0.18em; }
+}
