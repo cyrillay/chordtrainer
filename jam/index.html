@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ghost Jam · Play Chords with a Backing Band on your MIDI Keyboard</title>
+<meta name="description" content="Jam with a ghost band. Pick a progression and a groove (swing, bossa, lo-fi, ballad, funk, reggae): bass, drums and keys play, you play the chords on your MIDI keyboard and score points for every chord in the pocket. Free, in your browser.">
+<link rel="canonical" href="https://chordtrainer.io/jam/">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://chordtrainer.io/jam/">
+<meta property="og:title" content="Ghost Jam · A backing band for your MIDI keyboard">
+<meta property="og:description" content="The ghost band plays bass, drums and keys. You play the chords. Arcade scoring, six grooves.">
+<meta property="og:image" content="https://chordtrainer.io/og-image.jpg">
+<meta property="og:locale" content="en_US">
+<meta property="og:site_name" content="Étude · Ghost Jam">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Monoton&family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="../favico.png">
+<link rel="stylesheet" href="../header.css">
+<link rel="stylesheet" href="../midi-help.css">
+<link rel="stylesheet" href="jam.css">
+</head>
+<body class="jam">
+
+<div class="smoke" aria-hidden="true"><span></span><span></span><span></span></div>
+
+<div class="app">
+
+  <header class="site-header">
+    <div class="hd-top">
+      <a href="../" class="hd-brand" aria-label="Étude, home">
+        <span class="hd-name">Étude</span>
+        <span class="hd-opus">Op. 7 No 1</span>
+      </a>
+      <div class="hd-actions">
+        <button type="button" id="midiBtn" class="hd-btn">
+          <span class="hd-dot" aria-hidden="true"></span>
+          <span class="hd-midi-label" id="midiLabel">Connect MIDI</span>
+        </button>
+        <div class="hd-overlay">
+          <div class="midi-status" id="midiStatus" aria-live="polite" hidden></div>
+        </div>
+      </div>
+    </div>
+    <nav class="hd-nav" aria-label="Trainers" title="I, vi, ii, V, and the ♭VII backdoor: every road comes home to I">
+      <a href="../" class="hd-link"><span class="hd-num">I</span>Chords</a>
+      <a href="../sightreading/" class="hd-link"><span class="hd-num">vi</span>Sight-reading</a>
+      <a href="../arpeggio/" class="hd-link"><span class="hd-num">ii</span>Arpeggios</a>
+      <a href="../scoretrainer/" class="hd-link"><span class="hd-num">V</span>Repertoire</a>
+      <a href="./" class="hd-link is-active" aria-current="page"><span class="hd-num">♭VII</span>Ghost Jam</a>
+    </nav>
+  </header>
+
+  <main>
+
+    <!-- ==================== SETUP ==================== -->
+    <section class="view" id="viewSetup">
+      <div class="marquee">
+        <div class="marquee-props marquee-left" id="propsLeft"></div>
+        <div class="marquee-sign">
+          <div class="neon-open" aria-hidden="true">Live tonight</div>
+          <h1 class="neon-title"><span class="flick">G</span>host <span class="flick-slow">J</span>am</h1>
+          <p class="marquee-sub">The ghost band plays bass, drums and keys. <strong>You play the chords.</strong></p>
+        </div>
+        <div class="marquee-props marquee-right" id="propsRight"></div>
+      </div>
+
+      <div class="band-intro" id="bandIntro"></div>
+
+      <div class="midi-gate" id="midiGate">
+        <div class="gate-icon" aria-hidden="true">
+          <svg viewBox="0 0 48 48" width="40" height="40"><rect x="4" y="14" width="40" height="22" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 14v12M20 14v12M28 14v12M36 14v12" stroke="currentColor" stroke-width="1.4"/><rect x="10" y="14" width="4" height="8" fill="currentColor"/><rect x="18" y="14" width="4" height="8" fill="currentColor"/><rect x="30" y="14" width="4" height="8" fill="currentColor"/></svg>
+        </div>
+        <div class="gate-text">
+          <div class="gate-title" id="gateTitle">This trainer listens to a MIDI keyboard.</div>
+          <div class="gate-sub"><span id="gateSub">Connect your keyboard by Bluetooth or USB, then press Connect.</span> <a href="/articles/midi-keyboard-connection/" target="_blank" rel="noopener">How to connect →</a></div>
+        </div>
+        <button type="button" class="arcade-btn small" id="gateConnectBtn">Connect MIDI</button>
+      </div>
+
+      <div class="cabinet">
+        <div class="step-label"><span>1</span> Pick a groove</div>
+        <div class="style-grid" id="styleGrid"></div>
+
+        <div class="step-label"><span>2</span> Pick a tune</div>
+        <div class="tune-row">
+          <select id="tuneSelect" class="arcade-select" aria-label="Progression"></select>
+          <button type="button" class="arcade-btn small ghosty" id="randomTuneBtn" title="Random tune">Shuffle</button>
+        </div>
+        <div class="tune-preview" id="tunePreview"></div>
+
+        <div class="step-label"><span>3</span> Set it up</div>
+        <div class="knobs">
+          <label class="knob">
+            <span class="knob-label">Key</span>
+            <select id="keySelect" class="arcade-select"></select>
+          </label>
+          <label class="knob knob-wide">
+            <span class="knob-label">Tempo <b id="tempoVal">120</b> bpm</span>
+            <input type="range" id="tempoRange" min="50" max="200" step="1" value="120">
+          </label>
+          <label class="knob">
+            <span class="knob-label">Bars per chord</span>
+            <select id="barsSelect" class="arcade-select"><option value="1">1</option><option value="2">2</option></select>
+          </label>
+          <label class="knob">
+            <span class="knob-label">Length</span>
+            <select id="lengthSelect" class="arcade-select">
+              <option value="2">2 choruses</option>
+              <option value="4">4 choruses</option>
+              <option value="8">8 choruses</option>
+              <option value="0">Endless</option>
+            </select>
+          </label>
+        </div>
+        <label class="arcade-toggle"><input type="checkbox" id="showTonesCb"><span>Show the notes of each chord</span></label>
+
+        <button type="button" class="arcade-btn big" id="playBtn">
+          <span class="coin" id="coinSprite"></span>
+          <span>Insert coin · Play</span>
+        </button>
+      </div>
+
+      <div class="hall">
+        <div class="hall-title">Hall of fame</div>
+        <ol class="hall-list" id="hallList"></ol>
+      </div>
+
+      <div class="rules">
+        <div class="rules-title">House rules</div>
+        <ul>
+          <li>Each chord is judged on its own: hold its notes in time with the band.</li>
+          <li>The bass has the root, so you only need the <b>3rd and the 5th</b> (triads) or the <b>3rd and the 7th</b> (seventh chords). Any octave, any voicing.</li>
+          <li>Land on the downbeat for a <b class="g-perfect">Perfect</b>. Within the first beat is <b class="g-good">Good</b>. Later is <b class="g-late">Late</b>. Nothing, or three wrong notes, is a <b class="g-miss">Miss</b>.</li>
+          <li>9ths, 11ths and 13ths are never wrong. They score a <b>Spicy</b> bonus.</li>
+          <li>Keep a streak and the band gets louder. Miss and they thin out.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ==================== PLAY ==================== -->
+    <section class="view" id="viewPlay" hidden>
+      <div class="hud">
+        <div class="hud-cell"><div class="hud-lbl">Score</div><div class="hud-val" id="hudScore">0</div></div>
+        <div class="hud-cell hud-combo" id="hudComboCell"><div class="hud-lbl">Combo</div><div class="hud-val"><span id="hudCombo">0</span><small id="hudMult">×1</small></div></div>
+        <div class="hud-cell"><div class="hud-lbl">Hi</div><div class="hud-val" id="hudHi">0</div></div>
+      </div>
+      <div class="tune-bar">
+        <span id="tuneTitle">Autumnal</span>
+        <span class="tune-meta" id="tuneMeta">Swing · C · 132 bpm</span>
+        <span class="tune-chorus" id="tuneChorus">Count-in</span>
+      </div>
+
+      <div class="stage" id="stage">
+        <div class="beat-bulbs" id="beatBulbs"><i></i><i></i><i></i><i></i></div>
+        <div class="now-playing">
+          <div class="chord-big" id="chordBig">·</div>
+          <div class="chord-tones" id="chordTones"></div>
+        </div>
+        <div class="next-chords" id="nextChords"></div>
+        <div class="slot-bar"><div class="slot-fill" id="slotFill"></div></div>
+        <div class="shout-layer" id="shoutLayer" aria-live="polite"></div>
+      </div>
+
+      <div class="bandstand">
+        <div class="ghost-band" id="ghostBand"></div>
+        <div class="energy" id="energyMeter"><span class="energy-lbl">Energy</span><i></i><i></i><i></i><i></i></div>
+      </div>
+
+      <div class="kb-frame"><div class="kb" id="keyboard"></div></div>
+
+      <div class="play-actions">
+        <button type="button" class="arcade-btn small ghosty" id="stopBtn">Stop</button>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="page-footer">
+    <span>Companion to <a href="../">chordtrainer.io</a> · Play responsibly. The ghosts drink, you practise.</span>
+  </footer>
+</div>
+
+<!-- Results -->
+<div class="modal" id="resultModal" hidden>
+  <div class="modal-box">
+    <div class="result-eyebrow" id="resultEyebrow">Set complete</div>
+    <div class="result-rank" id="resultRank">A</div>
+    <div class="result-score" id="resultScore">0</div>
+    <div class="result-hi" id="resultHi" hidden>New high score!</div>
+    <div class="result-grid" id="resultGrid"></div>
+    <div class="result-actions">
+      <button type="button" class="arcade-btn small ghosty" id="resultBackBtn">Change tune</button>
+      <button type="button" class="arcade-btn small" id="resultAgainBtn">Play again</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+<script data-goatcounter="https://chordtrainer.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>

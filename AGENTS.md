@@ -11,10 +11,12 @@ Static site, no build step: plain HTML, CSS and ES modules. Run it with
 | vi  | Sight-reading | `/sightreading/` | Op. 6 |
 | ii  | Arpeggios | `/arpeggio/` | Op. 2 |
 | V   | Repertoire (interleaved practice) | `/scoretrainer/` | Op. 5 |
+| ♭VII | Ghost Jam (backing band) | `/jam/` | Op. 7 |
 | (none) | PDF to MIDI converter | `/pdf2midi/` | Anh. 1 |
 
 The nav numbers are the degrees of the I, vi, ii, V turnaround, which
-resolves back to I (Chords). Each app's opus number is its degree, so it
+resolves back to I (Chords), plus ♭VII, the rock "backdoor" chord that
+also comes home to I. Each app's opus number is its degree, so it
 never changes. The converter is not a mode: it is filed as an appendix
 ("Anh.", as in BWV Anh.).
 
@@ -31,11 +33,12 @@ Current versions (keep this table in sync):
 
 | App | Current |
 |-----|---------|
-| Chords | Op. 1 No 58 |
-| Sight-reading | Op. 6 No 4 |
-| Arpeggios | Op. 2 No 5 |
-| Repertoire | Op. 5 No 8 |
-| PDF to MIDI | Anh. 1 No 7 |
+| Chords | Op. 1 No 59 |
+| Sight-reading | Op. 6 No 5 |
+| Arpeggios | Op. 2 No 6 |
+| Repertoire | Op. 5 No 9 |
+| Ghost Jam | Op. 7 No 1 |
+| PDF to MIDI | Anh. 1 No 8 |
 
 ## Shared pieces
 
@@ -51,6 +54,18 @@ Current versions (keep this table in sync):
   its help bubble (Bluetooth first, then USB) and the "connect your
   keyboard" card used by Arpeggios and Sight-reading.
 - `js/ux/infoTip.js`: "?" help bubbles that open on click only.
+
+## Ghost Jam is the exception
+
+`/jam/` has its own look on purpose (neon basement bar, arcade): it loads
+`header.css` and `midi-help.css` but **not** `themes.css`, and re-skins the
+shared widgets by redefining the palette tokens in `jam/jam.css`. Keep the
+rest of the site out of that style, and that style out of the rest.
+
+Its logic is split so it can be tested without audio: `jam/js/judge.js`
+(what counts as playing a chord, grading, scoring), `jam/js/styles.js`
+(the six grooves as note events), `jam/js/band.js` (Web Audio synthesis
+and scheduling, untested), `jam/js/main.js` (UI).
 
 ## Copy
 

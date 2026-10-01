@@ -52,6 +52,17 @@ your most-missed notes more often. Three repertoire levels use public-domain exc
 (`sightreading/js/excerpts.js`). Stars (Wait mode tops out at two, the third needs Tempo mode at the
 target tempo) unlock the next level, and there is a separate set of achievements.
 
+## Ghost Jam
+
+`/jam/` is a backing band for your MIDI keyboard. Pick a progression from the
+Chords library and a groove (swing, bossa, lo-fi, ballad, funk, reggae): a
+synthesized band plays bass, drums and keys in Web Audio, and you play the
+chords. Each chord is graded Perfect, Good, Late or Miss on harmony and
+timing (the bass has the root, so the 3rd and 5th, or 3rd and 7th, are
+enough; 9ths, 11ths and 13ths earn a bonus). Streaks raise the band's energy,
+misses thin it out, and high scores are kept per tune and groove. It has its
+own neon arcade look, apart from the rest of the site.
+
 ## PDF → MIDI converter
 
 `/pdf2midi/` turns a sheet-music PDF into a MIDI file, in the browser.
