@@ -4,6 +4,7 @@ import { applyHeardPitchClasses } from '../instruments/chordDisplay.js';
 import { $ } from '../core/dom.js';
 import { recordAction } from '../ux/achievements.js';
 import { noDeviceHelpHtml, isIOS } from './midiHelp.js';
+import { midiInputs } from './ports.js';
 
 function refreshHeardFromHeld() {
   const pcs = new Set();
@@ -27,7 +28,7 @@ function handleMidiMessage(event) {
 }
 
 function attachInputs(access) {
-  for (const input of access.inputs.values()) input.onmidimessage = handleMidiMessage;
+  for (const input of midiInputs(access)) input.onmidimessage = handleMidiMessage;
 }
 
 // Tapping anywhere closes an auto-opened hint; registered once.
@@ -63,7 +64,7 @@ function renderHint(statusEl, label, { openHint = false } = {}) {
 
 function renderStatus(statusEl, access, opts) {
   const names = [];
-  for (const input of access.inputs.values()) names.push(input.name);
+  for (const input of midiInputs(access)) names.push(input.name);
   if (names.length > 0) statusEl.textContent = names.join(' · ');
   else renderHint(statusEl, 'No device found', opts);
 }
@@ -89,8 +90,15 @@ export async function startMidi() {
     }
     return;
   }
+  let access;
   try {
-    const access = await navigator.requestMIDIAccess();
+    access = await navigator.requestMIDIAccess();
+  } catch (err) {
+    console.error(err);
+    showTransient('MIDI access denied');
+    return;
+  }
+  try {
     state.midiAccess = access;
     state.midiEnabled = true;
     state.midiHeldNotes = new Set();
@@ -113,14 +121,15 @@ export async function startMidi() {
 
     refreshHeardFromHeld();
   } catch (err) {
+    // Access was granted: a failure here is ours, not a refused permission.
     console.error(err);
-    showTransient('MIDI access denied');
+    showTransient(`MIDI error: ${err && (err.message || err.name) || err}`);
   }
 }
 
 export function stopMidi() {
   if (state.midiAccess) {
-    for (const input of state.midiAccess.inputs.values()) input.onmidimessage = null;
+    for (const input of midiInputs(state.midiAccess)) input.onmidimessage = null;
     state.midiAccess.onstatechange = null;
   }
   state.midiAccess = null;

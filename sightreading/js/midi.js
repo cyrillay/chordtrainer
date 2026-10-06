@@ -2,6 +2,8 @@
 // timestamp (same clock as performance.now()) so tempo grading isn't
 // skewed by main-thread jank.
 
+import { midiInputs } from '../../js/midi/ports.js';
+
 // handlers: { onNoteOn(midi, velocity, timeStamp), onNoteOff(midi), onStatus(status) }
 // status: { state: 'unsupported' | 'denied' | 'none' | 'connected', names: [] }
 export async function connectMidi(handlers) {
@@ -12,7 +14,8 @@ export async function connectMidi(handlers) {
   let access;
   try {
     access = await navigator.requestMIDIAccess();
-  } catch {
+  } catch (err) {
+    console.error(err);
     handlers.onStatus({ state: 'denied', names: [] });
     return null;
   }
@@ -27,7 +30,7 @@ export async function connectMidi(handlers) {
 
   const refresh = () => {
     const names = [];
-    for (const input of access.inputs.values()) {
+    for (const input of midiInputs(access)) {
       input.onmidimessage = onMessage;
       names.push(input.name);
     }

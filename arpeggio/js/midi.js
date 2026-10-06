@@ -3,6 +3,8 @@
 // separate, event-based wrapper rather than the chord trainer's held-notes
 // module.
 
+import { midiInputs } from '../../js/midi/ports.js';
+
 const LS_GRANTED = 'arpeggioTrainer.midiGranted';
 
 export function createMidi({ onNoteOn, onNoteOff, onPedal, onStatus }) {
@@ -19,7 +21,7 @@ export function createMidi({ onNoteOn, onNoteOff, onPedal, onStatus }) {
 
   function refresh() {
     const names = [];
-    for (const input of access.inputs.values()) {
+    for (const input of midiInputs(access)) {
       input.onmidimessage = handle;
       names.push(input.name);
     }
@@ -33,16 +35,17 @@ export function createMidi({ onNoteOn, onNoteOff, onPedal, onStatus }) {
     }
     try {
       access = await navigator.requestMIDIAccess();
-      try { localStorage.setItem(LS_GRANTED, '1'); } catch { /* ignore */ }
-      access.onstatechange = refresh;
-      refresh();
-      // Some platforms enumerate inputs a beat after access resolves.
-      setTimeout(refresh, 500);
-      return true;
-    } catch {
+    } catch (err) {
+      console.error(err);
       onStatus({ state: 'denied', names: [] });
       return false;
     }
+    try { localStorage.setItem(LS_GRANTED, '1'); } catch { /* ignore */ }
+    access.onstatechange = refresh;
+    refresh();
+    // Some platforms enumerate inputs a beat after access resolves.
+    setTimeout(refresh, 500);
+    return true;
   }
 
   const previouslyGranted = () => {
