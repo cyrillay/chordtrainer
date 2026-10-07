@@ -16,6 +16,7 @@ import {
   getSetting, setSetting, bump, counter,
 } from './progress.js';
 import { initAchievements, checkAchievements } from './achievements.js';
+import { restartFloor, restartHint, isRestartNote, isRestartChord } from './keyCommands.js';
 
 const $ = (id) => document.getElementById(id);
 const DEBUG = new URLSearchParams(location.search).has('debug');
@@ -40,6 +41,9 @@ const S = {
   midi: 'off',          // 'off' | 'none' | 'connected' | 'unsupported' | 'denied'
   held: new Set(),
   finished: false,
+  restartFloor: 72,     // lowest note of the restart chord zone (see keyCommands.js)
+  armedAt: -Infinity,   // performance.now() of the last start / restart
+  finishedAt: -Infinity,
 };
 
 const level = () => LEVELS[S.levelIdx];
@@ -150,6 +154,7 @@ function prepare() {
 
   S.marks = new Map();
   S.timeline = buildTimeline(ex);
+  S.restartFloor = restartFloor(ex);
   draw();
   armRun();
 }
@@ -197,10 +202,19 @@ function placeCursor(x, system) {
   cur.style.height = `${(sys.bottom - sys.top - 6) * k}px`;
   if (cur.dataset.system !== String(system)) {
     cur.dataset.system = system;
-    const rect = cur.getBoundingClientRect();
-    if (rect.bottom > window.innerHeight - 40 || rect.top < 0) {
-      window.scrollBy({ top: rect.top - window.innerHeight * 0.3, behavior: 'smooth' });
-    }
+    followSystem(r.top + sys.top * k, r.top + sys.bottom * k, system);
+  }
+}
+
+// Keeps the score readable while it plays. From the second line on, the
+// current line goes to the top of the screen so the lines after it show
+// below. The first line only scrolls if part of it is hidden.
+function followSystem(top, bottom, system) {
+  const margin = 12;
+  const dock = $('playDock').getBoundingClientRect();
+  const visibleBottom = Math.min(window.innerHeight, dock.top) - margin;
+  if (system > 0 || top < 0 || bottom > visibleBottom) {
+    if (Math.abs(top - margin) > 24) window.scrollBy({ top: top - margin, behavior: 'smooth' });
   }
 }
 
@@ -260,6 +274,9 @@ function armRun() {
   for (const [k] of S.marks) S.layout.noteEl(k)?.classList.remove('is-current', 'is-hit', 'is-good', 'is-miss', 'is-hidden');
   S.marks = new Map();
   $('cursor').dataset.system = '';
+  S.armedAt = performance.now();
+  $('restartHint').hidden = S.midi !== 'connected';
+  $('restartHint').textContent = `Restart from the keyboard: ${restartHint(S.exercise)}.`;
 
   if (S.mode === 'wait') {
     S.run = new WaitRun(S.timeline);
@@ -274,7 +291,7 @@ function armRun() {
     if (first) placeCursor(first.x, first.system);
     $('startBtn').textContent = 'Start';
     setStatus(S.midi === 'connected'
-      ? 'Press <kbd>Space</kbd> or Start: one bar of count-in, then play along.'
+      ? 'Press any key, <kbd>Space</kbd> or Start: one bar of count-in, then play along.'
       : 'Connect your MIDI keyboard (top right) to play.');
   }
 }
@@ -303,6 +320,7 @@ function startTempo() {
   run.start(t0 + outputLatencyMs());
   S.run = run;
   S.running = true;
+  S.armedAt = performance.now();
   $('scoreStage').classList.add('is-running');
   $('startBtn').textContent = 'Stop';
   setStatus('Count-in…');
@@ -357,7 +375,9 @@ function startTempo() {
 function onNoteOn(midi, velocity, t) {
   S.held.add(midi);
   renderHeard();
-  if (S.finished || $('viewPlay').hidden) return;
+  if ($('viewPlay').hidden || !S.exercise) return;
+  if (pianoCommand(midi)) return;
+  if (S.finished) return;
 
   if (S.mode === 'wait' && S.run instanceof WaitRun) {
     const g = S.run.current;
@@ -384,6 +404,32 @@ function onNoteOn(midi, velocity, t) {
   }
 }
 
+// Commands from the piano: the high tonic chord restarts, and in Tempo mode
+// any key starts the count-in. Returns true when the note was used up.
+function pianoCommand(midi) {
+  const now = performance.now();
+  const { key } = S.exercise;
+  const chordNote = isRestartNote(midi, key, S.restartFloor);
+  if (chordNote && isRestartChord(S.held, key, S.restartFloor)) {
+    // The key that started the count-in may be the chord's first note.
+    if (now - S.armedAt > 400) restart();
+    return true;
+  }
+  // Leave a moment after the end so the last notes don't skip the results.
+  if (S.mode === 'tempo' && !S.running && now - S.finishedAt > 1500) {
+    if (S.finished) retry(); else startTempo();
+    return true;
+  }
+  // Notes of a chord being formed up there are never mistakes.
+  return chordNote;
+}
+
+function restart() {
+  if (S.finished) return retry();
+  if (S.mode === 'tempo') startTempo();
+  else armRun();
+}
+
 function onNoteOff(midi) {
   S.held.delete(midi);
   renderHeard();
@@ -399,6 +445,7 @@ function renderHeard() {
 function finish() {
   if (S.finished) return;
   S.finished = true;
+  S.finishedAt = performance.now();
   stopRun();
   $('cursor').hidden = true;
   // Reveal what "read ahead" hid, so the marks can be reviewed.

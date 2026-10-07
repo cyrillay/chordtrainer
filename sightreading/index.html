@@ -42,7 +42,7 @@
     <div class="hd-top">
       <a href="../" class="hd-brand" aria-label="Étude, home">
         <span class="hd-name">Étude</span>
-        <span class="hd-opus">Op. 6 No 6</span>
+        <span class="hd-opus">Op. 6 No 7</span>
       </a>
       <div class="hd-actions">
         <button type="button" id="midiBtn" class="hd-btn">
@@ -146,14 +146,17 @@
         </div>
       </div>
 
-      <div class="status-row">
-        <div class="status" id="status">Connect a MIDI keyboard to begin.</div>
-        <div class="heard" id="heard" aria-live="off"></div>
-      </div>
-
-      <div class="play-actions">
-        <button type="button" class="ghost-btn" id="newExBtn">New exercise</button>
-        <button type="button" class="primary-btn big" id="startBtn">Start</button>
+      <!-- Stays at the bottom of the screen, so Start / Restart is always in reach. -->
+      <div class="play-dock" id="playDock">
+        <div class="status-row">
+          <div class="status" id="status">Connect a MIDI keyboard to begin.</div>
+          <div class="heard" id="heard" aria-live="off"></div>
+        </div>
+        <div class="play-actions">
+          <div class="restart-hint" id="restartHint" hidden></div>
+          <button type="button" class="ghost-btn" id="newExBtn">New exercise</button>
+          <button type="button" class="primary-btn big" id="startBtn">Start</button>
+        </div>
       </div>
     </section>
 

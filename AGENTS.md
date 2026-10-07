@@ -34,10 +34,10 @@ Current versions (keep this table in sync):
 | App | Current |
 |-----|---------|
 | Chords | Op. 1 No 60 |
-| Sight-reading | Op. 6 No 6 |
+| Sight-reading | Op. 6 No 7 |
 | Arpeggios | Op. 2 No 7 |
 | Repertoire | Op. 5 No 10 |
-| Ghost Jam | Op. 7 No 2 |
+| Ghost Jam | Op. 7 No 3 |
 | PDF to MIDI | Anh. 1 No 8 |
 
 ## Shared pieces

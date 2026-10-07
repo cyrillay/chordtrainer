@@ -434,10 +434,26 @@ body.beat-odd .ghost-band .ghost:nth-child(2) .sprite { transform: translateY(-5
 .chord-tones { display: flex; justify-content: center; gap: 0.5rem; min-height: 1.6rem; color: var(--ivory-dim); font-size: 1.3rem; }
 .chord-tones .req { color: var(--cyan); text-shadow: 0 0 8px rgba(24, 240, 255, 0.7); }
 
-.next-chords { display: flex; align-items: baseline; gap: 0.7rem; font-size: 1.8rem; color: var(--ivory-dim); min-height: 2.2rem; }
-.nx-lbl { font-family: var(--font-display); font-size: 0.45rem; color: var(--orange); text-transform: uppercase; letter-spacing: 0.12em; }
-.nx { opacity: calc(1 - var(--i) * 0.22); }
-.nx:first-of-type { color: var(--cyan); text-shadow: 0 0 8px rgba(24, 240, 255, 0.6); }
+.next-chords { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0.6rem 1rem; min-height: 4.6rem; color: var(--ivory-dim); }
+.nx-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.35rem 1.1rem 0.45rem;
+  border: 2px solid var(--cyan);
+  border-radius: 10px;
+  background: rgba(24, 240, 255, 0.08);
+  box-shadow: 0 0 14px rgba(24, 240, 255, 0.35);
+  transition: background 0.1s, box-shadow 0.1s, border-color 0.1s;
+}
+.nx-lbl { font-family: var(--font-display); font-size: 0.5rem; color: var(--orange); text-transform: uppercase; letter-spacing: 0.12em; }
+.nx-chord { font-size: clamp(2.4rem, 11vw, 3.4rem); line-height: 1; color: var(--cyan); text-shadow: 0 0 10px rgba(24, 240, 255, 0.7); white-space: nowrap; }
+.nx-card.soon { border-color: #fff; background: rgba(24, 240, 255, 0.2); box-shadow: 0 0 28px var(--cyan); animation: nxSoon 0.35s ease-in-out infinite alternate; }
+.nx-card.soon .nx-chord { color: #fff; }
+@keyframes nxSoon { to { transform: scale(1.07); } }
+.nx-then { display: flex; align-items: baseline; gap: 0.6rem; font-size: 1.5rem; white-space: nowrap; }
+.nx { opacity: calc(1 - var(--i) * 0.25); }
 .nx-arrow { color: var(--line); }
 
 .slot-bar { width: min(480px, 90%); height: 6px; border-radius: 3px; background: #24143a; overflow: hidden; }

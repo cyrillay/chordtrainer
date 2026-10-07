@@ -46,6 +46,7 @@ html, body {
   font-family: var(--font-body);
   min-height: 100vh;
   overflow-x: hidden;
+  overflow-x: clip;    /* clip, not hidden alone: hidden breaks the sticky play dock */
 }
 
 body {
@@ -803,7 +804,17 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
 }
 .heard { font-family: var(--font-mono); font-size: 0.85rem; color: var(--gold); white-space: nowrap; }
 
-.play-actions { display: flex; justify-content: flex-end; gap: 0.8rem; margin-top: 1rem; }
+/* Status and Start / Restart stick to the bottom of the screen. */
+.play-dock {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  margin: 0 -0.5rem;
+  padding: 0.5rem 0.5rem calc(0.6rem + env(safe-area-inset-bottom));
+  background: linear-gradient(to bottom, transparent, var(--ink) 0.8rem);
+}
+.play-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 0.8rem; margin-top: 0.4rem; }
+.restart-hint { flex: 1; min-width: 12rem; font-size: 0.95rem; font-style: italic; color: var(--ivory-dim); }
 
 /* ---------- results ---------- */
 
@@ -859,8 +870,12 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   .results { position: fixed; z-index: 500; border-radius: 0; }
   .results-card { padding: 1.2rem 1rem; }
   .slider { width: 110px; }
-  .play-actions { justify-content: stretch; }
+  .play-actions { justify-content: stretch; gap: 0.5rem; margin-top: 0.2rem; }
   .play-actions button { flex: 1; }
+  .play-actions .primary-btn.big { padding: 0.8rem 1rem; }
+  .restart-hint { flex-basis: 100%; min-width: 0; font-size: 0.85rem; }
+  .status-row { min-height: 1.6rem; }
+  .status { font-size: 0.98rem; }
 }
 
 .load-error { color: var(--note-miss); text-align: center; padding: 3rem 1rem; font-size: 1.1rem; }

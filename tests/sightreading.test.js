@@ -196,3 +196,40 @@ test('stars', () => {
   assert.equal(tempoStars(0.99, 60, 80), 2);
   assert.equal(tempoStars(0.75, 80, 80), 1);
 });
+
+// ---- Piano commands ----------------------------------------------------------
+
+import {
+  tonicTriad, triadName, restartFloor, restartHint, isRestartNote, isRestartChord,
+} from '../sightreading/js/keyCommands.js';
+
+test('restart chord is the tonic triad of the key', () => {
+  assert.deepEqual(tonicTriad('C'), [0, 4, 7]);
+  assert.deepEqual(tonicTriad('Am'), [9, 0, 4]);
+  assert.deepEqual(tonicTriad('Bb'), [10, 2, 5]);
+  assert.deepEqual(tonicTriad('F#m'), [6, 9, 1]);
+  assert.equal(triadName('Bb'), 'B♭ major');
+  assert.equal(triadName('Gm'), 'G minor');
+});
+
+test('restart chord sits above every written note', () => {
+  const low = exerciseFromText({ rh: 'c4 d4 e4 f4', key: 'C' });
+  assert.equal(restartFloor(low), 72);
+  const high = exerciseFromText({ rh: 'c4 e5 a5 g4', key: 'C' });
+  assert.equal(restartFloor(high), 82);
+  assert.equal(restartHint(high), 'C major chord, B♭5 or higher');
+});
+
+test('restart chord needs the whole triad in the high zone', () => {
+  const floor = 72;
+  assert.ok(isRestartChord(new Set([72, 76, 79]), 'C', floor));
+  assert.ok(isRestartChord(new Set([76, 79, 84, 48]), 'C', floor), 'inversion, with a bass note held');
+  assert.ok(!isRestartChord(new Set([72, 76]), 'C', floor));
+  assert.ok(!isRestartChord(new Set([60, 64, 67]), 'C', floor), 'too low');
+  assert.ok(!isRestartChord(new Set([72, 76, 79, 81]), 'C', floor), 'extra note');
+  assert.ok(!isRestartChord(new Set([72, 76, 79]), 'Am', floor));
+  assert.ok(isRestartChord(new Set([81, 84, 88]), 'Am', floor));
+  assert.ok(isRestartNote(76, 'C', floor));
+  assert.ok(!isRestartNote(77, 'C', floor));
+  assert.ok(!isRestartNote(64, 'C', floor));
+});
