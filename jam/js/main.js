@@ -336,6 +336,7 @@ function loop() {
     game.shownSlot = k;
     if (k >= 0 && k < game.totalSlots) showSlot(k);
   }
+  markNextSoon(k, heard);
   if (k >= 0) {
     const frac = (heard - slotStart(k)) / (slotEnd(k) - slotStart(k));
     $('slotFill').style.transform = `scaleX(${Math.max(0, Math.min(1, frac))})`;
@@ -392,9 +393,21 @@ function renderNext(k) {
   for (let i = 1; i <= 3; i++) {
     const n = k + i;
     if (n < 0 || n >= game.totalSlots) break;
-    items.push(`<span class="nx" style="--i:${i}">${formatChordHtml(game.chords[n % game.chords.length])}</span>`);
+    items.push(formatChordHtml(game.chords[n % game.chords.length]));
   }
-  $('nextChords').innerHTML = items.length ? `<span class="nx-lbl">Next</span>${items.join('<span class="nx-arrow">›</span>')}` : '';
+  const [first, ...rest] = items;
+  $('nextChords').innerHTML = first
+    ? `<div class="nx-card" id="nxCard"><span class="nx-lbl">Next</span><span class="nx-chord">${first}</span></div>`
+      + (rest.length ? `<div class="nx-then">${rest.map((c, i) => `<span class="nx" style="--i:${i + 1}">${c}</span>`).join('<span class="nx-arrow">›</span>')}</div>` : '')
+    : '';
+}
+
+// Light up the next chord during the last beat before it lands.
+function markNextSoon(k, heard) {
+  const card = $('nxCard');
+  if (!card) return;
+  const changeAt = k < 0 ? slotStart(0) : slotEnd(k);
+  card.classList.toggle('soon', changeAt - heard <= band.beat);
 }
 
 const SHOUTS = {
