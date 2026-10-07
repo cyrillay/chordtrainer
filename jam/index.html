@@ -33,7 +33,7 @@
     <div class="hd-top">
       <a href="../" class="hd-brand" aria-label="Étude, home">
         <span class="hd-name">Étude</span>
-        <span class="hd-opus">Op. 7 No 3</span>
+        <span class="hd-opus">Op. 7 No 4</span>
       </a>
       <div class="hd-actions">
         <button type="button" id="midiBtn" class="hd-btn">
@@ -143,6 +143,7 @@
 
     <!-- ==================== PLAY ==================== -->
     <section class="view" id="viewPlay" hidden>
+      <div class="beat-glow" id="beatGlow" aria-hidden="true"></div>
       <div class="hud">
         <div class="hud-cell"><div class="hud-lbl">Score</div><div class="hud-val" id="hudScore">0</div></div>
         <div class="hud-cell hud-combo" id="hudComboCell"><div class="hud-lbl">Combo</div><div class="hud-val"><span id="hudCombo">0</span><small id="hudMult">×1</small></div></div>
@@ -155,6 +156,7 @@
       </div>
 
       <div class="stage" id="stage">
+        <div class="beat-glow in-stage" aria-hidden="true"></div>
         <div class="beat-bulbs" id="beatBulbs"><i></i><i></i><i></i><i></i></div>
         <div class="now-playing">
           <div class="chord-big" id="chordBig">·</div>
@@ -162,12 +164,16 @@
         </div>
         <div class="next-chords" id="nextChords"></div>
         <div class="slot-bar"><div class="slot-fill" id="slotFill"></div></div>
+        <div class="gauge" aria-hidden="true">
+          <div class="gauge-track"><div class="gauge-zones" id="gaugeZones"></div><div class="gauge-ticks" id="gaugeTicks"></div><i class="gauge-cursor" id="gaugeCursor" hidden></i></div>
+          <div class="gauge-legend"><span>Early</span><span class="gauge-readout" id="gaugeReadout"></span><span>Late</span></div>
+        </div>
         <div class="shout-layer" id="shoutLayer" aria-live="polite"></div>
       </div>
 
       <div class="bandstand">
         <div class="ghost-band" id="ghostBand"></div>
-        <div class="energy" id="energyMeter"><span class="energy-lbl">Energy</span><i></i><i></i><i></i><i></i></div>
+        <div class="energy" id="energyMeter"><span class="energy-lbl">Energy</span><i></i><i></i><i></i><i></i><i></i><i></i></div>
       </div>
 
       <div class="kb-frame"><div class="kb" id="keyboard"></div></div>

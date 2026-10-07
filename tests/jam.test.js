@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildChord } from '../js/core/theory.js';
 import { PROGRESSIONS, romanToChord, progressionMode } from '../js/training/progressions.js';
-import { chordTargets, toneRole, SlotJudge, Scorer, multiplier, nextEnergy } from '../jam/js/judge.js';
-import { STYLES, STYLE_ORDER, barEvents, bassRoot, keysVoicing, countIn } from '../jam/js/styles.js';
+import { chordTargets, toneRole, SlotJudge, Scorer, multiplier, nextEnergy, timingZone } from '../jam/js/judge.js';
+import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, partsAt, barEvents, bassRoot, keysVoicing, countIn } from '../jam/js/styles.js';
 
 const pcs = (set) => [...set].sort((a, b) => a - b);
 
@@ -70,7 +70,9 @@ test('scorer: combo, multiplier and band energy', () => {
   s.add({ grade: 'miss', base: 0, bonus: 0 });
   assert.equal(s.combo, 0);
   assert.equal(s.energy, 1);
-  assert.equal(nextEnergy(3, 'perfect', 12), 3);
+  assert.equal(nextEnergy(3, 'perfect', 12), 4);
+  assert.equal(nextEnergy(4, 'perfect', 40), MAX_ENERGY);
+  assert.equal(nextEnergy(4, 'good', 2), 4);      // a short streak keeps who is there
   assert.equal(nextEnergy(0, 'miss', 0), 0);
   assert.ok(['S', 'A', 'B', 'C', 'D'].includes(s.rank));
 });
@@ -82,7 +84,7 @@ test('every groove plays every progression chord in range', () => {
     for (const prog of PROGRESSIONS.slice(0, 40)) {
       const chords = prog.tokens.map((t) => romanToChord(t, 'F#', progressionMode(prog)));
       chords.forEach((chord, i) => {
-        for (const energy of [0, 1, 2, 3]) {
+        for (let energy = 0; energy <= MAX_ENERGY; energy++) {
           const ev = barEvents(id, { chord, next: chords[(i + 1) % chords.length], energy, rng: () => 0.3 });
           for (const d of ev.drums) assert.ok(d.step >= 0 && d.step < style.steps, `${id} drum step`);
           for (const n of ev.bass) {
@@ -90,7 +92,10 @@ test('every groove plays every progression chord in range', () => {
             assert.ok(n.midi >= 26 && n.midi <= 56, `${id} bass ${n.midi} on ${chord.symbol}`);
           }
           for (const k of ev.keys) assert.ok(k.step + k.dur <= style.steps, `${id} keys overflow`);
+          for (const h of [...ev.horns, ...ev.strings]) assert.ok(h.step + h.dur <= style.steps, `${id} horns/strings overflow`);
           if (energy === 0) assert.equal(ev.keys.length, 0);
+          assert.equal(ev.horns.length > 0, energy >= 3, `${id} horns at ${energy}`);
+          assert.equal(ev.strings.length > 0, energy >= 4, `${id} strings at ${energy}`);
         }
       });
     }
@@ -116,4 +121,29 @@ test('voicings: bass root in the low register, keys around middle C', () => {
   const v = keysVoicing(buildChord('D', 'min7'));
   assert.equal(v.length, 3);                       // rootless
   assert.ok(v.every((n) => n >= 53 && n < 65));
+});
+
+test('band tiers: one more player per tier, everyone at the top', () => {
+  assert.equal(TIERS.length, MAX_ENERGY + 1);
+  assert.deepEqual([...partsAt(0)], ['drums', 'bass']);
+  assert.ok(partsAt(1).has('keys') && !partsAt(1).has('perc'));
+  for (let e = 1; e <= MAX_ENERGY; e++) assert.equal(partsAt(e).size, partsAt(e - 1).size + 1);
+  assert.equal(partsAt(99).size, partsAt(MAX_ENERGY).size);
+  // The shaker only plays from its tier on.
+  const chord = buildChord('C', 'maj');
+  for (const id of STYLE_ORDER) {
+    const voices = (e) => new Set(barEvents(id, { chord, energy: e, rng: () => 0.3 }).drums.map((d) => d.voice));
+    const perc = (e) => voices(e).has('shaker') || voices(e).has('tamb');
+    assert.ok(!perc(1) && perc(2), id);
+  }
+});
+
+test('timing zones match the grading windows', () => {
+  assert.equal(timingZone(null), null);
+  assert.equal(timingZone(0), 'perfect');
+  assert.equal(timingZone(-0.2), 'perfect');
+  assert.equal(timingZone(0.25), 'perfect');
+  assert.equal(timingZone(-0.4), 'early');
+  assert.equal(timingZone(0.6), 'good');
+  assert.equal(timingZone(1.4), 'late');
 });

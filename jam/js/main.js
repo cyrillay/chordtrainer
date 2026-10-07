@@ -10,8 +10,8 @@ import { PROGRESSIONS, romanToChord, progressionMode, progressionQualities } fro
 import { renderMidiHint, gateCopy, DENIED_HELP_HTML } from '../../js/midi/midiHelp.js';
 import { connectMidi } from '../../sightreading/js/midi.js';
 import { attachComputerKeyboard } from '../../arpeggio/js/midi.js';
-import { STYLES, STYLE_ORDER } from './styles.js';
-import { SlotJudge, Scorer, chordTargets, toneRole, multiplier, WINDOW } from './judge.js';
+import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, partsAt } from './styles.js';
+import { SlotJudge, Scorer, chordTargets, toneRole, multiplier, timingZone, WINDOW } from './judge.js';
 import { Band } from './band.js';
 import { sprite } from './sprites.js';
 
@@ -140,9 +140,13 @@ const BAND = [
   { id: 'drums', name: 'Drums', color: 'cyan' },
   { id: 'bass', name: 'Bass', color: 'pink' },
   { id: 'keys', name: 'Keys', color: 'orange' },
+  { id: 'perc', name: 'Shaker', color: 'lime' },
+  { id: 'horns', name: 'Horns', color: 'amber' },
+  { id: 'strings', name: 'Strings', color: 'violet' },
+  { id: 'lead', name: 'Bell', color: 'white' },
 ];
 const ghostHtml = (m) => `<div class="ghost ghost-${m.color}" data-part="${m.id}">${sprite('ghost', { px: 5 })}<span class="ghost-name">${m.name}</span></div>`;
-$('bandIntro').innerHTML = BAND.map(ghostHtml).join('');
+$('bandIntro').innerHTML = BAND.slice(0, 3).map(ghostHtml).join('');
 $('ghostBand').innerHTML = BAND.map(ghostHtml).join('');
 
 // ---- Keyboard strip (C2 to C7) ----
@@ -246,7 +250,11 @@ function startGame() {
   $('tuneMeta').textContent = `${style.name} · ${NOTE_DISPLAY[key]} · ${tempo} bpm`;
   $('hudHi').textContent = hiFor(game.scoreKey).toLocaleString();
   renderHud();
+  game.energy = -1;
   renderEnergy(1);
+  $('gaugeTicks').innerHTML = '';
+  $('gaugeReadout').textContent = '';
+  $('gaugeReadout').className = 'gauge-readout';
   $('chordBig').innerHTML = '<span class="count">Ready</span>';
   $('chordTones').innerHTML = '';
   renderNext(-1);
@@ -302,7 +310,11 @@ function onNoteOn(midi, velocity, tPerf = performance.now()) {
     const t = toAudioTime(tPerf);
     const k = slotAt(t);
     const j = judgeFor(k);
-    if (j && !j.done) role = j.noteOn(midi % 12, t * 1000, heldPcs());
+    if (j && !j.done) {
+      const before = j.hitAt;
+      role = j.noteOn(midi % 12, t * 1000, heldPcs());
+      if (before === null && j.hitAt !== null) onHit(k, j);
+    }
     else if (k >= 0) role = toneRole(chordTargets(game.chords[k % game.chords.length]), midi % 12);
   }
   held.set(midi, role);
@@ -337,6 +349,7 @@ function loop() {
     if (k >= 0 && k < game.totalSlots) showSlot(k);
   }
   markNextSoon(k, heard);
+  moveGaugeCursor(k, heard);
   if (k >= 0) {
     const frac = (heard - slotStart(k)) / (slotEnd(k) - slotStart(k));
     $('slotFill').style.transform = `scaleX(${Math.max(0, Math.min(1, frac))})`;
@@ -363,6 +376,12 @@ function onBeat(pos) {
     $('tuneChorus').textContent = 'Count-in';
   }
   document.body.classList.toggle('beat-odd', pos.beat % 2 === 1);
+  for (const glow of document.querySelectorAll('.beat-glow')) {
+    glow.classList.remove('pulse', 'down');
+    void glow.offsetWidth;
+    glow.classList.add('pulse');
+    if (pos.beat === 0) glow.classList.add('down');
+  }
 }
 
 function showSlot(k) {
@@ -454,16 +473,97 @@ function renderHud() {
   if (s.score > hiFor(game.scoreKey)) $('hudHi').textContent = s.score.toLocaleString();
 }
 
-// Energy 0..3: which ghosts are on stage, how full the meter is.
+// Energy 0..MAX_ENERGY: which ghosts are on stage, how full the meter is.
+// A change of tier is announced on stage.
 function renderEnergy(e) {
   const bars = $('energyMeter').querySelectorAll('i');
   bars.forEach((b, i) => b.classList.toggle('on', i <= e));
+  const parts = partsAt(e);
   for (const g of $('ghostBand').children) {
-    const off = g.dataset.part === 'keys' && e === 0;
-    g.classList.toggle('is-off', off);
-    g.classList.toggle('is-wild', e >= 3);
+    const was = !g.classList.contains('is-off');
+    const on = parts.has(g.dataset.part);
+    g.classList.toggle('is-off', !on);
+    g.classList.toggle('is-wild', e >= MAX_ENERGY);
+    if (on && !was && game?.energy >= 0) {
+      g.classList.remove('joins');
+      void g.offsetWidth;
+      g.classList.add('joins');
+    }
   }
   document.body.dataset.energy = String(e);
+  if (game) {
+    const prev = game.energy;
+    game.energy = e;
+    if (prev >= 0 && e !== prev) announceTier(prev, e);
+  }
+}
+
+function announceTier(prev, e) {
+  const up = e > prev;
+  const tier = TIERS[up ? e : prev];
+  const el = document.createElement('div');
+  el.className = `tier-banner ${up ? 'is-up' : 'is-down'}`;
+  const verb = (one, many) => (tier.plural ? many : one);
+  el.textContent = up
+    ? `${tier.name} ${verb('joins', 'join')} in!${e === MAX_ENERGY ? ' Full band!' : ''}`
+    : `${tier.name} ${verb('sits', 'sit')} out`;
+  document.querySelector('.bandstand').appendChild(el);
+  setTimeout(() => el.remove(), 1800);
+}
+
+// ---- Timing gauge ----
+// Spans GAUGE.from..GAUGE.to beats around each chord change. A cursor
+// sweeps through it as the change comes and goes; each landed chord drops
+// a tick where it hit.
+
+const GAUGE = { from: -1, to: 1.5 };
+const gaugePct = (beats) => ((Math.max(GAUGE.from, Math.min(GAUGE.to, beats)) - GAUGE.from) / (GAUGE.to - GAUGE.from)) * 100;
+
+(function buildGaugeZones() {
+  const zones = [
+    ['early', -WINDOW.antic, -WINDOW.perfect],
+    ['perfect', -WINDOW.perfect, WINDOW.perfect],
+    ['good', WINDOW.perfect, WINDOW.good],
+    ['late', WINDOW.good, GAUGE.to],
+  ];
+  $('gaugeZones').innerHTML = zones.map(([z, a, b]) =>
+    `<i class="gz gz-${z}" style="left:${gaugePct(a)}%;width:${gaugePct(b) - gaugePct(a)}%"></i>`).join('')
+    + `<i class="gz-center" style="left:${gaugePct(0)}%"></i>`;
+})();
+
+function moveGaugeCursor(k, heard) {
+  const cur = $('gaugeCursor');
+  // The change that matters: the one just passed, until it leaves the gauge.
+  let c = k < 0 ? 0 : k;
+  if (k >= 0 && (heard - slotStart(k)) / band.beat > GAUGE.to) c = k + 1;
+  if (c >= game.totalSlots) { cur.hidden = true; return; }
+  const off = (heard - slotStart(c)) / band.beat;
+  const inside = off >= GAUGE.from && off <= GAUGE.to;
+  cur.hidden = !inside;
+  if (inside) cur.style.left = `${gaugePct(off)}%`;
+}
+
+const ZONE_WORD = { early: 'Early', perfect: 'On the beat', good: 'A bit late', late: 'Late' };
+
+function onHit(k, j) {
+  const off = j.offsetBeats;
+  const zone = timingZone(off);
+  const ms = Math.round(off * band.beat * 1000);
+  const tick = document.createElement('i');
+  tick.className = `gt gt-${zone}`;
+  tick.style.left = `${gaugePct(off)}%`;
+  const ticks = $('gaugeTicks');
+  ticks.appendChild(tick);
+  while (ticks.children.length > 8) ticks.firstChild.remove();
+  const read = $('gaugeReadout');
+  read.className = `gauge-readout gr-${zone}`;
+  read.textContent = `${ZONE_WORD[zone]} · ${ms > 0 ? '+' : ''}${ms} ms`;
+  const big = $('chordBig');
+  big.classList.remove('hit', 'hit-perfect');
+  void big.offsetWidth;
+  big.classList.add(zone === 'perfect' ? 'hit-perfect' : 'hit');
+  // Nailed it: the band answers.
+  if (zone === 'perfect' && j.wrong === 0) band.accent(j.hitAt / 1000, slotStart(k));
 }
 
 // ---- End of a set ----
