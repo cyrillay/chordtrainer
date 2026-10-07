@@ -445,6 +445,14 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   inset: 0;
   cursor: crosshair;
 }
+/* Systems: one finger draws a box. Two fingers still pinch and scroll where
+   the browser supports pinch-zoom; elsewhere (older iOS) it falls back to none. */
+.mark-overlay[data-mode="system"] {
+  touch-action: none;
+  touch-action: pinch-zoom;
+}
+/* Barlines: taps add or remove lines, swipes scroll the page as usual. */
+.mark-overlay[data-mode="barline"] { touch-action: manipulation; }
 
 /* System rectangles */
 .system-box {
@@ -466,6 +474,7 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   font-size: 0.7rem;
   background: var(--gold);
   color: var(--ink);
+  line-height: 1.4;
   padding: 0.1rem 0.4rem;
   border-radius: var(--radius-sm);
   pointer-events: none;
@@ -476,6 +485,7 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   right: 0;
   font-family: var(--font-mono);
   font-size: 0.7rem;
+  line-height: 1.4;
   padding: 0.1rem 0.4rem;
   background: rgba(160, 59, 59, 0.85);
   color: var(--ivory);
@@ -497,6 +507,29 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   transition: width var(--ease-fast), background var(--ease-fast);
 }
 .barline:hover { width: 4px; background: var(--crimson); }
+/* A wider invisible hit area so a 2px line can be tapped. */
+.barline::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -5px;
+  right: -5px;
+}
+
+/* Touch screens have no hover: keep the × visible and big enough to tap. */
+@media (hover: none) {
+  .system-box .system-remove {
+    opacity: 1;
+    top: -30px;
+    min-width: 28px;
+    min-height: 28px;
+    font-size: 0.9rem;
+  }
+  .system-box .system-label { top: -26px; }
+  .barline::before { left: -9px; right: -9px; }
+  .kbd-hint { display: none; }
+}
 
 .measure-overlay {
   position: absolute;
