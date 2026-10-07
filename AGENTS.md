@@ -36,7 +36,7 @@ Current versions (keep this table in sync):
 | Chords | Op. 1 No 60 |
 | Sight-reading | Op. 6 No 6 |
 | Arpeggios | Op. 2 No 7 |
-| Repertoire | Op. 5 No 9 |
+| Repertoire | Op. 5 No 10 |
 | Ghost Jam | Op. 7 No 2 |
 | PDF to MIDI | Anh. 1 No 8 |
 

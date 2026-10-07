@@ -225,8 +225,11 @@ async function enterMarkView() {
       $('measureCount').textContent = totalMeasures;
       $('confirmMarkBtn').disabled = totalMeasures < 1;
       $('pageNum').textContent = marking.pageIdx + 1;
+      $('undoMarkBtn').disabled = !marking.canUndo;
     },
   });
+  // Keep the toggle and the marking in the same mode when coming back here.
+  marking.setMode(document.querySelector('.mode-btn.active')?.dataset.mode || 'system');
   await marking.loadPage(0);
 }
 
@@ -238,9 +241,9 @@ document.querySelectorAll('.mode-btn').forEach((btn) => {
     // Update the hint copy so the user knows what action this mode performs.
     const hint = $('markHint');
     if (btn.dataset.mode === 'system') {
-      hint.innerHTML = 'Drag to box each <strong>system</strong> (one music line). Use the × to remove a system. The box edges already count as the first and last barlines.';
+      hint.innerHTML = 'Drag to box each <strong>system</strong> (one music line), with the mouse or a finger. Use the × to remove a system. The box edges already count as the first and last barlines.';
     } else {
-      hint.innerHTML = 'Click each <strong>internal</strong> barline inside a system. No need to click the first and last (they\'re the system edges). Click an existing line to remove it.';
+      hint.innerHTML = 'Click or tap each <strong>internal</strong> barline inside a system. No need to mark the first and last (they\'re the system edges). Tap an existing line to remove it. Pinch to zoom in on small measures.';
     }
   });
 });
@@ -254,6 +257,7 @@ $('pageFwd').addEventListener('click', async () => {
   if (marking.pageIdx < marking.numPages - 1) await marking.loadPage(marking.pageIdx + 1);
 });
 
+$('undoMarkBtn').addEventListener('click', () => marking?.undo());
 $('clearPageBtn').addEventListener('click', () => {
   if (confirm('Clear all markings on this page?')) marking?.clearPage();
 });

@@ -1,5 +1,7 @@
 // Click-and-drag UI for marking systems (one music line per rectangle) and
-// barlines (vertical clicks inside a system) on each PDF page. Coordinates
+// barlines (vertical clicks inside a system) on each PDF page. Built on
+// pointer events so a finger works as well as a mouse: on a phone, one
+// finger draws a system and the page still scrolls in barline mode. Coordinates
 // are stored normalized (0-1) against the page's intrinsic PDF dimensions
 // so they survive zoom changes and re-renders.
 //
@@ -8,6 +10,7 @@
 //   await m.loadPage(0);
 //   m.setMode('system' | 'barline');
 //   m.clearPage();
+//   m.undo();
 //   m.getMarkings();           // serializable state
 //   m.setMarkings(prior);      // restore from storage
 
@@ -27,7 +30,8 @@ export function createMarking({ pdfSource, canvas, overlay, hash, onChange }) {
   let pageIdx = 0;
   let scale = 1;
   let viewport = null;
-  let drag = null; // { x0, y0, el }
+  let drag = null; // { x0, y0, el, pointerId }
+  overlay.dataset.mode = mode;
 
   // Undo stack: each entry is the full `markings` state BEFORE the mutation
   // that pushed it. Bounded so a marathon session doesn't blow up memory.
@@ -94,7 +98,7 @@ export function createMarking({ pdfSource, canvas, overlay, hash, onChange }) {
       rm.type = 'button';
       rm.textContent = '×';
       rm.title = 'Remove this system';
-      rm.addEventListener('mousedown', (e) => e.stopPropagation());
+      rm.addEventListener('pointerdown', (e) => e.stopPropagation());
       rm.addEventListener('click', (e) => {
         e.stopPropagation();
         pushHistory();
@@ -112,7 +116,7 @@ export function createMarking({ pdfSource, canvas, overlay, hash, onChange }) {
         line.style.top = '0';
         line.style.height = `${h}px`;
         line.title = 'Click to remove';
-        line.addEventListener('mousedown', (e) => e.stopPropagation());
+        line.addEventListener('pointerdown', (e) => e.stopPropagation());
         line.addEventListener('click', (e) => {
           e.stopPropagation();
           pushHistory();
@@ -138,7 +142,9 @@ export function createMarking({ pdfSource, canvas, overlay, hash, onChange }) {
 
       // Clicks inside the system box in 'barline' mode add a barline; in
       // 'system' mode they do nothing (drag a new system in empty space).
-      box.addEventListener('mousedown', (e) => {
+      // 'click' rather than 'pointerdown' so a finger scrolling the page
+      // over a system doesn't drop a barline where the swipe started.
+      box.addEventListener('click', (e) => {
         if (mode === 'barline') {
           e.stopPropagation();
           // Reuse eventToCanvasPx so this stays zoom-independent and the
@@ -162,9 +168,11 @@ export function createMarking({ pdfSource, canvas, overlay, hash, onChange }) {
   // All coordinates flow through `eventToCanvasPx` (canvas-internal CSS pixels),
   // and the move/up listeners live on `window` so the drag survives the cursor
   // wandering off the overlay or the page. ESC during a drag aborts cleanly.
-  function onMouseDown(e) {
+  // A second finger landing mid-drag means a pinch or a scroll, not a box.
+  function onPointerDown(e) {
     if (mode !== 'system') return;
     if (e.button !== 0) return;
+    if (drag) { cancelActiveDrag(); return; }
     const { x: x0, y: y0 } = eventToCanvasPx(e);
     const el = document.createElement('div');
     el.className = 'system-box dragging';
@@ -173,10 +181,10 @@ export function createMarking({ pdfSource, canvas, overlay, hash, onChange }) {
     el.style.width = '0px';
     el.style.height = '0px';
     overlay.appendChild(el);
-    drag = { x0, y0, el };
+    drag = { x0, y0, el, pointerId: e.pointerId };
   }
-  function onMouseMove(e) {
-    if (!drag) return;
+  function onPointerMove(e) {
+    if (!drag || e.pointerId !== drag.pointerId) return;
     const { x: x1, y: y1 } = eventToCanvasPx(e);
     const left = Math.min(drag.x0, x1);
     const top  = Math.min(drag.y0, y1);
@@ -185,8 +193,8 @@ export function createMarking({ pdfSource, canvas, overlay, hash, onChange }) {
     drag.el.style.width = `${Math.abs(x1 - drag.x0)}px`;
     drag.el.style.height = `${Math.abs(y1 - drag.y0)}px`;
   }
-  function onMouseUp(e) {
-    if (!drag) return;
+  function onPointerUp(e) {
+    if (!drag || e.pointerId !== drag.pointerId) return;
     const { x: x1, y: y1 } = eventToCanvasPx(e);
     const left = Math.min(drag.x0, x1);
     const top  = Math.min(drag.y0, y1);
@@ -227,9 +235,21 @@ export function createMarking({ pdfSource, canvas, overlay, hash, onChange }) {
     }
   }
 
-  overlay.addEventListener('mousedown', onMouseDown);
-  window.addEventListener('mousemove', onMouseMove);
-  window.addEventListener('mouseup', onMouseUp);
+  function onPointerCancel(e) {
+    if (drag && e.pointerId === drag.pointerId) cancelActiveDrag();
+  }
+
+  // iOS Safari may still try to scroll under a one-finger drag; blocking the
+  // touchmove keeps the finger on the box (two fingers are left alone).
+  function onTouchMove(e) {
+    if (drag && e.touches.length === 1) e.preventDefault();
+  }
+
+  overlay.addEventListener('pointerdown', onPointerDown);
+  overlay.addEventListener('touchmove', onTouchMove, { passive: false });
+  window.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+  window.addEventListener('pointercancel', onPointerCancel);
   window.addEventListener('keydown', onKeyDown);
 
   // --- state mutation --------------------------------------------------------
@@ -288,6 +308,7 @@ export function createMarking({ pdfSource, canvas, overlay, hash, onChange }) {
   function setMode(next) {
     mode = next;
     overlay.style.cursor = next === 'system' ? 'crosshair' : 'cell';
+    overlay.dataset.mode = next;
   }
   function clearPage() {
     pushHistory();
@@ -300,12 +321,15 @@ export function createMarking({ pdfSource, canvas, overlay, hash, onChange }) {
     loadPage,
     setMode,
     clearPage,
+    undo,
     getSnapshot,
+    get canUndo() { return history.length > 0; },
     get pageIdx() { return pageIdx; },
     get numPages() { return pdfSource.numPages; },
     destroy() {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerCancel);
       window.removeEventListener('keydown', onKeyDown);
     },
   };
