@@ -167,7 +167,7 @@ const ghostHtml = (m, style) => `<div class="ghost ghost-${m.color}" data-part="
 // since who sits in depends on the groove. Hover (or tap) for a teaser.
 $('bandIntro').innerHTML = BAND.slice(0, 3).map((m) => ghostHtml(m, settings.style)).join('')
   + `<button type="button" class="ghost is-secret" data-part="guest" aria-expanded="false" aria-describedby="secretTip">
-      <span class="secret-mark" aria-hidden="true">?</span>${sprite('ghost', { px: 5 })}<span class="ghost-name">???</span>
+      ${sprite('ghost', { px: 5 })}<span class="ghost-name">???</span>
       <span class="secret-tip" id="secretTip" role="tooltip"><b>Secret guest</b>Every groove has its own. Get the band on fire and they walk on stage.</span>
     </button>`;
 const secret = $('bandIntro').querySelector('.is-secret');

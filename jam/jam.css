@@ -256,7 +256,7 @@ input[type="range"] { accent-color: var(--pink); width: 100%; }
 .ghost-lime { color: var(--lime); }
 .ghost-lime .sprite { filter: drop-shadow(0 0 10px var(--lime)); }
 /* The secret guest on the setup page: a pale, flickering ghost with a
-   "?" over its head and a teaser on hover (desktop) or tap (phone). */
+   teaser on hover (desktop) or tap (phone). */
 .ghost.is-secret {
   position: relative; color: #d9d0e6; cursor: help;
   background: none; border: 0; padding: 0; font: inherit;
@@ -265,14 +265,8 @@ input[type="range"] { accent-color: var(--pink); width: 100%; }
 .ghost.is-secret > .sprite { filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5)); }
 .ghost.is-secret:hover > .sprite, .ghost.is-secret.open > .sprite,
 .ghost.is-secret:focus-visible > .sprite { opacity: 0.75; animation: float 2.4s ease-in-out infinite; }
-.secret-mark {
-  position: absolute; top: -18px; left: 50%; translate: -50% 0;
-  font-family: var(--font-display); font-size: 0.8rem; color: var(--lime);
-  text-shadow: 0 0 8px var(--lime); animation: secretBlink 1.6s ease-in-out infinite;
-}
-@keyframes secretBlink { 50% { opacity: 0.25; transform: translateY(-3px); } }
 .secret-tip {
-  position: absolute; z-index: 20; bottom: calc(100% + 22px); left: 50%; translate: -50% 0;
+  position: absolute; z-index: 20; bottom: calc(100% + 10px); left: 50%; translate: -50% 0;
   width: max-content; max-width: min(240px, 80vw); padding: 0.6rem 0.8rem;
   background: var(--paper); border: 2px solid var(--lime); border-radius: 8px;
   box-shadow: 0 0 18px rgba(182, 255, 59, 0.35);
