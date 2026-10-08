@@ -33,12 +33,17 @@
     <div class="hd-top">
       <a href="../" class="hd-brand" aria-label="Étude, home">
         <span class="hd-name">Étude</span>
-        <span class="hd-opus">Op. 7 No 4</span>
+        <span class="hd-opus">Op. 7 No 5</span>
       </a>
       <div class="hd-actions">
         <button type="button" id="midiBtn" class="hd-btn">
           <span class="hd-dot" aria-hidden="true"></span>
           <span class="hd-midi-label" id="midiLabel">Connect MIDI</span>
+        </button>
+        <button type="button" id="achBtn" class="hd-btn ach-btn" title="Achievements" aria-label="Achievements">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v2h3v3a4 4 0 0 1-4 4h-.34A5 5 0 0 1 13 15.9V18h3v2H8v-2h3v-2.1A5 5 0 0 1 7.34 13H7a4 4 0 0 1-4-4V6h3V4h1zm10 4V6h-2v5a3 3 0 0 0 3-3V8h-1zm-12 0v-2h-1v1a2 2 0 0 0 2 2V8H5z" fill="currentColor"/></svg>
+          <span class="hd-label">Achievements</span>
+          <span class="hd-count" id="achBadge"></span>
         </button>
         <div class="hd-overlay">
           <div class="midi-status" id="midiStatus" aria-live="polite" hidden></div>
@@ -204,6 +209,19 @@
     </div>
   </div>
 </div>
+
+<!-- Achievements -->
+<div class="modal" id="achModal" hidden>
+  <div class="modal-box ach-box">
+    <div class="ach-head">
+      <h3 class="ach-title">Achievements <span id="achCount" class="ach-count">0 / 0</span></h3>
+      <button type="button" id="achClose" class="ach-close" aria-label="Close">&times;</button>
+    </div>
+    <div id="achGrid"></div>
+    <button type="button" id="achResetBtn" class="ach-reset">Reset Ghost Jam achievements</button>
+  </div>
+</div>
+<div id="achToast" class="ach-toast" aria-live="polite"></div>
 
 <script type="module" src="js/main.js"></script>
 <script data-goatcounter="https://chordtrainer.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
