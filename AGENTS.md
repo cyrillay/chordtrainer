@@ -39,7 +39,7 @@ Current versions (keep this table in sync):
 | Sight-reading | Op. 6 No 8 |
 | Arpeggios | Op. 2 No 8 |
 | Repertoire | Op. 5 No 11 |
-| Ghost Jam | Op. 7 No 13 |
+| Ghost Jam | Op. 7 No 14 |
 | PDF to MIDI | Anh. 1 No 9 |
 | Statistics | Anh. 2 No 1 |
 

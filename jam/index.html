@@ -33,7 +33,7 @@
     <div class="hd-top">
       <a href="../" class="hd-brand" aria-label="Étude, home">
         <span class="hd-name">Étude</span>
-        <span class="hd-opus">Op. 7 No 13</span>
+        <span class="hd-opus">Op. 7 No 14</span>
       </a>
       <div class="hd-actions">
         <button type="button" id="midiBtn" class="hd-btn">
@@ -130,7 +130,10 @@
             </select>
           </label>
         </div>
-        <label class="arcade-toggle"><input type="checkbox" id="showTonesCb"><span>Show the notes of each chord</span></label>
+        <div class="setup-extras">
+          <label class="arcade-toggle"><input type="checkbox" id="showTonesCb"><span>Show the notes of each chord</span></label>
+          <button type="button" class="sync-link" id="syncBtn" title="Hits land late? Tap along to a few clicks to sync the band with your speakers.">Audio sync<span id="syncVal"></span></button>
+        </div>
 
         <button type="button" class="arcade-btn big" id="playBtn">
           <span class="coin" id="coinSprite"></span>
@@ -224,6 +227,20 @@
 </div>
 
 <!-- Results -->
+<div class="modal" id="syncModal" hidden>
+  <div class="modal-box sync-box" role="dialog" aria-modal="true" aria-labelledby="syncTitle">
+    <div class="result-eyebrow" id="syncTitle">Audio sync</div>
+    <div class="sync-big" id="syncBig">0 ms</div>
+    <div class="sync-pips" id="syncPips" aria-hidden="true"></div>
+    <p class="sync-msg" id="syncMsg"></p>
+    <div class="result-actions">
+      <button type="button" class="arcade-btn small ghosty" id="syncCloseBtn">Close</button>
+      <button type="button" class="arcade-btn small ghosty" id="syncResetBtn" hidden>Reset</button>
+      <button type="button" class="arcade-btn small" id="syncAgainBtn">Start</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal" id="resultModal" hidden>
   <div class="modal-box">
     <div class="result-eyebrow" id="resultEyebrow">Set complete</div>
