@@ -5,7 +5,7 @@
 // performance.now() timestamp; we move them onto the audio clock, minus the
 // output latency, so a chord is judged against what you actually heard.
 
-import { formatChordHtml, spellChordTones, NOTE_NAMES, NOTE_DISPLAY } from '../../js/core/theory.js';
+import { formatChordHtml, spellChordTones, NOTE_NAMES } from '../../js/core/theory.js';
 import { PROGRESSIONS, romanToChord, progressionMode } from '../../js/training/progressions.js';
 import { renderMidiHint, gateCopy, DENIED_HELP_HTML } from '../../js/midi/midiHelp.js';
 import { connectMidi } from '../../sightreading/js/midi.js';
@@ -13,7 +13,7 @@ import { attachComputerKeyboard } from '../../arpeggio/js/midi.js';
 import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, GUESTS, partsAt } from './styles.js';
 import { FAMILIES, tuneFamily, fitsStyle, tunesFor } from './tunes.js';
 import { voicingTags, voicingBonus, voicingWords, bassRole } from './voicing.js';
-import { SlotJudge, Scorer, chordTargets, hintVoicing, toneDegree, DEGREES, multiplier, timingZone, WINDOW } from './judge.js';
+import { SlotJudge, Scorer, chordTargets, hintVoicing, toneDegree, DEGREES, multiplier, timingZone, WINDOW, ghostFill } from './judge.js';
 import { Band } from './band.js';
 import { SYNC, measureOffset, offsetFor, storeOffset, forgetOffset } from './sync.js';
 import { sprite, MAPS } from './sprites.js';
@@ -22,6 +22,7 @@ import { JamTracker } from './achievements.js';
 import { initTrophyCase, grant, bump, setMax, setFinished } from './trophyCase.js';
 import { isFavourite, toggleFavourite, removeFavourite, cleanFavourites } from './favourites.js';
 import { PianoRemote, MenuNav, MIDDLE_C, gestureOf, step } from './remote.js';
+import { KeyWheel, keyLabel } from './keyWheel.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -73,8 +74,9 @@ function buildChords(prog, key) {
 }
 
 // Major or minor is part of the tune (a minor ii–V–i is not a major one
-// played darker), so the key menu picks the tonic and names the mode.
-const keyName = (key, prog) => `${NOTE_DISPLAY[key]} ${progressionMode(prog)}`;
+// played darker), so the key picker picks the tonic and names the mode,
+// spelled as on the circle of fifths (D♭ major, C♯ minor).
+const keyName = (key, prog) => keyLabel(key, progressionMode(prog));
 
 // ---- Setup view ----
 
@@ -121,15 +123,15 @@ function renderCombo() {
 }
 
 function renderKeyMenu() {
-  const prog = tuneByName(settings.tune);
-  const mode = progressionMode(prog);
-  const keySel = $('keySelect');
-  if (keySel.dataset.mode !== mode) {
-    keySel.innerHTML = '<option value="random">Random</option>' + NOTE_NAMES.map((n) => `<option value="${n}">${keyName(n, prog)}</option>`).join('');
-    keySel.dataset.mode = mode;
-  }
-  keySel.value = settings.key;
+  $('keyBtn').textContent = settings.key === 'random' ? 'Random' : keyName(settings.key, tuneByName(settings.tune));
 }
+
+// The key picker: a circle of fifths you click, or a note you play.
+const keyWheel = new KeyWheel({
+  modal: $('keyModal'),
+  onPick: (key) => { settings.key = key; save(); renderCombo(); },
+});
+const openKeyWheel = () => keyWheel.open(settings.key, progressionMode(tuneByName(settings.tune)));
 
 function renderTunePreview() {
   const prog = tuneByName(settings.tune);
@@ -241,7 +243,7 @@ $('randomTuneBtn').addEventListener('click', () => {
   save();
   renderSetup();
 });
-$('keySelect').addEventListener('change', (e) => { settings.key = e.target.value; save(); renderCombo(); });
+$('keyBtn').addEventListener('click', openKeyWheel);
 $('tempoRange').addEventListener('input', (e) => { settings.tempo = Number(e.target.value); $('tempoVal').textContent = e.target.value; save(); });
 $('barsSelect').addEventListener('change', (e) => { settings.bars = Number(e.target.value); save(); });
 $('lengthSelect').addEventListener('change', (e) => { settings.length = Number(e.target.value); save(); });
@@ -264,9 +266,14 @@ const ghostSprite = (part, style) => {
   return sprite(MAPS[`ghost-${gear}`] ? `ghost-${gear}` : 'ghost', { px: 5 });
 };
 // No caption: the instrument says who is who, the name stays for screen readers and on hover.
-const ghostHtml = (m, style) => {
+// On stage a ghost is drawn twice, dark and lit: the band's heat uncovers
+// the lit one from left to right (see renderBand).
+const ghostHtml = (m, style, stage = false) => {
   const name = m.id === 'guest' ? GUESTS[style].name : m.name;
-  return `<div class="ghost ghost-${m.color}" data-part="${m.id}" role="img" aria-label="${name}" title="${name}">${ghostSprite(m.id, style)}</div>`;
+  const body = stage
+    ? `<span class="ghost-dark">${ghostSprite(m.id, style)}</span><span class="ghost-lit">${ghostSprite(m.id, style)}</span>`
+    : ghostSprite(m.id, style);
+  return `<div class="ghost ghost-${m.color}" data-part="${m.id}" role="img" aria-label="${name}" title="${name}">${body}</div>`;
 };
 // On the setup page the guest is a secret: a pale, padlocked ghost, since
 // who sits in depends on the groove. Hover (or tap) opens the collection:
@@ -416,11 +423,11 @@ function startGame({ again = false, restart = false } = {}) {
   $('resultModal').hidden = true;
   $('tuneTitle').textContent = prog.name;
   $('tuneMeta').textContent = `${style.name} · ${keyName(key, prog)} · ${tempo} bpm${style.anchor ? ' · Play on the and' : ''}`;
-  $('ghostBand').innerHTML = BAND.map((m) => ghostHtml(m, settings.style)).join('');
+  $('ghostBand').innerHTML = BAND.map((m) => ghostHtml(m, settings.style, true)).join('');
   $('hudHi').textContent = hiFor(game.scoreKey).toLocaleString();
   renderHud();
   game.energy = -1;
-  renderEnergy(1);
+  renderBand(game.scorer);
   $('gaugeTicks').innerHTML = '';
   $('gaugeReadout').textContent = '';
   $('gaugeReadout').className = 'gauge-readout';
@@ -428,7 +435,7 @@ function startGame({ again = false, restart = false } = {}) {
   $('chordTones').innerHTML = '';
   showHint(null);
   renderNext(-1);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  framePlay();
 
   stopSync();
   applySync();
@@ -438,6 +445,17 @@ function startGame({ again = false, restart = false } = {}) {
     onEnd: () => finish(),
   });
   game.raf = requestAnimationFrame(loop);
+}
+
+// Frame the set: the stage in view with the piano at the bottom of the
+// screen, the header and the menu scrolled away. On a short screen the
+// stage keeps the top.
+function framePlay() {
+  const top = $('stage').getBoundingClientRect().top + window.scrollY;
+  const bottom = document.querySelector('.kb-frame').getBoundingClientRect().bottom + window.scrollY;
+  const margin = 12;
+  const y = Math.min(top - margin, bottom + margin - window.innerHeight);
+  window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
 }
 
 // Slot timing on the audio clock (seconds). Slot k starts after the count-in bar.
@@ -481,6 +499,7 @@ function heldPcs() {
 }
 
 function onNoteOn(midi, velocity = 80, tPerf = performance.now()) {
+  keyWheel.playNote(midi);
   if (sync) syncTap(toAudioTime(tPerf));
   remote.noteOn(midi, remoteScreen() !== null);
   held.set(midi, null);
@@ -744,10 +763,9 @@ function grade(k) {
   const j = judgeFor(k);
   const res = j.result();
   scoreVoicing(k, j, res);
-  const prevEnergy = game.scorer.energy;
   const gained = game.scorer.add(res);
   band.energy = game.scorer.energy;
-  if (band.energy !== prevEnergy) renderEnergy(band.energy);
+  renderBand(game.scorer);
   trackChord(k, j, res);
   shout(res, gained);
   renderHud();
@@ -807,15 +825,15 @@ function renderHud() {
   if (s.score > hiFor(game.scoreKey)) $('hudHi').textContent = s.score.toLocaleString();
 }
 
-// Energy 0..MAX_ENERGY: which ghosts are on stage, how full the meter is.
-// A change of tier is announced on stage.
-function renderEnergy(e) {
-  const bars = $('energyMeter').querySelectorAll('i');
-  bars.forEach((b, i) => b.classList.toggle('on', i <= e));
+// The band's heat lights the ghosts up left to right, and its energy
+// (0..MAX_ENERGY) says who is on stage. A change of tier is announced.
+function renderBand({ heat, energy: e }) {
+  const fill = ghostFill(heat);
   const parts = partsAt(e);
   for (const g of $('ghostBand').children) {
     const was = !g.classList.contains('is-off');
     const on = parts.has(g.dataset.part);
+    g.style.setProperty('--fill', fill[g.dataset.part].toFixed(3));
     g.classList.toggle('is-off', !on);
     g.classList.toggle('is-wild', e >= MAX_ENERGY);
     if (on && !was && game?.energy >= 0) {
@@ -839,12 +857,14 @@ function renderEnergy(e) {
 function announceTier(prev, e) {
   const up = e > prev;
   const tier = TIERS[up ? e : prev];
+  // Nobody announces a player leaving: their ghost going dark says it already.
+  if (!up && !tier.heat) return;
   const el = document.createElement('div');
   el.className = `tier-banner ${up ? 'is-up' : 'is-down'}`;
   const name = tier.part === 'guest' ? guestName() : tier.name;
   const verb = (one, many) => (tier.plural ? many : one);
   if (tier.heat) el.textContent = up ? 'The band heats up!' : 'The band cools down';
-  else el.textContent = up ? `${name} ${verb('joins', 'join')} in!` : `${name} ${verb('sits', 'sit')} out`;
+  else el.textContent = `${name} ${verb('joins', 'join')} in!`;
   document.querySelector('.bandstand').appendChild(el);
   setTimeout(() => el.remove(), 1800);
 }
@@ -997,7 +1017,7 @@ function backToSetup() {
 
 // ---- Piano remote + keyboard shortcuts ----
 // On the setup and results screens the piano drives a menu cursor, like a
-// TV remote, in intervals from middle C (see remote.js). The legend under
+// TV remote, in intervals from C in any octave (see remote.js). The legend under
 // the Play button shows how.
 
 const remote = new PianoRemote({
@@ -1006,7 +1026,7 @@ const remote = new PianoRemote({
 });
 
 function remoteScreen() {
-  if (!$('achModal').hidden || !$('syncModal').hidden) return null;
+  if (!$('achModal').hidden || !$('syncModal').hidden || keyWheel.isOpen) return null;
   if (!game && !$('viewSetup').hidden) return 'setup';
   if (game?.over && !$('resultModal').hidden) return 'results';
   return null;
@@ -1020,7 +1040,7 @@ const SETUP_ROWS = {
   tune: { kind: 'value', el: () => $('tuneSelect') },
   shuffle: { kind: 'action', el: () => $('randomTuneBtn') },
   star: { kind: 'action', el: () => $('favBtn') },
-  key: { kind: 'value', el: knobOf('keySelect') },
+  key: { kind: 'action', el: knobOf('keyBtn') },
   tempo: { kind: 'value', el: knobOf('tempoRange') },
   bars: { kind: 'value', el: knobOf('barsSelect') },
   length: { kind: 'value', el: knobOf('lengthSelect') },
@@ -1033,7 +1053,7 @@ const RESULT_ROWS = {
 };
 const rowsOf = (rows, skip = []) => Object.entries(rows).filter(([id]) => !skip.includes(id)).map(([id, r]) => ({ id, kind: r.kind }));
 const setupNav = new MenuNav(rowsOf(SETUP_ROWS, ['favs']), 'groove');
-const resultNav = new MenuNav(rowsOf(RESULT_ROWS), 'again');
+const resultNav = new MenuNav(rowsOf(RESULT_ROWS), 'again', { wrap: true });
 
 // Light up the row under the cursor (only with a keyboard connected).
 function paintNav() {
@@ -1068,13 +1088,13 @@ const CHANGE = {
   },
   groove: (dir) => setStyle(step(STYLE_ORDER, settings.style, dir)),
   tune: (dir) => stepSelect($('tuneSelect'), dir),
-  key: (dir) => stepSelect($('keySelect'), dir),
   tempo: (dir) => nudgeTempo(dir),
   bars: (dir) => stepSelect($('barsSelect'), dir),
   length: (dir) => stepSelect($('lengthSelect'), dir),
 };
 const ACTIVATE = {
   shuffle: () => $('randomTuneBtn').click(),
+  key: openKeyWheel,
   star: () => $('favBtn').click(),
   tones: () => $('showTonesCb').click(),
   play: () => $('playBtn').click(),
@@ -1096,7 +1116,7 @@ function runRemote(midi) {
   }
 }
 
-// The legend: the keys around middle C, F3 to A4, the ones that do something labelled.
+// The legend: one octave around a C, F to A, the keys that do something labelled.
 (function buildRemoteLegend() {
   const LABELS = { [MIDDLE_C - 4]: '↓', [MIDDLE_C - 3]: '↓', [MIDDLE_C]: 'C', [MIDDLE_C + 3]: '↑', [MIDDLE_C + 4]: '↑', [MIDDLE_C + 7]: 'OK' };
   let html = '';
@@ -1131,6 +1151,7 @@ $('restartBtn').addEventListener('click', restartGame);
 $('resultAgainBtn').addEventListener('click', () => { $('resultModal').hidden = true; startGame({ again: true }); });
 $('resultBackBtn').addEventListener('click', backToSetup);
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && keyWheel.isOpen) return keyWheel.close();
   if (e.key === 'Escape' && !$('syncModal').hidden) return closeSync();
   if (e.key === 'Escape' && game && !params.has('keys')) backToSetup();
 });

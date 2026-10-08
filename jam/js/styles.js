@@ -199,9 +199,10 @@ const KEYS = {
 };
 
 // ---- Band tiers ----
-// Drums, bass and keys, then one guest who depends on the groove. A streak
-// of chords heats the band up, a longer one brings the guest on; each miss
-// takes one step back. Tier 1 is where a set starts.
+// Drums, bass and keys, then one guest who depends on the groove. Landed
+// chords light the ghosts up one by one (see HEAT in judge.js): the keys,
+// then the guest, with the band heating up on the way. Tier 1 is where a
+// set starts.
 
 export const TIERS = [
   { part: null, name: 'Drums and bass' },

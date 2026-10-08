@@ -340,7 +340,19 @@ body[data-energy="3"] { --bob: 11px; --tilt: 7deg; }
 .ghost-band .ghost .sprite { animation: none; transition: transform 0.09s ease-out; }
 body.beat-odd .ghost-band .ghost .sprite { transform: translateY(calc(-1 * var(--bob))) rotate(calc(-1 * var(--tilt))); }
 body.beat-odd .ghost-band .ghost:nth-child(even) .sprite { transform: translateY(calc(-1 * var(--bob))) rotate(var(--tilt)); }
-.ghost.is-off { opacity: 0.14; filter: grayscale(1); }
+/* The band's heat lights each ghost up from left to right, over a dark
+   copy of itself (--fill 0..1, set from main.js). A ghost that is not on
+   stage yet, or any more, keeps still and glows less. */
+.ghost-band .ghost { position: relative; }
+.ghost-dark, .ghost-lit { display: block; }
+.ghost-band .ghost-dark .sprite { opacity: 0.16; filter: grayscale(1); }
+.ghost-lit {
+  position: absolute; inset: 0;
+  clip-path: inset(-40px calc((1 - var(--fill, 1)) * (100% + 16px) - 16px) -40px -40px);
+  transition: clip-path 0.45s ease-out;
+}
+.ghost-band .ghost.is-off .ghost-lit .sprite { opacity: 0.6; filter: none; }
+body.beat-odd .ghost-band .ghost.is-off .sprite { transform: none; }
 .ghost.joins { animation: ghostJoins 0.7s cubic-bezier(.2, .9, .3, 1.4); }
 @keyframes ghostJoins { from { transform: translateY(24px) scale(0.4); opacity: 0; } 60% { transform: translateY(-6px) scale(1.25); opacity: 1; } }
 .ghost.is-wild .sprite { animation: wild 0.5s ease-in-out infinite alternate; }
@@ -664,13 +676,6 @@ body[data-energy="3"] .beat-glow { --glow: 0.55; }
 }
 
 .bandstand { display: flex; align-items: flex-end; justify-content: center; gap: 2rem; margin: 1.2rem 0; flex-wrap: wrap; }
-.energy { display: flex; align-items: flex-end; gap: 4px; }
-.energy-lbl { font-family: var(--font-display); font-size: 0.45rem; color: var(--ivory-dim); text-transform: uppercase; margin-right: 0.5rem; letter-spacing: 0.1em; }
-.energy i { width: 12px; background: #24143a; border: 1px solid #4d2f72; }
-.energy i:nth-child(2) { height: 12px; } .energy i:nth-child(3) { height: 20px; } .energy i:nth-child(4) { height: 28px; } .energy i:nth-child(5) { height: 36px; }
-.energy i.on { background: var(--lime); box-shadow: 0 0 10px var(--lime); }
-.energy i.on:nth-child(4) { background: var(--orange); box-shadow: 0 0 10px var(--orange); }
-.energy i.on:nth-child(5) { background: var(--pink); box-shadow: 0 0 12px var(--pink); }
 
 /* Keyboard strip: neon keys, coloured by what they mean for the chord. */
 .kb-frame { overflow-x: auto; border: 3px solid var(--violet); border-radius: 10px; background: #000; padding: 6px; box-shadow: 0 0 24px rgba(155, 92, 255, 0.3); }
@@ -699,9 +704,6 @@ body[data-energy="3"] .beat-glow { --glow: 0.55; }
 .kw.is-down, .kbk.is-down { background: var(--deg); box-shadow: 0 0 16px var(--deg); }
 .is-down.deg-wrong { box-shadow: 0 0 20px var(--crimson), inset 0 0 0 2px #fff; }
 
-.kb-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.3rem 0.9rem; margin-top: 0.5rem; color: var(--ivory-dim); font-size: 1.05rem; }
-.kb-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
-.kb-legend span::before { content: ''; width: 0.8rem; height: 0.8rem; border-radius: 2px; background: var(--deg); box-shadow: 0 0 6px var(--deg); }
 
 .play-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
 
@@ -727,6 +729,39 @@ body[data-energy="3"] .beat-glow { --glow: 0.55; }
 .result-grid b { display: block; font-family: var(--font-display); font-size: 0.9rem; font-weight: 400; margin-bottom: 0.3rem; }
 .result-grid span { font-size: 1rem; color: var(--ivory-dim); }
 .result-actions { display: flex; justify-content: center; gap: 0.8rem; flex-wrap: wrap; }
+
+/* The key picker: a circle of fifths. The tune's mode is the outer ring, its
+   relative keys sit inside, Random in the middle. */
+.key-btn { width: 100%; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; }
+.key-btn::after { content: '◎'; color: var(--cyan); font-size: 1rem; }
+.key-btn:hover { border-color: var(--cyan); }
+.kw-box { width: min(440px, 100%); padding: 1rem 1.2rem 1.2rem; border-color: var(--cyan); box-shadow: 0 0 50px rgba(24, 240, 255, 0.35); }
+.kw-head { display: flex; justify-content: space-between; align-items: center; }
+.kw-title { font-family: var(--font-display); font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--cyan); }
+.kw-wheel { display: block; width: min(100%, 360px); margin: 0.4rem auto 0; overflow: visible; font-family: var(--font-body); user-select: none; }
+.kw-seg { cursor: pointer; outline: none; }
+.kw-seg text { text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.kw-out { fill: #1a0e2c; stroke: var(--violet); stroke-width: 0.8; transition: fill 0.12s; }
+.kw-in { fill: #110820; stroke: var(--line); stroke-width: 0.6; }
+.kw-name { font-size: 15px; fill: var(--ivory); }
+.kw-sig { font-size: 8px; fill: var(--ivory-dim); }
+.kw-rel { font-size: 9.5px; fill: var(--ivory-dim); opacity: 0.75; }
+.kw-seg:focus-visible .kw-out { fill: #251443; stroke: var(--cyan); stroke-width: 1.4; }
+@media (hover: hover) { .kw-seg:not(.is-on):hover .kw-out { fill: #251443; stroke: var(--cyan); stroke-width: 1.4; } }
+.kw-seg.is-on .kw-out { fill: var(--pink); stroke: #fff; stroke-width: 1.2; filter: drop-shadow(0 0 5px var(--pink)); }
+.kw-seg.is-on .kw-name { fill: #fff; }
+.kw-seg.is-on .kw-sig { fill: #ffd3ea; }
+.kw-seg.is-on .kw-in { fill: #2a0f24; stroke: var(--pink); }
+.kw-seg.is-on .kw-rel { fill: var(--gold-bright); opacity: 1; }
+.kw-seg.is-picked .kw-out { animation: kw-flash 0.38s ease-out; }
+@keyframes kw-flash { 0% { fill: #fff; } 100% { fill: var(--pink); } }
+.kw-random circle { fill: #0f0719; stroke: var(--violet); stroke-width: 1; stroke-dasharray: 3 2.5; transition: fill 0.12s; }
+.kw-random:hover circle, .kw-random:focus-visible circle { stroke: var(--cyan); fill: #1a0e2c; }
+.kw-random.is-on circle { fill: var(--pink); stroke: #fff; stroke-dasharray: none; }
+.kw-die { font-family: var(--font-display); font-size: 13px; fill: var(--cyan); }
+.kw-rand { font-size: 9.5px; fill: var(--ivory-dim); }
+.kw-random.is-on .kw-die, .kw-random.is-on .kw-rand { fill: #fff; }
+.kw-hint { margin: 0.6rem 0 0; color: var(--ivory-dim); font-size: 1.05rem; }
 
 /* The audio sync popup. */
 .sync-box { border-color: var(--cyan); box-shadow: 0 0 50px rgba(24, 240, 255, 0.35); }

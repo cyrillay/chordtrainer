@@ -1,6 +1,6 @@
-// Ghost Jam: the piano as a TV remote for the menus, in intervals from
-// middle C. A third below (A or A♭ under middle C) moves down the menu, a
-// third above (E or E♭) moves up, the fifth (G) selects. Once a setting is
+// Ghost Jam: the piano as a TV remote for the menus, in intervals from C,
+// in any octave. A third below C (A or A♭) moves down the menu, a third
+// above (E or E♭) moves up, the fifth (G) selects. Once a setting is
 // selected, the thirds change its value (above: more, below: less) and the
 // fifth again lets go. A key counts only when played on its own, so chords
 // are just music, and nothing listens while a set plays. Hold a third and it
@@ -8,12 +8,13 @@
 
 export const MIDDLE_C = 60;
 
+// By pitch class, so any octave works.
 const GESTURES = {
-  [MIDDLE_C - 4]: 'down', [MIDDLE_C - 3]: 'down',  // A♭3, A3
-  [MIDDLE_C + 3]: 'up', [MIDDLE_C + 4]: 'up',      // E♭4, E4
-  [MIDDLE_C + 7]: 'select',                        // G4
+  8: 'down', 9: 'down',   // A♭, A
+  3: 'up', 4: 'up',       // E♭, E
+  7: 'select',            // G
 };
-export const gestureOf = (midi) => GESTURES[midi] ?? null;
+export const gestureOf = (midi) => GESTURES[((midi % 12) + 12) % 12] ?? null;
 
 // Single keys only. onCommand(midi) fires when a key is released having been
 // pressed alone. A key that repeats (the thirds) also fires while held: after
@@ -67,13 +68,15 @@ export class PianoRemote {
 }
 
 // The menu cursor. items: [{ id, kind: 'value' | 'action' }], top to bottom.
+// wrap: moving past the last item comes back to the first, and the other way.
 // handle() turns a gesture into what the page should do:
 //   { type: 'focus', id }           the cursor moved
 //   { type: 'edit', id, on }        a setting was taken or let go
 //   { type: 'change', id, dir }     the selected setting goes up (+1) or down (-1)
 //   { type: 'activate', id }        a button was pressed
 export class MenuNav {
-  constructor(items, focusId) {
+  constructor(items, focusId, { wrap = false } = {}) {
+    this.wrap = wrap;
     this.items = [];
     this.focus = 0;
     this.editing = false;
@@ -102,7 +105,9 @@ export class MenuNav {
       this.editing = true;
       return { type: 'edit', id: it.id, on: true };
     }
-    const to = Math.max(0, Math.min(this.items.length - 1, this.focus + (gesture === 'down' ? 1 : -1)));
+    const n = this.items.length;
+    const next = this.focus + (gesture === 'down' ? 1 : -1);
+    const to = this.wrap ? (next + n) % n : Math.max(0, Math.min(n - 1, next));
     this.focus = to;
     return { type: 'focus', id: this.items[to].id };
   }
