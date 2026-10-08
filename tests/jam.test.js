@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildChord } from '../js/core/theory.js';
 import { PROGRESSIONS, romanToChord, progressionMode } from '../js/training/progressions.js';
-import { chordTargets, toneRole, SlotJudge, Scorer, multiplier, nextEnergy, timingZone } from '../jam/js/judge.js';
+import { chordTargets, toneRole, hintVoicing, toneDegree, SlotJudge, Scorer, multiplier, nextEnergy, timingZone } from '../jam/js/judge.js';
 import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, GUESTS, partsAt, guestEvents, barEvents, bassRoot, keysVoicing, countIn } from '../jam/js/styles.js';
 import { FAMILIES, tuneFamily, tuneStyles, fitsStyle, tunesFor } from '../jam/js/tunes.js';
 
@@ -322,6 +322,118 @@ test('tunes: bebop stays in swing, baroque stays out of funk', () => {
   assert.ok(!fitsStyle(byName('La Folia'), 'funk'));
   assert.ok(!fitsStyle(byName('Smoke on the Water'), 'bossa'));
   assert.ok(fitsStyle(byName('Dorian vamp'), 'funk'));
+});
+
+test('hint voicing: close position from the root, around middle C', () => {
+  assert.deepEqual(hintVoicing(buildChord('C', 'maj')), [48, 52, 55]);
+  assert.deepEqual(hintVoicing(buildChord('G', 'dom7')), [55, 59, 62, 65]);
+  assert.deepEqual(hintVoicing(buildChord('B', 'm7b5')), [59, 62, 65, 69]);
+});
+
+test('tone degrees: one colour per job in the chord', () => {
+  const deg = (chord, pcs) => pcs.map((pc) => toneDegree(chord, pc));
+  assert.deepEqual(deg(buildChord('C', 'maj7'), [0, 4, 7, 11]), ['root', 'M3', 'P5', 'M7']);
+  assert.deepEqual(deg(buildChord('D', 'min7'), [2, 5, 9, 0]), ['root', 'm3', 'P5', 'm7']);
+  assert.deepEqual(deg(buildChord('B', 'm7b5'), [2, 5, 9]), ['m3', 'P5', 'm7']);
+  // A 7th added to a triad is still a 7th, other extensions are "ext".
+  assert.deepEqual(deg(buildChord('C', 'maj'), [11, 2, 9]), ['M7', 'ext', 'ext']);
+  assert.equal(toneDegree(buildChord('G', 'dom7'), 0), 'wrong');
+});
+
+test('favourites: toggle, newest first, capped, cleaned', async () => {
+  const { toggleFavourite, isFavourite, removeFavourite, cleanFavourites, MAX_FAVOURITES } = await import('../jam/js/favourites.js');
+  const a = { style: 'funk', tune: 'Dorian vamp', key: 'E' };
+  const b = { style: 'swing', tune: 'Autumnal', key: 'random' };
+  let favs = toggleFavourite([], a);
+  favs = toggleFavourite(favs, b);
+  assert.deepEqual(favs, [b, a]);
+  assert.ok(isFavourite(favs, { ...a }));
+  assert.ok(!isFavourite(favs, { ...a, key: 'F' }));   // another key is another combo
+  favs = toggleFavourite(favs, a);
+  assert.deepEqual(favs, [b]);
+  assert.deepEqual(removeFavourite([a, b], 0), [b]);
+  let many = [];
+  for (let i = 0; i < MAX_FAVOURITES + 3; i++) many = toggleFavourite(many, { ...a, tune: `t${i}` });
+  assert.equal(many.length, MAX_FAVOURITES);
+  const ctx = { tunes: new Set(['Autumnal']), styles: new Set(['swing']), keys: new Set(['C']) };
+  assert.deepEqual(cleanFavourites([b, { ...b, tune: 'Gone' }, { ...b, key: 'H' }, null, { ...b, key: 'C', extra: 1 }], ctx),
+    [b, { ...b, key: 'C' }]);
+  assert.deepEqual(cleanFavourites('junk', ctx), []);
+});
+
+test('piano remote: one key alone is a command, a chord is not', async () => {
+  const { PianoRemote, gestureOf } = await import('../jam/js/remote.js');
+  const got = [];
+  const r = new PianoRemote({ onCommand: (m) => got.push(m) });
+  r.noteOn(67, true); r.noteOff(67);
+  assert.deepEqual(got, [67]);
+  r.noteOn(60, true); r.noteOn(64, true); r.noteOn(67, true);
+  r.noteOff(60); r.noteOff(64); r.noteOff(67);   // a C chord does nothing
+  r.noteOn(67, false); r.noteOff(67);            // pressed while playing: never a command
+  assert.deepEqual(got, [67]);
+  // Intervals from middle C.
+  assert.equal(gestureOf(57), 'down');             // A3, minor third below
+  assert.equal(gestureOf(56), 'down');             // A♭3, major third below
+  assert.equal(gestureOf(64), 'up');               // E4
+  assert.equal(gestureOf(63), 'up');               // E♭4
+  assert.equal(gestureOf(67), 'select');           // G4
+  assert.equal(gestureOf(60), null);
+  assert.equal(gestureOf(76), null);               // E5: only around middle C
+});
+
+test('piano remote: hold a third and it repeats, faster', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  // Timers set from inside a timer only run on a later tick: advance 1 ms at a time.
+  const tick = (ms) => { for (let i = 0; i < ms; i++) t.mock.timers.tick(1); };
+  const { PianoRemote, REPEAT } = await import('../jam/js/remote.js');
+  const got = [];
+  const r = new PianoRemote({ onCommand: (m) => got.push(m), repeats: (m) => m === 64 });
+  r.noteOn(64, true);
+  tick(REPEAT.delay - 1);
+  assert.equal(got.length, 0);
+  tick(1);
+  assert.equal(got.length, 1);
+  tick(REPEAT.interval * (REPEAT.rushAfter - 1));
+  assert.equal(got.length, REPEAT.rushAfter);
+  tick(REPEAT.rush * 4);              // rushing now
+  assert.equal(got.length, REPEAT.rushAfter + 4);
+  r.noteOff(64);                                    // letting go adds nothing
+  tick(1000);
+  assert.equal(got.length, REPEAT.rushAfter + 4);
+  // A quick tap still counts once, on release.
+  got.length = 0;
+  r.noteOn(64, true); tick(100); r.noteOff(64);
+  assert.deepEqual(got, [64]);
+  // A second key stops the repeat.
+  got.length = 0;
+  r.noteOn(64, true); tick(REPEAT.delay); r.noteOn(67, true);
+  tick(1000); r.noteOff(67); r.noteOff(64);
+  assert.deepEqual(got, [64]);
+  // The fifth never repeats.
+  got.length = 0;
+  r.noteOn(67, true); tick(2000); r.noteOff(67);
+  assert.deepEqual(got, [67]);
+});
+
+test('menu cursor: thirds move, the fifth takes and lets go a setting', async () => {
+  const { MenuNav, step } = await import('../jam/js/remote.js');
+  const nav = new MenuNav([
+    { id: 'groove', kind: 'value' }, { id: 'tempo', kind: 'value' }, { id: 'play', kind: 'action' },
+  ], 'groove');
+  assert.deepEqual(nav.handle('up'), { type: 'focus', id: 'groove' });   // already at the top
+  assert.deepEqual(nav.handle('down'), { type: 'focus', id: 'tempo' });
+  assert.deepEqual(nav.handle('select'), { type: 'edit', id: 'tempo', on: true });
+  assert.deepEqual(nav.handle('up'), { type: 'change', id: 'tempo', dir: 1 });
+  assert.deepEqual(nav.handle('down'), { type: 'change', id: 'tempo', dir: -1 });
+  assert.deepEqual(nav.handle('select'), { type: 'edit', id: 'tempo', on: false });
+  assert.deepEqual(nav.handle('down'), { type: 'focus', id: 'play' });
+  assert.deepEqual(nav.handle('down'), { type: 'focus', id: 'play' });    // already at the bottom
+  assert.deepEqual(nav.handle('select'), { type: 'activate', id: 'play' });
+  // A row appears above: the cursor stays on the same row.
+  nav.setItems([{ id: 'favs', kind: 'value' }, ...nav.items]);
+  assert.equal(nav.current.id, 'play');
+  assert.equal(step(['a', 'b', 'c'], 'c', 1), 'a');
+  assert.equal(step(['a', 'b', 'c'], 'a', -1), 'c');
 });
 
 // ---- Audio sync ----

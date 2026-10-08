@@ -57,6 +57,28 @@ export function toneRole(targets, pc) {
   return 'wrong';
 }
 
+// What a pitch class does in a chord, for the colour code on the keys:
+// root, major or minor 3rd, 5th, major or minor 7th, another allowed
+// extension, or wrong. A 7th you add to a triad still counts as a 7th.
+export const DEGREES = ['root', 'M3', 'm3', 'P5', 'M7', 'm7', 'ext', 'wrong'];
+const DEGREE_OF = { 0: 'root', 3: 'm3', 4: 'M3', 6: 'P5', 7: 'P5', 8: 'P5', 10: 'm7', 11: 'M7' };
+export function toneDegree(chord, pc) {
+  const t = chordTargets(chord);
+  const role = toneRole(t, pc);
+  if (role === 'wrong') return 'wrong';
+  const iv = (pc - t.root + 12) % 12;
+  if (role === 'colour') return iv === 10 || iv === 11 ? DEGREE_OF[iv] : 'ext';
+  return DEGREE_OF[iv] || 'ext';
+}
+
+// Where to put your hands for a chord: close position from the root, the
+// root in the octave from C3, so the hint sits around middle C.
+export const HINT_LOW = 48;
+export function hintVoicing(chord) {
+  const root = HINT_LOW + noteToPitchClass(chord.root);
+  return CHORD_FORMULAS[chord.quality].intervals.map((iv) => root + iv);
+}
+
 export const GRADES = ['perfect', 'good', 'late', 'miss'];
 export const POINTS = { perfect: 300, good: 150, late: 50, miss: 0 };
 export const COLOUR_BONUS = 25;
