@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Statistics · Your Practice in Numbers</title>
+<meta name="description" content="Your piano practice in charts: time played, streaks, the chords you know, the notes you miss, scores and stars across every Étude trainer. Stays in your browser.">
+<link rel="canonical" href="https://chordtrainer.io/stats/">
+<meta name="robots" content="noindex">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="icon" type="image/png" href="../favico.png">
+<link rel="stylesheet" href="stats.css">
+<link rel="stylesheet" href="../themes.css">
+<link rel="stylesheet" href="../header.css">
+</head>
+<body>
+<script>
+  /* Same theme as the Chords trainer (picked in its options), applied before
+     first paint. No key yet means the Boudoir default; '' means Ink. */
+  (function () {
+    var saved = null;
+    try { saved = localStorage.getItem('etude.theme'); } catch (e) {}
+    if (saved === null) document.body.dataset.theme = 'boudoir';
+    else if (saved) document.body.dataset.theme = saved;
+  })();
+</script>
+
+<div class="app">
+
+  <header class="site-header">
+    <div class="hd-top">
+      <a href="../" class="hd-brand" aria-label="Étude, home">
+        <span class="hd-name">Étude</span>
+        <span class="hd-opus">Anh. 2 No 1</span>
+      </a>
+      <div class="hd-actions">
+      </div>
+    </div>
+    <nav class="hd-nav" aria-label="Trainers" title="I, vi, ii, V, and the ♭VII backdoor: every road comes home to I">
+      <a href="../" class="hd-link"><span class="hd-num">I</span>Chords</a>
+      <a href="../sightreading/" class="hd-link"><span class="hd-num">vi</span>Sight-reading</a>
+      <a href="../arpeggio/" class="hd-link"><span class="hd-num">ii</span>Arpeggios</a>
+      <a href="../scoretrainer/" class="hd-link"><span class="hd-num">V</span>Repertoire</a>
+      <a href="../jam/" class="hd-link"><span class="hd-num">♭VII</span>Ghost Jam</a>
+      <a href="./" class="hd-link is-active" aria-current="page"><span class="hd-num">Σ</span>Statistics</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="hero">
+      <h1 class="hero-title">Your practice, <em>in numbers.</em></h1>
+      <p class="hero-sub" id="heroSub">Everything the trainers remember about you. It stays in this browser.</p>
+    </div>
+
+    <div class="tabs" role="tablist" id="tabs">
+      <button type="button" role="tab" class="tab is-on" data-tab="all" aria-selected="true">Overview</button>
+      <button type="button" role="tab" class="tab" data-tab="chords"><i class="sw f-bg-chords"></i>Chords</button>
+      <button type="button" role="tab" class="tab" data-tab="sightreading"><i class="sw f-bg-sightreading"></i>Sight-reading</button>
+      <button type="button" role="tab" class="tab" data-tab="arpeggio"><i class="sw f-bg-arpeggio"></i>Arpeggios</button>
+      <button type="button" role="tab" class="tab" data-tab="repertoire"><i class="sw f-bg-repertoire"></i>Repertoire</button>
+      <button type="button" role="tab" class="tab" data-tab="jam"><i class="sw f-bg-jam"></i>Ghost Jam</button>
+    </div>
+
+    <div id="panel" class="panel-body" role="tabpanel"></div>
+  </main>
+
+  <footer class="page-footer">
+    <span>Time counts only while you play: gaps longer than 30 seconds are left out. Dated history starts with this version, totals go back further.</span>
+    <button type="button" class="ghost-btn small danger" id="resetBtn">Reset statistics</button>
+  </footer>
+</div>
+
+<div class="tip" id="tip" role="tooltip" hidden></div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

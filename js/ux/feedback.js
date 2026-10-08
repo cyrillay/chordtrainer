@@ -4,6 +4,8 @@
 
 import { playArpeggio } from '../audio/tones.js';
 import { $ } from '../core/dom.js';
+import { track } from '../stats/log.js';
+import { state } from '../core/state.js';
 
 // Observer pattern: other modules (e.g. rewards) can react to events.
 const successObservers = [];
@@ -29,5 +31,7 @@ export function flashSuccess() {
 export function triggerSuccess() {
   flashSuccess();
   playArpeggio();
+  const chord = state.currentChord;
+  track('chords', { ok: 1, tally: chord ? `${chord.root}|${chord.quality}` : undefined });
   for (const fn of successObservers) fn();
 }
