@@ -59,6 +59,7 @@ function buildChords(prog, key) {
 const STYLE_ICONS = { swing: '🎷', bossa: '🌴', lofi: '📼', ballad: '🕯️', funk: '🕺', reggae: '🌿' };
 
 function renderSetup() {
+  renderBandIntro();
   $('styleGrid').innerHTML = STYLE_ORDER.map((id) => {
     const s = STYLES[id];
     return `<button type="button" class="style-card${id === settings.style ? ' is-on' : ''}" data-style="${id}">
@@ -145,9 +146,16 @@ const BAND = [
   { id: 'keys', name: 'Keys', color: 'orange' },
   { id: 'guest', name: 'Guest', color: 'lime' },
 ];
-const ghostHtml = (m) => `<div class="ghost ghost-${m.color}" data-part="${m.id}">${sprite('ghost', { px: 5 })}<span class="ghost-name">${m.name}</span></div>`;
-$('bandIntro').innerHTML = BAND.slice(0, 3).map(ghostHtml).join('');
-$('ghostBand').innerHTML = BAND.map(ghostHtml).join('');
+// Each ghost wears its instrument; the guest's depends on the groove.
+const ghostSprite = (part, style) => sprite(`ghost-${part === 'guest' ? style : part}`, { px: 5 });
+const ghostHtml = (m, style) => `<div class="ghost ghost-${m.color}" data-part="${m.id}">${ghostSprite(m.id, style)}<span class="ghost-name">${m.id === 'guest' ? GUESTS[style].name : m.name}</span></div>`;
+// On the setup page the guest is a secret: a faint silhouette with its
+// instrument, named only on hover.
+function renderBandIntro() {
+  const style = settings.style;
+  $('bandIntro').innerHTML = BAND.slice(0, 3).map((m) => ghostHtml(m, style)).join('')
+    + `<div class="ghost ghost-lime is-secret" data-part="guest" tabindex="0" title="Secret guest: ${GUESTS[style].name}. Joins when the band is on fire.">${ghostSprite('guest', style)}<span class="ghost-name">???</span></div>`;
+}
 const guestName = () => GUESTS[game?.style || settings.style].name;
 
 // ---- Keyboard strip (C2 to C7) ----
@@ -255,7 +263,7 @@ function startGame({ again = false } = {}) {
   $('resultModal').hidden = true;
   $('tuneTitle').textContent = prog.name;
   $('tuneMeta').textContent = `${style.name} · ${NOTE_DISPLAY[key]} · ${tempo} bpm${style.anchor ? ' · Play on the and' : ''}`;
-  $('ghostBand').querySelector('[data-part="guest"] .ghost-name').textContent = guestName();
+  $('ghostBand').innerHTML = BAND.map((m) => ghostHtml(m, settings.style)).join('');
   $('hudHi').textContent = hiFor(game.scoreKey).toLocaleString();
   renderHud();
   game.energy = -1;
