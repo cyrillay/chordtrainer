@@ -435,3 +435,46 @@ test('menu cursor: thirds move, the fifth takes and lets go a setting', async ()
   assert.equal(step(['a', 'b', 'c'], 'c', 1), 'a');
   assert.equal(step(['a', 'b', 'c'], 'a', -1), 'c');
 });
+
+// ---- Audio sync ----
+
+import { SYNC, measureOffset, offsetFor, storeOffset, forgetOffset } from '../jam/js/sync.js';
+
+const clicksAt = (t0 = 1) => Array.from({ length: SYNC.clicks }, (_, i) => t0 + i * SYNC.interval);
+
+test('sync: the median lag of the taps is the offset, warm-up clicks ignored', () => {
+  const clicks = clicksAt();
+  const jitter = [0.01, -0.012, 0.004, 0, -0.006, 0.009, -0.002, 0.003, 0.011, -0.01, 0.002, 0];
+  // Way off on the warm-up, then 80 ms late.
+  const taps = [...clicks.slice(0, 4).map((c) => c + 0.3), ...clicks.slice(4).map((c, i) => c + 0.08 + jitter[i])];
+  const r = measureOffset(taps, clicks);
+  assert.ok(Math.abs(r.offset - 0.08) < 0.005, String(r.offset));
+  assert.equal(r.taps, 12);
+});
+
+test('sync: a chord counts as one tap, and early taps are allowed', () => {
+  const clicks = clicksAt();
+  const taps = clicks.slice(4).flatMap((c) => [c - 0.02, c - 0.015, c - 0.01]);
+  const r = measureOffset(taps, clicks);
+  assert.equal(r.taps, 12);
+  assert.ok(Math.abs(r.offset + 0.02) < 1e-9);
+});
+
+test('sync: too few or too uneven taps fail', () => {
+  const clicks = clicksAt();
+  assert.equal(measureOffset(clicks.slice(4, 8).map((c) => c + 0.05), clicks).error, 'few');
+  const wild = clicks.slice(4).map((c, i) => c + (i % 2 ? 0.2 : -0.1));
+  assert.equal(measureOffset(wild, clicks).error, 'uneven');
+});
+
+test('sync: offsets are saved per reported latency', () => {
+  let saved = storeOffset([], 0.01, 0.02);
+  saved = storeOffset(saved, 0.18, 0.09);
+  assert.equal(offsetFor(saved, 0.012), 0.02);
+  assert.equal(offsetFor(saved, 0.19), 0.09);
+  assert.equal(offsetFor(saved, 0.08), 0);
+  saved = storeOffset(saved, 0.185, 0.07); // re-test on the same speakers replaces
+  assert.equal(saved.length, 2);
+  assert.equal(offsetFor(saved, 0.18), 0.07);
+  assert.equal(offsetFor(forgetOffset(saved, 0.18), 0.18), 0);
+});

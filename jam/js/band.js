@@ -47,6 +47,7 @@ export class Band {
     this.timer = null;
     this.energy = 1;
     this.muted = new Set();
+    this.extraLatency = 0;    // seconds, from the audio sync test
     this.cache = new Map();   // key -> AudioBuffer of one rendered note
     this.queue = [];          // notes waiting to be rendered
     this.pending = new Set();
@@ -65,10 +66,19 @@ export class Band {
     return this.ctx;
   }
 
-  // Seconds between the audio clock and what reaches the speakers.
-  get outputLatency() {
+  // Seconds between the audio clock and what reaches the speakers, as the
+  // browser reports it.
+  get reportedLatency() {
     const c = this.ctx;
     return c ? (c.outputLatency || c.baseLatency || 0) : 0;
+  }
+
+  // The same, plus what the audio sync test measured on top of it.
+  get outputLatency() { return this.reportedLatency + this.extraLatency; }
+
+  // A stick click straight to the speakers, for the sync test.
+  click(t, vel = 1, out = this.audio().destination) {
+    this.synthDrum('sticks', t, vel, out);
   }
 
   // ---- Session ----

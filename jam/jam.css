@@ -172,6 +172,23 @@ input[type="range"] { accent-color: var(--pink); width: 100%; }
 .arcade-toggle { display: inline-flex; align-items: center; gap: 0.6rem; margin-top: 1rem; cursor: pointer; color: var(--ivory-dim); }
 .arcade-toggle input { accent-color: var(--lime); width: 1.1rem; height: 1.1rem; }
 
+/* Audio sync: a quiet link next to the toggle. Its tap test is a popup (below, with the results). */
+.setup-extras { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 1rem; }
+.sync-link {
+  margin-top: 1rem;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px dotted currentColor;
+  color: var(--ivory-dim);
+  font: inherit;
+  font-size: 0.95rem;
+  opacity: 0.7;
+  cursor: pointer;
+}
+.sync-link:hover, .sync-link:focus-visible { opacity: 1; color: var(--cyan); outline: none; }
+.sync-link b { color: var(--orange); font-weight: 400; }
+
 /* ---------- marquee ---------- */
 
 .marquee {
@@ -709,6 +726,17 @@ body[data-energy="3"] .beat-glow { --glow: 0.55; }
 .result-grid b { display: block; font-family: var(--font-display); font-size: 0.9rem; font-weight: 400; margin-bottom: 0.3rem; }
 .result-grid span { font-size: 1rem; color: var(--ivory-dim); }
 .result-actions { display: flex; justify-content: center; gap: 0.8rem; flex-wrap: wrap; }
+
+/* The audio sync popup. */
+.sync-box { border-color: var(--cyan); box-shadow: 0 0 50px rgba(24, 240, 255, 0.35); }
+.sync-big { margin: 0.4rem 0 0.8rem; font-family: var(--font-neon); font-size: 3.6rem; line-height: 1.1; color: #fff; text-shadow: var(--glow-cyan); }
+.sync-big.is-wait { color: var(--ivory-dim); text-shadow: none; }
+.sync-pips { display: flex; justify-content: center; gap: 0.35rem; margin-bottom: 1rem; }
+.sync-pips i { width: 0.7rem; height: 0.7rem; border-radius: 50%; border: 1px solid var(--line); }
+.sync-pips i.warm { border-style: dashed; }
+.sync-pips i.on { background: var(--lime); border-color: var(--lime); box-shadow: 0 0 8px var(--lime); }
+.sync-msg { margin: 0 auto 1.4rem; max-width: 26rem; font-size: 1.1rem; line-height: 1.45; color: var(--ivory); }
+.sync-msg b { color: var(--orange); font-weight: 400; }
 
 /* ---------- achievements: a trophy case behind the bar ---------- */
 
