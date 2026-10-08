@@ -33,7 +33,7 @@
     <div class="hd-top">
       <a href="../" class="hd-brand" aria-label="Étude, home">
         <span class="hd-name">Étude</span>
-        <span class="hd-opus">Op. 7 No 14</span>
+        <span class="hd-opus">Op. 7 No 15</span>
       </a>
       <div class="hd-actions">
         <button type="button" id="midiBtn" class="hd-btn">
@@ -108,10 +108,10 @@
 
         <div class="step-label"><span>3</span> Set it up</div>
         <div class="knobs">
-          <label class="knob">
-            <span class="knob-label">Key</span>
-            <select id="keySelect" class="arcade-select"></select>
-          </label>
+          <div class="knob">
+            <span class="knob-label" id="keyLabel">Key</span>
+            <button type="button" class="arcade-select key-btn" id="keyBtn" aria-haspopup="dialog" aria-labelledby="keyLabel keyBtn"></button>
+          </div>
           <label class="knob knob-wide">
             <span class="knob-label">Tempo <b id="tempoVal">120</b> bpm</span>
             <input type="range" id="tempoRange" min="50" max="200" step="1" value="120">
@@ -147,6 +147,7 @@
             <li>Around middle C. A third below moves down the menu. A third above moves up.</li>
             <li>The fifth (G) selects. On a setting, the thirds change it and the fifth again lets go.</li>
             <li>Hold a third to go faster. One key at a time: chords are just music.</li>
+            <li>On Key, the fifth opens the circle of fifths. Play the tonic you want.</li>
           </ul>
           <p class="remote-sub">Computer keyboard: <b>Enter</b> play · <b>R</b> restart · <b>Space</b> stop · <b>Esc</b> back to the menu</p>
         </div>
@@ -224,6 +225,18 @@
   <footer class="page-footer">
     <span>Companion to <a href="../">chordtrainer.io</a> · Play responsibly. The ghosts drink, you practise.</span>
   </footer>
+</div>
+
+<!-- Key: a circle of fifths -->
+<div class="modal" id="keyModal" hidden>
+  <div class="modal-box kw-box" role="dialog" aria-modal="true" aria-labelledby="keyTitle">
+    <div class="kw-head">
+      <div class="result-eyebrow kw-title" id="keyTitle">Key</div>
+      <button type="button" class="ach-close kw-close" aria-label="Close">&times;</button>
+    </div>
+    <svg class="kw-wheel" viewBox="-100 -100 200 200" role="group" aria-label="Circle of fifths"></svg>
+    <p class="kw-hint">Tap a key, or play its tonic on your piano.</p>
+  </div>
 </div>
 
 <!-- Results -->
