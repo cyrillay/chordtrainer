@@ -59,8 +59,9 @@ Chords library and a groove (swing, bossa, lo-fi, ballad, funk, reggae): a
 synthesized band plays bass, drums and keys in Web Audio, and you play the
 chords. Each chord is graded Perfect, Good, Late or Miss on harmony and
 timing (the bass has the root, so the 3rd and 5th, or 3rd and 7th, are
-enough; 9ths, 11ths and 13ths earn a bonus). Streaks raise the band's energy,
-misses thin it out, and high scores are kept per tune and groove. It has its
+enough; 9ths, 11ths and 13ths earn a bonus). Landed chords light the ghosts up
+one by one until they join, misses drain them until they leave, and high
+scores are kept per tune and groove. It has its
 own neon arcade look, apart from the rest of the site.
 
 ## PDF → MIDI converter

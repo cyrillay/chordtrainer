@@ -13,7 +13,7 @@ import { attachComputerKeyboard } from '../../arpeggio/js/midi.js';
 import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, GUESTS, partsAt } from './styles.js';
 import { FAMILIES, tuneFamily, fitsStyle, tunesFor } from './tunes.js';
 import { voicingTags, voicingBonus, voicingWords, bassRole } from './voicing.js';
-import { SlotJudge, Scorer, chordTargets, hintVoicing, toneDegree, DEGREES, multiplier, timingZone, WINDOW } from './judge.js';
+import { SlotJudge, Scorer, chordTargets, hintVoicing, toneDegree, DEGREES, multiplier, timingZone, WINDOW, ghostFill } from './judge.js';
 import { Band } from './band.js';
 import { SYNC, measureOffset, offsetFor, storeOffset, forgetOffset } from './sync.js';
 import { sprite, MAPS } from './sprites.js';
@@ -266,9 +266,14 @@ const ghostSprite = (part, style) => {
   return sprite(MAPS[`ghost-${gear}`] ? `ghost-${gear}` : 'ghost', { px: 5 });
 };
 // No caption: the instrument says who is who, the name stays for screen readers and on hover.
-const ghostHtml = (m, style) => {
+// On stage a ghost is drawn twice, dark and lit: the band's heat uncovers
+// the lit one from left to right (see renderBand).
+const ghostHtml = (m, style, stage = false) => {
   const name = m.id === 'guest' ? GUESTS[style].name : m.name;
-  return `<div class="ghost ghost-${m.color}" data-part="${m.id}" role="img" aria-label="${name}" title="${name}">${ghostSprite(m.id, style)}</div>`;
+  const body = stage
+    ? `<span class="ghost-dark">${ghostSprite(m.id, style)}</span><span class="ghost-lit">${ghostSprite(m.id, style)}</span>`
+    : ghostSprite(m.id, style);
+  return `<div class="ghost ghost-${m.color}" data-part="${m.id}" role="img" aria-label="${name}" title="${name}">${body}</div>`;
 };
 // On the setup page the guest is a secret: a pale, padlocked ghost, since
 // who sits in depends on the groove. Hover (or tap) opens the collection:
@@ -418,11 +423,11 @@ function startGame({ again = false, restart = false } = {}) {
   $('resultModal').hidden = true;
   $('tuneTitle').textContent = prog.name;
   $('tuneMeta').textContent = `${style.name} · ${keyName(key, prog)} · ${tempo} bpm${style.anchor ? ' · Play on the and' : ''}`;
-  $('ghostBand').innerHTML = BAND.map((m) => ghostHtml(m, settings.style)).join('');
+  $('ghostBand').innerHTML = BAND.map((m) => ghostHtml(m, settings.style, true)).join('');
   $('hudHi').textContent = hiFor(game.scoreKey).toLocaleString();
   renderHud();
   game.energy = -1;
-  renderEnergy(1);
+  renderBand(game.scorer);
   $('gaugeTicks').innerHTML = '';
   $('gaugeReadout').textContent = '';
   $('gaugeReadout').className = 'gauge-readout';
@@ -758,10 +763,9 @@ function grade(k) {
   const j = judgeFor(k);
   const res = j.result();
   scoreVoicing(k, j, res);
-  const prevEnergy = game.scorer.energy;
   const gained = game.scorer.add(res);
   band.energy = game.scorer.energy;
-  if (band.energy !== prevEnergy) renderEnergy(band.energy);
+  renderBand(game.scorer);
   trackChord(k, j, res);
   shout(res, gained);
   renderHud();
@@ -821,15 +825,15 @@ function renderHud() {
   if (s.score > hiFor(game.scoreKey)) $('hudHi').textContent = s.score.toLocaleString();
 }
 
-// Energy 0..MAX_ENERGY: which ghosts are on stage, how full the meter is.
-// A change of tier is announced on stage.
-function renderEnergy(e) {
-  const bars = $('energyMeter').querySelectorAll('i');
-  bars.forEach((b, i) => b.classList.toggle('on', i <= e));
+// The band's heat lights the ghosts up left to right, and its energy
+// (0..MAX_ENERGY) says who is on stage. A change of tier is announced.
+function renderBand({ heat, energy: e }) {
+  const fill = ghostFill(heat);
   const parts = partsAt(e);
   for (const g of $('ghostBand').children) {
     const was = !g.classList.contains('is-off');
     const on = parts.has(g.dataset.part);
+    g.style.setProperty('--fill', fill[g.dataset.part].toFixed(3));
     g.classList.toggle('is-off', !on);
     g.classList.toggle('is-wild', e >= MAX_ENERGY);
     if (on && !was && game?.energy >= 0) {
@@ -853,7 +857,7 @@ function renderEnergy(e) {
 function announceTier(prev, e) {
   const up = e > prev;
   const tier = TIERS[up ? e : prev];
-  // Nobody announces a player leaving: their ghost fading says it already.
+  // Nobody announces a player leaving: their ghost going dark says it already.
   if (!up && !tier.heat) return;
   const el = document.createElement('div');
   el.className = `tier-banner ${up ? 'is-up' : 'is-down'}`;

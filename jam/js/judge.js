@@ -155,14 +155,35 @@ export function multiplier(combo) {
   return Math.min(8, 1 + Math.floor(combo / 4));
 }
 
-// Band energy 0..3 (see TIERS in styles.js). Starts at 1 (drums, bass,
-// keys); every 4 chords in a row takes it one step up (the band heats up,
-// then the guest comes on), a miss one step down.
-export const ENERGY_STEP = 4;
-export function nextEnergy(energy, grade, combo) {
-  if (grade === 'miss') return Math.max(0, energy - 1);
-  const earned = Math.min(3, 1 + Math.floor(combo / ENERGY_STEP));
-  return Math.max(energy, earned);
+// Band heat, counted in chords. It fills the ghosts left to right: drums
+// and bass are always lit, then the keys over HEAT.ghost chords, then the
+// guest over as many again. Each chord landed in time adds one, a late one
+// adds nothing, a miss drains HEAT.miss. A ghost joins once it is fully lit
+// and leaves only once it is fully dark, so a half lit ghost keeps doing
+// what it was doing. The band heats up halfway through the guest.
+export const HEAT = { ghost: 8, miss: 4, start: 8 };
+export const HEAT_MAX = 2 * HEAT.ghost;
+
+export function nextHeat(heat, grade) {
+  if (grade === 'miss') return Math.max(0, heat - HEAT.miss);
+  if (grade === 'late') return heat;
+  return Math.min(HEAT_MAX, heat + 1);
+}
+
+// How lit each ghost is, 0..1.
+export function ghostFill(heat) {
+  const part = (i) => Math.max(0, Math.min(1, (heat - i * HEAT.ghost) / HEAT.ghost));
+  return { drums: 1, bass: 1, keys: part(0), guest: part(1) };
+}
+
+// Band energy 0..3 (see TIERS in styles.js) from the heat, given the
+// energy before: that is who is on stage now.
+export function energyAt(heat, prev) {
+  const keysIn = prev >= 1 ? heat > 0 : heat >= HEAT.ghost;
+  const guestIn = prev >= 3 ? heat > HEAT.ghost : heat >= HEAT_MAX;
+  if (guestIn) return 3;
+  if (!keysIn) return 0;
+  return heat >= HEAT.ghost * 1.5 ? 2 : 1;
 }
 
 export class Scorer {
@@ -170,7 +191,8 @@ export class Scorer {
     this.score = 0;
     this.combo = 0;
     this.bestCombo = 0;
-    this.energy = 1;
+    this.heat = HEAT.start;
+    this.energy = energyAt(this.heat, 1);
     this.counts = { perfect: 0, good: 0, late: 0, miss: 0 };
   }
 
@@ -181,7 +203,8 @@ export class Scorer {
     this.bestCombo = Math.max(this.bestCombo, this.combo);
     const gained = (res.base + res.bonus) * multiplier(this.combo);
     this.score += gained;
-    this.energy = nextEnergy(this.energy, res.grade, this.combo);
+    this.heat = nextHeat(this.heat, res.grade);
+    this.energy = energyAt(this.heat, this.energy);
     return gained;
   }
 

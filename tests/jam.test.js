@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildChord } from '../js/core/theory.js';
 import { PROGRESSIONS, romanToChord, progressionMode } from '../js/training/progressions.js';
-import { chordTargets, toneRole, hintVoicing, toneDegree, SlotJudge, Scorer, multiplier, nextEnergy, timingZone } from '../jam/js/judge.js';
+import { chordTargets, toneRole, hintVoicing, toneDegree, SlotJudge, Scorer, multiplier, nextHeat, energyAt, ghostFill, HEAT, HEAT_MAX, timingZone } from '../jam/js/judge.js';
 import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, GUESTS, partsAt, guestEvents, barEvents, bassRoot, keysVoicing, countIn } from '../jam/js/styles.js';
 import { FAMILIES, tuneFamily, tuneStyles, fitsStyle, tunesFor } from '../jam/js/tunes.js';
 
@@ -84,18 +84,36 @@ test('the previous chord still counts until the next downbeat', () => {
 test('scorer: combo, multiplier and band energy', () => {
   const s = new Scorer();
   const perfect = { grade: 'perfect', base: 300, bonus: 0 };
+  const miss = { grade: 'miss', base: 0, bonus: 0 };
+  assert.equal(s.energy, 1);                       // drums, bass and keys
   for (let i = 0; i < 4; i++) s.add(perfect);
   assert.equal(s.combo, 4);
   assert.equal(multiplier(4), 2);
-  assert.equal(s.energy, 2);
-  s.add({ grade: 'miss', base: 0, bonus: 0 });
+  assert.equal(s.energy, 2);                       // the band heats up, guest half lit
+  for (let i = 0; i < 4; i++) s.add(perfect);
+  assert.equal(s.energy, MAX_ENERGY);              // guest fully lit: joins
+  s.add(miss);
   assert.equal(s.combo, 0);
+  assert.equal(s.energy, MAX_ENERGY);              // half dark: still there
+  s.add(miss);
+  assert.equal(s.energy, 1);                       // fully dark: leaves
+  s.add({ grade: 'late', base: 100, bonus: 0 });
+  assert.equal(s.heat, HEAT.ghost);
+  s.add(miss);
+  assert.equal(s.energy, 1);                       // keys half dark
+  s.add(miss);
+  assert.equal(s.energy, 0);                       // keys gone
+  for (let i = 0; i < HEAT.ghost - 1; i++) s.add(perfect);
+  assert.equal(s.energy, 0);                       // keys almost lit
+  s.add(perfect);
   assert.equal(s.energy, 1);
-  assert.equal(nextEnergy(2, 'perfect', 8), 3);
-  assert.equal(nextEnergy(3, 'perfect', 40), MAX_ENERGY);
   assert.equal(MAX_ENERGY, 3);
-  assert.equal(nextEnergy(3, 'good', 2), 3);      // a short streak keeps who is there
-  assert.equal(nextEnergy(0, 'miss', 0), 0);
+  assert.equal(nextHeat(HEAT_MAX, 'good'), HEAT_MAX);
+  assert.equal(nextHeat(2, 'miss'), 0);
+  assert.equal(energyAt(HEAT.ghost + 1, 0), 1);
+  assert.equal(energyAt(HEAT_MAX - 1, 2), 2);
+  assert.deepEqual(ghostFill(HEAT.ghost * 1.5), { drums: 1, bass: 1, keys: 1, guest: 0.5 });
+  assert.deepEqual(ghostFill(0), { drums: 1, bass: 1, keys: 0, guest: 0 });
   assert.ok(['S', 'A', 'B', 'C', 'D'].includes(s.rank));
 });
 
