@@ -61,6 +61,26 @@ test('slot windows let you anticipate by half a beat', () => {
   assert.ok(!j.owns(2760));
 });
 
+test('the previous chord still counts until the next downbeat', () => {
+  // C then E, a beat of 500 ms: E lands at 1000, its window opens at 750.
+  const mk = () => new SlotJudge({ chord: buildChord('E', 'maj'), prevChord: buildChord('C', 'maj'), start: 1000, end: 3000, beatMs: 500 });
+  let j = mk();
+  // Still improvising on C over the "and" of 4.
+  assert.equal(j.noteOn(0, 800, new Set([0])), 'tone');     // C fits C
+  assert.equal(j.noteOn(7, 850, new Set([7])), 'tone');     // G fits C
+  assert.equal(j.noteOn(5, 900, new Set([5])), 'wrong');    // F fits neither
+  play(j, [8, 11], 1000);                                   // then E on the downbeat
+  const r = j.result();
+  assert.equal(r.wrong, 1);
+  assert.equal(r.grade, 'good');
+  // From the downbeat on, a C-only note is wrong against E again.
+  j = mk();
+  assert.equal(j.noteOn(0, 1000, new Set([0])), 'wrong');
+  // No previous chord (first slot): nothing is excused.
+  j = new SlotJudge({ chord: buildChord('E', 'maj'), start: 1000, end: 3000, beatMs: 500 });
+  assert.equal(j.noteOn(0, 800, new Set([0])), 'wrong');
+});
+
 test('scorer: combo, multiplier and band energy', () => {
   const s = new Scorer();
   const perfect = { grade: 'perfect', base: 300, bonus: 0 };

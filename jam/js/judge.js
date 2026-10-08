@@ -11,6 +11,10 @@
 // times to it). A chord "slot" runs from `start` to `end`; you may anticipate
 // it by up to half a beat, as pianists do, so a note-on belongs to the slot
 // whose window [start - antic, end - antic) contains it.
+//
+// The old chord still rings until the next downbeat, so in that half beat a
+// note that fits the previous chord is not held against the new one: you can
+// keep improvising on the current chord right up to beat 1.
 
 import { CHORD_FORMULAS, noteToPitchClass } from '../../js/core/theory.js';
 
@@ -72,9 +76,10 @@ export function timingZone(offsetBeats) {
 }
 
 export class SlotJudge {
-  constructor({ chord, start, end, beatMs }) {
+  constructor({ chord, start, end, beatMs, prevChord = null }) {
     this.chord = chord;
     this.targets = chordTargets(chord);
+    this.prevTargets = prevChord ? chordTargets(prevChord) : null;
     this.start = start;
     this.end = end;
     this.beatMs = beatMs;
@@ -94,6 +99,10 @@ export class SlotJudge {
   noteOn(pc, t, held) {
     this.notes++;
     const role = toneRole(this.targets, pc);
+    if (role === 'wrong' && t < this.start && this.prevTargets) {
+      const prev = toneRole(this.prevTargets, pc);
+      if (prev !== 'wrong') return prev;   // still on the previous chord
+    }
     if (role === 'wrong') this.wrong++;
     if (role === 'colour') this.colours.add(pc);
     if (this.hitAt === null && [...this.targets.required].every((p) => held.has(p))) this.hitAt = t;
