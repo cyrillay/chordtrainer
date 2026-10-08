@@ -8,6 +8,8 @@ const PALETTE = {
   A: '#ffb000',   // beer
   Y: '#ffe48a',   // bubbles
   O: '#ff6a00',   // ember
+  R: '#ffd23f',   // ember core
+  F: '#d98a3c',   // cigarette filter
   G: '#6d6080',   // ash, metal
   K: '#2a1d3d',   // dark outline
 };
@@ -42,12 +44,14 @@ export const MAPS = {
     '.KAAAAAAAK..',
     '.KKKKKKKKK..',
   ],
+  // The cigarette rests in the notch: lit end over the bowl, filter outside.
   ashtray: [
-    '..........WWWWWWO',
-    '...GGGGGGGGGG....',
-    '..GKKKKKKKKKKG...',
-    '.GGGGGGGGGGGGGG..',
-    '..GGGGGGGGGGGG...',
+    '..........WWWFFF.',
+    '....ROWWWW.......',
+    '...GGGGGGGGGGG...',
+    '..GKKGKKKKKKKKG..',
+    '.GGGGGGGGGGGGGGG.',
+    '..GGGGGGGGGGGGG..',
   ],
   coin: [
     '..####..',
