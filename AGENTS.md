@@ -75,6 +75,15 @@ Its logic is split so it can be tested without audio: `jam/js/judge.js`
 (the six grooves as note events), `jam/js/band.js` (Web Audio synthesis
 and scheduling, untested), `jam/js/main.js` (UI).
 
+## mobile_app is a separate project
+
+`mobile_app/` holds Ghost Jam Hotel, the native Android game (Kotlin, Compose,
+C++ Oboe). It is not part of the static site and needs no "No" bump. Its
+`core` module ports the rules of `jam/js/` with their tests; see
+`mobile_app/README.md` for the build and for regenerating its tune list.
+GitHub Pages serves the whole repo, so keep spoilers (the game design
+document, story notes) out of it.
+
 ## Copy
 
 - English, short sentences.
