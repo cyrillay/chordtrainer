@@ -19,7 +19,7 @@ import { track, logRun } from '../../js/stats/log.js';
 import { JamTracker } from './achievements.js';
 import { initTrophyCase, grant, bump, setMax, setFinished } from './trophyCase.js';
 import { isFavourite, toggleFavourite, removeFavourite, cleanFavourites } from './favourites.js';
-import { PianoRemote, SETUP_KEYS, RESULT_KEYS, step } from './remote.js';
+import { PianoRemote, MenuNav, MIDDLE_C, gestureOf, step } from './remote.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -158,6 +158,7 @@ function renderFavs() {
   const btn = $('favBtn');
   btn.setAttribute('aria-pressed', String(starred));
   btn.title = starred ? 'Remove from your favourites' : 'Add this groove, tune and key to your favourites';
+  syncSetupRows();
 }
 
 $('favBtn').addEventListener('click', () => {
@@ -336,6 +337,7 @@ function midiStatus({ state, names }) {
   $('midiGate').hidden = state === 'connected';
   $('remote').hidden = state !== 'connected';
   $('resultRemote').hidden = state !== 'connected';
+  paintNav();
   const copy = gateCopy(state);
   $('gateTitle').textContent = copy.title;
   $('gateSub').textContent = copy.sub;
@@ -480,8 +482,8 @@ function onNoteOn(midi, velocity = 80, tPerf = performance.now()) {
 }
 
 function onNoteOff(midi) {
-  const pc = remote.noteOff(midi);
-  if (pc !== null) runRemote(pc);
+  const m = remote.noteOff(midi);
+  if (m !== null) runRemote(m);
   held.delete(midi);
   velocities.delete(midi);
   keyState(midi, null);
@@ -787,6 +789,8 @@ function finish() {
     <div><b>${s.bestCombo}</b><span>Best combo</span></div>
     <div><b>${Math.round(s.accuracy * 100)}%</b><span>Accuracy</span></div>`;
   $('resultModal').hidden = false;
+  resultNav.setItems(resultNav.items, 'again');
+  paintNav();
   trackFinish();
 }
 
@@ -827,8 +831,9 @@ function backToSetup() {
 }
 
 // ---- Piano remote + keyboard shortcuts ----
-// On the setup and results screens a single key on the piano is a command
-// (see remote.js). The legend under the Play button shows which.
+// On the setup and results screens the piano drives a menu cursor, like a
+// TV remote, in intervals from middle C (see remote.js). The legend under
+// the Play button shows how.
 
 const remote = new PianoRemote();
 
@@ -839,70 +844,105 @@ function remoteScreen() {
   return null;
 }
 
-function flash(el) {
-  if (!el) return;
-  el.classList.remove('remote-flash');
-  void el.offsetWidth;
-  el.classList.add('remote-flash');
-  el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+const knobOf = (id) => () => $(id).closest('.knob');
+// Each menu row and the element that lights up for it, top to bottom.
+const SETUP_ROWS = {
+  favs: { kind: 'value', el: () => $('favs') },
+  groove: { kind: 'value', el: () => $('styleGrid') },
+  tune: { kind: 'value', el: () => $('tuneSelect') },
+  shuffle: { kind: 'action', el: () => $('randomTuneBtn') },
+  star: { kind: 'action', el: () => $('favBtn') },
+  key: { kind: 'value', el: knobOf('keySelect') },
+  tempo: { kind: 'value', el: knobOf('tempoRange') },
+  bars: { kind: 'value', el: knobOf('barsSelect') },
+  length: { kind: 'value', el: knobOf('lengthSelect') },
+  tones: { kind: 'action', el: () => $('showTonesCb').closest('.arcade-toggle') },
+  play: { kind: 'action', el: () => $('playBtn') },
+};
+const RESULT_ROWS = {
+  back: { kind: 'action', el: () => $('resultBackBtn') },
+  again: { kind: 'action', el: () => $('resultAgainBtn') },
+};
+const rowsOf = (rows, skip = []) => Object.entries(rows).filter(([id]) => !skip.includes(id)).map(([id, r]) => ({ id, kind: r.kind }));
+const setupNav = new MenuNav(rowsOf(SETUP_ROWS, ['favs']), 'groove');
+const resultNav = new MenuNav(rowsOf(RESULT_ROWS), 'again');
+
+// Light up the row under the cursor (only with a keyboard connected).
+function paintNav() {
+  for (const el of document.querySelectorAll('.nav-focus, .nav-edit')) el.classList.remove('nav-focus', 'nav-edit');
+  const screen = midiState === 'connected' ? remoteScreen() : null;
+  if (!screen) return;
+  const nav = screen === 'setup' ? setupNav : resultNav;
+  const el = (screen === 'setup' ? SETUP_ROWS : RESULT_ROWS)[nav.current.id].el();
+  el.classList.add(nav.editing ? 'nav-edit' : 'nav-focus');
+}
+function syncSetupRows() {
+  setupNav.setItems(rowsOf(SETUP_ROWS, favs.length ? [] : ['favs']));
+  paintNav();
 }
 
 // Move a <select> by one option and tell its listener.
 function stepSelect(sel, dir) {
   sel.value = step([...sel.options].map((o) => o.value), sel.value, dir);
   sel.dispatchEvent(new Event('change'));
-  flash(sel);
 }
-
-const SETUP_ACTIONS = {
-  play: () => $('playBtn').click(),
-  shuffle: () => { $('randomTuneBtn').click(); flash($('tuneSelect')); },
-  groovePrev: () => { setStyle(step(STYLE_ORDER, settings.style, -1)); flash($('styleGrid').querySelector('.is-on')); },
-  grooveNext: () => { setStyle(step(STYLE_ORDER, settings.style, 1)); flash($('styleGrid').querySelector('.is-on')); },
-  favourite: () => { $('favBtn').click(); flash($('favBtn')); },
-  tunePrev: () => stepSelect($('tuneSelect'), -1),
-  tuneNext: () => stepSelect($('tuneSelect'), 1),
-  keyPrev: () => stepSelect($('keySelect'), -1),
-  keyNext: () => stepSelect($('keySelect'), 1),
-  tempoDown: () => nudgeTempo(-5),
-  tempoUp: () => nudgeTempo(5),
-  nextFavourite: () => {
-    if (!favs.length) return;
-    const i = favs.findIndex((f) => isFavourite([f], combo()));
-    $('favList').querySelector(`[data-fav="${(i + 1) % favs.length}"]`).click();
-    flash($('favList').querySelector('.fav.is-on'));
-  },
-};
-const RESULT_ACTIONS = {
-  again: () => $('resultAgainBtn').click(),
-  back: () => $('resultBackBtn').click(),
-};
 
 function nudgeTempo(d) {
   const range = $('tempoRange');
   range.value = Number(range.value) + d;
   range.dispatchEvent(new Event('input'));
-  flash(range.closest('.knob'));
 }
 
-function runRemote(pc) {
+const CHANGE = {
+  favs: (dir) => {
+    const i = favs.findIndex((f) => isFavourite([f], combo()));
+    $('favList').querySelector(`[data-fav="${i < 0 ? 0 : (i + dir + favs.length) % favs.length}"]`).click();
+  },
+  groove: (dir) => setStyle(step(STYLE_ORDER, settings.style, dir)),
+  tune: (dir) => stepSelect($('tuneSelect'), dir),
+  key: (dir) => stepSelect($('keySelect'), dir),
+  tempo: (dir) => nudgeTempo(dir * 5),
+  bars: (dir) => stepSelect($('barsSelect'), dir),
+  length: (dir) => stepSelect($('lengthSelect'), dir),
+};
+const ACTIVATE = {
+  shuffle: () => $('randomTuneBtn').click(),
+  star: () => $('favBtn').click(),
+  tones: () => $('showTonesCb').click(),
+  play: () => $('playBtn').click(),
+  back: () => $('resultBackBtn').click(),
+  again: () => $('resultAgainBtn').click(),
+};
+
+function runRemote(midi) {
+  const g = gestureOf(midi);
   const screen = remoteScreen();
-  const cmd = screen === 'setup' ? SETUP_KEYS[pc] : screen === 'results' ? RESULT_KEYS[pc] : null;
-  if (!cmd) return;
-  (screen === 'setup' ? SETUP_ACTIONS : RESULT_ACTIONS)[cmd.id]();
+  if (!g || !screen) return;
+  const nav = screen === 'setup' ? setupNav : resultNav;
+  const fx = nav.handle(g);
+  if (fx?.type === 'change') CHANGE[fx.id](fx.dir);
+  if (fx?.type === 'activate') ACTIVATE[fx.id]();
+  paintNav();
+  if (remoteScreen() === screen && fx?.type === 'focus') {
+    (screen === 'setup' ? SETUP_ROWS : RESULT_ROWS)[fx.id].el().scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
 }
 
-// One octave, laid out like a piano: white keys below, black keys above.
-const BLACK_PCS = [1, 3, 6, 8, 10];
-const NOTE_LBL = ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'];
-const WHITE_COL = { 0: 1, 2: 3, 4: 5, 5: 7, 7: 9, 9: 11, 11: 13 };
-$('remoteKeys').innerHTML = Object.entries(SETUP_KEYS).map(([pc, k]) => {
-  pc = Number(pc);
-  const black = BLACK_PCS.includes(pc);
-  const col = black ? WHITE_COL[pc - 1] + 1 : WHITE_COL[pc];
-  return `<span class="rk ${black ? 'rk-black' : 'rk-white'}" style="grid-column:${col} / span 2"><b>${NOTE_LBL[pc]}</b>${k.label}</span>`;
-}).join('');
-$('resultRemote').innerHTML = `Piano: ${Object.entries(RESULT_KEYS).map(([pc, k]) => `<b>${NOTE_LBL[pc]}</b> ${k.label}`).join(' · ')}`;
+// The legend: the keys around middle C, F3 to A4, the ones that do something labelled.
+(function buildRemoteLegend() {
+  const LABELS = { [MIDDLE_C - 4]: '↓', [MIDDLE_C - 3]: '↓', [MIDDLE_C]: 'C', [MIDDLE_C + 3]: '↑', [MIDDLE_C + 4]: '↑', [MIDDLE_C + 7]: 'OK' };
+  let html = '';
+  let white = 0;
+  for (let m = MIDDLE_C - 7; m <= MIDDLE_C + 9; m++) {
+    const black = BLACK.has(m % 12);
+    const col = black ? white * 2 : white * 2 + 1;
+    if (!black) white++;
+    const g = gestureOf(m);
+    html += `<span class="rk ${black ? 'rk-black' : 'rk-white'}${g ? ` rk-${g}` : ''}${m === MIDDLE_C ? ' rk-home' : ''}" style="grid-column:${col} / span 2">${LABELS[m] ?? ''}</span>`;
+  }
+  $('remoteKeys').innerHTML = html;
+  $('remoteKeys').style.gridTemplateColumns = `repeat(${white * 2}, 1fr)`;
+})();
 
 document.addEventListener('keydown', (e) => {
   if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;

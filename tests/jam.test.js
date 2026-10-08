@@ -326,20 +326,43 @@ test('favourites: toggle, newest first, capped, cleaned', async () => {
 });
 
 test('piano remote: one key alone is a command, a chord is not', async () => {
-  const { PianoRemote, SETUP_KEYS, step } = await import('../jam/js/remote.js');
+  const { PianoRemote, gestureOf } = await import('../jam/js/remote.js');
   const r = new PianoRemote();
-  r.noteOn(62, true);
-  assert.equal(r.noteOff(62), 2);                // D, any octave
+  r.noteOn(67, true);
+  assert.equal(r.noteOff(67), 67);
   r.noteOn(60, true); r.noteOn(64, true); r.noteOn(67, true);
   assert.equal(r.noteOff(60), null);
   assert.equal(r.noteOff(64), null);
   assert.equal(r.noteOff(67), null);              // a C chord does nothing
-  r.noteOn(60, false);
-  assert.equal(r.noteOff(60), null);              // pressed while playing: never a command
-  r.noteOn(60, true); r.noteOn(72, true); r.noteOff(72);
-  assert.equal(r.noteOff(60), null);              // another key joined in
-  assert.equal(Object.keys(SETUP_KEYS).length, 12);
-  assert.equal(new Set(Object.values(SETUP_KEYS).map((k) => k.id)).size, 12);
+  r.noteOn(67, false);
+  assert.equal(r.noteOff(67), null);              // pressed while playing: never a command
+  // Intervals from middle C.
+  assert.equal(gestureOf(57), 'down');             // A3, minor third below
+  assert.equal(gestureOf(56), 'down');             // A♭3, major third below
+  assert.equal(gestureOf(64), 'up');               // E4
+  assert.equal(gestureOf(63), 'up');               // E♭4
+  assert.equal(gestureOf(67), 'select');           // G4
+  assert.equal(gestureOf(60), null);
+  assert.equal(gestureOf(76), null);               // E5: only around middle C
+});
+
+test('menu cursor: thirds move, the fifth takes and lets go a setting', async () => {
+  const { MenuNav, step } = await import('../jam/js/remote.js');
+  const nav = new MenuNav([
+    { id: 'groove', kind: 'value' }, { id: 'tempo', kind: 'value' }, { id: 'play', kind: 'action' },
+  ], 'groove');
+  assert.deepEqual(nav.handle('up'), { type: 'focus', id: 'groove' });   // already at the top
+  assert.deepEqual(nav.handle('down'), { type: 'focus', id: 'tempo' });
+  assert.deepEqual(nav.handle('select'), { type: 'edit', id: 'tempo', on: true });
+  assert.deepEqual(nav.handle('up'), { type: 'change', id: 'tempo', dir: 1 });
+  assert.deepEqual(nav.handle('down'), { type: 'change', id: 'tempo', dir: -1 });
+  assert.deepEqual(nav.handle('select'), { type: 'edit', id: 'tempo', on: false });
+  assert.deepEqual(nav.handle('down'), { type: 'focus', id: 'play' });
+  assert.deepEqual(nav.handle('down'), { type: 'focus', id: 'play' });    // already at the bottom
+  assert.deepEqual(nav.handle('select'), { type: 'activate', id: 'play' });
+  // A row appears above: the cursor stays on the same row.
+  nav.setItems([{ id: 'favs', kind: 'value' }, ...nav.items]);
+  assert.equal(nav.current.id, 'play');
   assert.equal(step(['a', 'b', 'c'], 'c', 1), 'a');
   assert.equal(step(['a', 'b', 'c'], 'a', -1), 'c');
 });
