@@ -10,7 +10,7 @@ import { PROGRESSIONS, romanToChord, progressionMode, progressionQualities } fro
 import { renderMidiHint, gateCopy, DENIED_HELP_HTML } from '../../js/midi/midiHelp.js';
 import { connectMidi } from '../../sightreading/js/midi.js';
 import { attachComputerKeyboard } from '../../arpeggio/js/midi.js';
-import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, partsAt } from './styles.js';
+import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, GUESTS, partsAt } from './styles.js';
 import { SlotJudge, Scorer, chordTargets, toneRole, multiplier, timingZone, WINDOW } from './judge.js';
 import { Band } from './band.js';
 import { sprite } from './sprites.js';
@@ -143,14 +143,12 @@ const BAND = [
   { id: 'drums', name: 'Drums', color: 'cyan' },
   { id: 'bass', name: 'Bass', color: 'pink' },
   { id: 'keys', name: 'Keys', color: 'orange' },
-  { id: 'perc', name: 'Shaker', color: 'lime' },
-  { id: 'horns', name: 'Horns', color: 'amber' },
-  { id: 'strings', name: 'Strings', color: 'violet' },
-  { id: 'lead', name: 'Bell', color: 'white' },
+  { id: 'guest', name: 'Guest', color: 'lime' },
 ];
 const ghostHtml = (m) => `<div class="ghost ghost-${m.color}" data-part="${m.id}">${sprite('ghost', { px: 5 })}<span class="ghost-name">${m.name}</span></div>`;
 $('bandIntro').innerHTML = BAND.slice(0, 3).map(ghostHtml).join('');
 $('ghostBand').innerHTML = BAND.map(ghostHtml).join('');
+const guestName = () => GUESTS[game?.style || settings.style].name;
 
 // ---- Keyboard strip (C2 to C7) ----
 
@@ -256,7 +254,8 @@ function startGame({ again = false } = {}) {
   $('viewPlay').hidden = false;
   $('resultModal').hidden = true;
   $('tuneTitle').textContent = prog.name;
-  $('tuneMeta').textContent = `${style.name} · ${NOTE_DISPLAY[key]} · ${tempo} bpm`;
+  $('tuneMeta').textContent = `${style.name} · ${NOTE_DISPLAY[key]} · ${tempo} bpm${style.anchor ? ' · Play on the and' : ''}`;
+  $('ghostBand').querySelector('[data-part="guest"] .ghost-name').textContent = guestName();
   $('hudHi').textContent = hiFor(game.scoreKey).toLocaleString();
   renderHud();
   game.energy = -1;
@@ -280,6 +279,10 @@ function startGame({ again = false } = {}) {
 // Slot timing on the audio clock (seconds). Slot k starts after the count-in bar.
 function slotStart(k) { return band.startAt + (1 + k * game.barsPerChord) * band.barDur; }
 function slotEnd(k) { return slotStart(k) + game.barsPerChord * band.barDur; }
+// Where the chord is meant to be played: the downbeat, or the off-beat
+// after it in reggae (see `anchor` in styles.js).
+const anchorSec = () => (STYLES[game.style].anchor || 0) * band.beat;
+function target(k) { return slotStart(k) + anchorSec(); }
 
 function judgeFor(k) {
   if (k < 0 || k >= game.totalSlots) return null;
@@ -287,8 +290,8 @@ function judgeFor(k) {
   if (!j) {
     j = new SlotJudge({
       chord: game.chords[k % game.chords.length],
-      start: slotStart(k) * 1000,
-      end: slotEnd(k) * 1000,
+      start: target(k) * 1000,
+      end: (slotEnd(k) + anchorSec()) * 1000,
       beatMs: band.beat * 1000,
     });
     game.judges.set(k, j);
@@ -300,7 +303,7 @@ function judgeFor(k) {
 function slotAt(t) {
   const first = band.startAt + band.barDur;
   const span = game.barsPerChord * band.barDur;
-  return Math.floor((t + WINDOW.antic * band.beat - first) / span);
+  return Math.floor((t - anchorSec() + WINDOW.antic * band.beat - first) / span);
 }
 
 // Audio-clock time (seconds) of a MIDI event stamped with performance.now().
@@ -370,7 +373,7 @@ function loop() {
   // Grade every slot whose window has closed.
   while (game.finalized < game.totalSlots) {
     const kk = game.finalized;
-    const closeAt = slotEnd(kk) - WINDOW.antic * band.beat;
+    const closeAt = slotEnd(kk) + anchorSec() - WINDOW.antic * band.beat;
     if (heard < closeAt) break;
     grade(kk);
     game.finalized++;
@@ -534,10 +537,10 @@ function announceTier(prev, e) {
   const tier = TIERS[up ? e : prev];
   const el = document.createElement('div');
   el.className = `tier-banner ${up ? 'is-up' : 'is-down'}`;
+  const name = tier.part === 'guest' ? guestName() : tier.name;
   const verb = (one, many) => (tier.plural ? many : one);
-  el.textContent = up
-    ? `${tier.name} ${verb('joins', 'join')} in!${e === MAX_ENERGY ? ' Full band!' : ''}`
-    : `${tier.name} ${verb('sits', 'sit')} out`;
+  if (tier.heat) el.textContent = up ? 'The band heats up!' : 'The band cools down';
+  else el.textContent = up ? `${name} ${verb('joins', 'join')} in!` : `${name} ${verb('sits', 'sit')} out`;
   document.querySelector('.bandstand').appendChild(el);
   setTimeout(() => el.remove(), 1800);
 }
@@ -566,9 +569,9 @@ function moveGaugeCursor(k, heard) {
   const cur = $('gaugeCursor');
   // The change that matters: the one just passed, until it leaves the gauge.
   let c = k < 0 ? 0 : k;
-  if (k >= 0 && (heard - slotStart(k)) / band.beat > GAUGE.to) c = k + 1;
+  if (k >= 0 && (heard - target(k)) / band.beat > GAUGE.to) c = k + 1;
   if (c >= game.totalSlots) { cur.hidden = true; return; }
-  const off = (heard - slotStart(c)) / band.beat;
+  const off = (heard - target(c)) / band.beat;
   const inside = off >= GAUGE.from && off <= GAUGE.to;
   cur.hidden = !inside;
   if (inside) cur.style.left = `${gaugePct(off)}%`;
@@ -596,7 +599,7 @@ function onHit(k, j) {
   void big.offsetWidth;
   big.classList.add(zone === 'perfect' ? 'hit-perfect' : 'hit');
   // Nailed it: the band answers.
-  if (zone === 'perfect' && j.wrong === 0) band.accent(j.hitAt / 1000, slotStart(k));
+  if (zone === 'perfect' && j.wrong === 0) band.accent(j.hitAt / 1000, target(k));
 }
 
 // ---- End of a set ----

@@ -124,13 +124,13 @@ export function multiplier(combo) {
   return Math.min(8, 1 + Math.floor(combo / 4));
 }
 
-// Band energy 0..5 (see TIERS in styles.js). Starts at 1 (drums, bass,
-// keys); every 4 chords in a row brings one more player in, a miss sends
-// one home.
+// Band energy 0..3 (see TIERS in styles.js). Starts at 1 (drums, bass,
+// keys); every 4 chords in a row takes it one step up (the band heats up,
+// then the guest comes on), a miss one step down.
 export const ENERGY_STEP = 4;
 export function nextEnergy(energy, grade, combo) {
   if (grade === 'miss') return Math.max(0, energy - 1);
-  const earned = Math.min(5, 1 + Math.floor(combo / ENERGY_STEP));
+  const earned = Math.min(3, 1 + Math.floor(combo / ENERGY_STEP));
   return Math.max(energy, earned);
 }
 

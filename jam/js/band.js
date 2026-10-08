@@ -3,7 +3,7 @@
 // samples to download). Bars are scheduled ~150 ms ahead; the band's energy
 // is read when a bar is scheduled, so it reacts from the next bar on.
 
-import { STYLES, barEvents, countIn, bassRoot, keysVoicing } from './styles.js';
+import { STYLES, GUESTS, barEvents, countIn, bassRoot, keysVoicing } from './styles.js';
 
 const LOOKAHEAD = 0.15;   // seconds scheduled ahead
 const TICK_MS = 25;
@@ -130,26 +130,24 @@ export class Band {
     if (!this.muted.has('drums')) for (const d of ev.drums) this.drum(d.voice, at(d.step), d.vel);
     if (!this.muted.has('bass')) for (const n of ev.bass) this.bassNote(n.midi, at(n.step), n.dur * stepDur);
     if (!this.muted.has('keys')) for (const k of ev.keys) this.keysChord(k.notes, at(k.step), k.dur * stepDur);
-    for (const h of ev.horns) this.hornStab(h.notes, at(h.step), h.dur * stepDur);
-    for (const p of ev.strings) this.strings(p.notes, at(p.step), p.dur * stepDur);
-    for (const n of ev.lead) this.bell(n.midi, at(n.step), n.dur * stepDur);
+    for (const g of ev.guest) this.guest(g.notes, at(g.step), g.dur * stepDur);
     // Crash on the top of each chorus once the band is cooking.
     if (this.energy >= 2 && cur.first && cur.index === 0 && cur.chorus > 0) this.drum('crash', t0, 0.8);
   }
 
-  // The band answers a chord you nailed. On the downbeat when it is still
-  // ahead (you anticipated), otherwise on the next eighth note, like a
-  // drummer catching your hit.
-  accent(hitAt, downbeat) {
+  // The band answers a chord you nailed, with the groove's own drums. On
+  // the target when it is still ahead (you anticipated), otherwise on the
+  // next eighth note, like a drummer catching your hit.
+  accent(hitAt, target) {
     if (!this.bus || !this.ctx) return;
     const now = this.ctx.currentTime + 0.02;
-    let t = downbeat;
+    let t = target;
     if (t < now) {
       const eighth = this.beat / 2;
-      t = downbeat + Math.ceil((Math.max(now, hitAt) - downbeat) / eighth) * eighth;
+      t = target + Math.ceil((Math.max(now, hitAt) - target) / eighth) * eighth;
     }
-    this.drum('kick', t, 1);
-    this.drum(this.energy >= 3 ? 'crash' : 'snare', t, 0.9);
+    for (const v of this.style.accent) this.drum(v, t, 0.9);
+    if (this.energy >= 3 && this.opts.style !== 'reggae') this.drum('crash', t, 0.7);
   }
 
   // Last chord rings out with a cymbal, then the set is over.
@@ -330,22 +328,6 @@ export class Band {
         this.noiseSrc(t, 0.3, this.filter('bandpass', 3800, 0.6)).connect(g);
         break;
       }
-      case 'shaker': {
-        const g = this.env(t, { a: 0.012, peak: 0.07 * vel, d: 0.07 });
-        g.connect(out);
-        this.noiseSrc(t, 0.1, this.filter('bandpass', 6500, 1.2)).connect(g);
-        break;
-      }
-      case 'tamb': {
-        const g = this.env(t, { peak: 0.11 * vel, d: 0.16 });
-        g.connect(out);
-        this.noiseSrc(t, 0.2, this.filter('highpass', 6800)).connect(g);
-        const jingle = this.env(t, { peak: 0.025 * vel, d: 0.14 });
-        jingle.connect(out);
-        this.osc('square', 5200, t, t + 0.15, jingle);
-        this.osc('square', 6900, t, t + 0.15, jingle);
-        break;
-      }
       case 'sticks': {
         const g = this.env(t, { peak: 0.3 * vel, d: 0.04 });
         g.connect(out);
@@ -442,6 +424,55 @@ export class Band {
     }
   }
 
+  // ---- The guest ----
+
+  guest(notes, t, dur) {
+    const patch = GUESTS[this.opts.style].patch;
+    if (patch === 'horns') return this.hornStab(notes, t, dur);
+    if (patch === 'strings') return this.strings(notes, t, dur);
+    if (patch === 'vibes') return notes.forEach((m) => this.bell(m, t, dur, 0.09));
+    for (const m of notes) this.reed(patch, m, t, dur);
+  }
+
+  // Sax, flute and melodica: one held note with breath and a late vibrato.
+  reed(patch, midi, t, dur) {
+    const out = this.bus?.input;
+    if (!out) return;
+    const f = hz(midi);
+    const len = Math.max(0.1, dur * 0.92);
+    const shape = {
+      sax:      { wave: 'sawtooth', peak: 0.075, a: 0.03, cut: 1800, q: 1.5, breath: 0.012, vib: 5 },
+      flute:    { wave: 'sine', peak: 0.11, a: 0.07, cut: 4000, q: 0.7, breath: 0.03, vib: 6 },
+      melodica: { wave: 'square', peak: 0.05, a: 0.02, cut: 2400, q: 1, breath: 0.008, vib: 3 },
+    }[patch];
+    const g = this.env(t, { a: shape.a, peak: shape.peak, d: 0.1, s: 0.8, hold: Math.max(0, len - 0.15), r: 0.08 });
+    const lp = this.filter('lowpass', shape.cut, shape.q);
+    lp.connect(g).connect(out);
+    const o = this.osc(shape.wave, f, t, t + len + 0.1, lp);
+    if (patch === 'flute') this.osc('sine', f * 2, t, t + len + 0.1, this.envGain(0.18, lp));
+    // Vibrato comes in after the attack, like a player leaning on the note.
+    if (len > 0.3) {
+      const lfo = this.ctx.createOscillator();
+      lfo.frequency.value = shape.vib;
+      const depth = this.ctx.createGain();
+      depth.gain.setValueAtTime(0, t);
+      depth.gain.linearRampToValueAtTime(f * 0.006, t + Math.min(0.4, len));
+      lfo.connect(depth).connect(o.frequency);
+      lfo.start(t);
+      lfo.stop(t + len + 0.1);
+    }
+    const bg = this.env(t, { a: 0.02, peak: shape.breath, d: 0.1, s: 0.5, hold: Math.max(0, len - 0.15), r: 0.05 });
+    bg.connect(out);
+    this.noiseSrc(t, len, this.filter('bandpass', Math.min(9000, f * 3), 1.5)).connect(bg);
+  }
+
+  envGain(v, dest) {
+    const g = this.ctx.createGain();
+    g.gain.value = v;
+    g.connect(dest);
+    return g;
+  }
+
   // ---- Horns and strings ----
 
   hornStab(notes, t, dur) {
@@ -473,11 +504,11 @@ export class Band {
     }
   }
 
-  bell(midi, t, dur) {
+  bell(midi, t, dur, peak = 0.05) {
     const out = this.bus?.input;
     if (!out) return;
     const f = hz(midi);
-    const g = this.env(t, { peak: 0.05, d: Math.min(1.2, dur + 0.6) });
+    const g = this.env(t, { peak, d: Math.min(1.2, dur + 0.6) });
     g.connect(out);
     const car = this.osc('sine', f, t, t + dur + 0.8, g);
     const mg = this.ctx.createGain();
