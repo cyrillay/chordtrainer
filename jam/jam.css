@@ -725,6 +725,39 @@ body[data-energy="3"] .beat-glow { --glow: 0.55; }
 .result-grid span { font-size: 1rem; color: var(--ivory-dim); }
 .result-actions { display: flex; justify-content: center; gap: 0.8rem; flex-wrap: wrap; }
 
+/* The key picker: a circle of fifths. The tune's mode is the outer ring, its
+   relative keys sit inside, Random in the middle. */
+.key-btn { width: 100%; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; }
+.key-btn::after { content: '◎'; color: var(--cyan); font-size: 1rem; }
+.key-btn:hover { border-color: var(--cyan); }
+.kw-box { width: min(440px, 100%); padding: 1rem 1.2rem 1.2rem; border-color: var(--cyan); box-shadow: 0 0 50px rgba(24, 240, 255, 0.35); }
+.kw-head { display: flex; justify-content: space-between; align-items: center; }
+.kw-title { font-family: var(--font-display); font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--cyan); }
+.kw-wheel { display: block; width: min(100%, 360px); margin: 0.4rem auto 0; overflow: visible; font-family: var(--font-body); user-select: none; }
+.kw-seg { cursor: pointer; outline: none; }
+.kw-seg text { text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.kw-out { fill: #1a0e2c; stroke: var(--violet); stroke-width: 0.8; transition: fill 0.12s; }
+.kw-in { fill: #110820; stroke: var(--line); stroke-width: 0.6; }
+.kw-name { font-size: 15px; fill: var(--ivory); }
+.kw-sig { font-size: 8px; fill: var(--ivory-dim); }
+.kw-rel { font-size: 9.5px; fill: var(--ivory-dim); opacity: 0.75; }
+.kw-seg:focus-visible .kw-out { fill: #251443; stroke: var(--cyan); stroke-width: 1.4; }
+@media (hover: hover) { .kw-seg:not(.is-on):hover .kw-out { fill: #251443; stroke: var(--cyan); stroke-width: 1.4; } }
+.kw-seg.is-on .kw-out { fill: var(--pink); stroke: #fff; stroke-width: 1.2; filter: drop-shadow(0 0 5px var(--pink)); }
+.kw-seg.is-on .kw-name { fill: #fff; }
+.kw-seg.is-on .kw-sig { fill: #ffd3ea; }
+.kw-seg.is-on .kw-in { fill: #2a0f24; stroke: var(--pink); }
+.kw-seg.is-on .kw-rel { fill: var(--gold-bright); opacity: 1; }
+.kw-seg.is-picked .kw-out { animation: kw-flash 0.38s ease-out; }
+@keyframes kw-flash { 0% { fill: #fff; } 100% { fill: var(--pink); } }
+.kw-random circle { fill: #0f0719; stroke: var(--violet); stroke-width: 1; stroke-dasharray: 3 2.5; transition: fill 0.12s; }
+.kw-random:hover circle, .kw-random:focus-visible circle { stroke: var(--cyan); fill: #1a0e2c; }
+.kw-random.is-on circle { fill: var(--pink); stroke: #fff; stroke-dasharray: none; }
+.kw-die { font-family: var(--font-display); font-size: 13px; fill: var(--cyan); }
+.kw-rand { font-size: 9.5px; fill: var(--ivory-dim); }
+.kw-random.is-on .kw-die, .kw-random.is-on .kw-rand { fill: #fff; }
+.kw-hint { margin: 0.6rem 0 0; color: var(--ivory-dim); font-size: 1.05rem; }
+
 /* The audio sync popup. */
 .sync-box { border-color: var(--cyan); box-shadow: 0 0 50px rgba(24, 240, 255, 0.35); }
 .sync-big { margin: 0.4rem 0 0.8rem; font-family: var(--font-neon); font-size: 3.6rem; line-height: 1.1; color: #fff; text-shadow: var(--glow-cyan); }

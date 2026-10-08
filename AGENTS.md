@@ -75,6 +75,22 @@ Its logic is split so it can be tested without audio: `jam/js/judge.js`
 (the six grooves as note events), `jam/js/band.js` (Web Audio synthesis
 and scheduling, untested), `jam/js/main.js` (UI).
 
+## UX: music first
+
+Every choice a musician makes on the site should look and feel like music,
+not like a web form. Prefer the instrument and music theory over generic
+controls:
+
+- Pick musical things on musical pictures: a key on a circle of fifths
+  (see `jam/js/keyWheel.js`), a note on a keyboard, a rhythm on a beat grid.
+  A `<select>` of note names is the last resort.
+- The piano is an input everywhere it makes sense: play a note to pick it,
+  move through menus from the keys. Mouse, touch and computer keyboard
+  still work too.
+- Spell and name things as a musician would (D♭ major, C♯ minor, key
+  signatures, degrees), and keep the screens ergonomic: big targets, one
+  tap or one note per choice.
+
 ## Copy
 
 - English, short sentences.

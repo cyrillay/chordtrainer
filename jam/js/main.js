@@ -5,7 +5,7 @@
 // performance.now() timestamp; we move them onto the audio clock, minus the
 // output latency, so a chord is judged against what you actually heard.
 
-import { formatChordHtml, spellChordTones, NOTE_NAMES, NOTE_DISPLAY } from '../../js/core/theory.js';
+import { formatChordHtml, spellChordTones, NOTE_NAMES } from '../../js/core/theory.js';
 import { PROGRESSIONS, romanToChord, progressionMode } from '../../js/training/progressions.js';
 import { renderMidiHint, gateCopy, DENIED_HELP_HTML } from '../../js/midi/midiHelp.js';
 import { connectMidi } from '../../sightreading/js/midi.js';
@@ -22,6 +22,7 @@ import { JamTracker } from './achievements.js';
 import { initTrophyCase, grant, bump, setMax, setFinished } from './trophyCase.js';
 import { isFavourite, toggleFavourite, removeFavourite, cleanFavourites } from './favourites.js';
 import { PianoRemote, MenuNav, MIDDLE_C, gestureOf, step } from './remote.js';
+import { KeyWheel, keyLabel } from './keyWheel.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -73,8 +74,9 @@ function buildChords(prog, key) {
 }
 
 // Major or minor is part of the tune (a minor ii–V–i is not a major one
-// played darker), so the key menu picks the tonic and names the mode.
-const keyName = (key, prog) => `${NOTE_DISPLAY[key]} ${progressionMode(prog)}`;
+// played darker), so the key picker picks the tonic and names the mode,
+// spelled as on the circle of fifths (D♭ major, C♯ minor).
+const keyName = (key, prog) => keyLabel(key, progressionMode(prog));
 
 // ---- Setup view ----
 
@@ -121,15 +123,15 @@ function renderCombo() {
 }
 
 function renderKeyMenu() {
-  const prog = tuneByName(settings.tune);
-  const mode = progressionMode(prog);
-  const keySel = $('keySelect');
-  if (keySel.dataset.mode !== mode) {
-    keySel.innerHTML = '<option value="random">Random</option>' + NOTE_NAMES.map((n) => `<option value="${n}">${keyName(n, prog)}</option>`).join('');
-    keySel.dataset.mode = mode;
-  }
-  keySel.value = settings.key;
+  $('keyBtn').textContent = settings.key === 'random' ? 'Random' : keyName(settings.key, tuneByName(settings.tune));
 }
+
+// The key picker: a circle of fifths you click, or a note you play.
+const keyWheel = new KeyWheel({
+  modal: $('keyModal'),
+  onPick: (key) => { settings.key = key; save(); renderCombo(); },
+});
+const openKeyWheel = () => keyWheel.open(settings.key, progressionMode(tuneByName(settings.tune)));
 
 function renderTunePreview() {
   const prog = tuneByName(settings.tune);
@@ -241,7 +243,7 @@ $('randomTuneBtn').addEventListener('click', () => {
   save();
   renderSetup();
 });
-$('keySelect').addEventListener('change', (e) => { settings.key = e.target.value; save(); renderCombo(); });
+$('keyBtn').addEventListener('click', openKeyWheel);
 $('tempoRange').addEventListener('input', (e) => { settings.tempo = Number(e.target.value); $('tempoVal').textContent = e.target.value; save(); });
 $('barsSelect').addEventListener('change', (e) => { settings.bars = Number(e.target.value); save(); });
 $('lengthSelect').addEventListener('change', (e) => { settings.length = Number(e.target.value); save(); });
@@ -492,6 +494,7 @@ function heldPcs() {
 }
 
 function onNoteOn(midi, velocity = 80, tPerf = performance.now()) {
+  keyWheel.playNote(midi);
   if (sync) syncTap(toAudioTime(tPerf));
   remote.noteOn(midi, remoteScreen() !== null);
   held.set(midi, null);
@@ -1019,7 +1022,7 @@ const remote = new PianoRemote({
 });
 
 function remoteScreen() {
-  if (!$('achModal').hidden || !$('syncModal').hidden) return null;
+  if (!$('achModal').hidden || !$('syncModal').hidden || keyWheel.isOpen) return null;
   if (!game && !$('viewSetup').hidden) return 'setup';
   if (game?.over && !$('resultModal').hidden) return 'results';
   return null;
@@ -1033,7 +1036,7 @@ const SETUP_ROWS = {
   tune: { kind: 'value', el: () => $('tuneSelect') },
   shuffle: { kind: 'action', el: () => $('randomTuneBtn') },
   star: { kind: 'action', el: () => $('favBtn') },
-  key: { kind: 'value', el: knobOf('keySelect') },
+  key: { kind: 'action', el: knobOf('keyBtn') },
   tempo: { kind: 'value', el: knobOf('tempoRange') },
   bars: { kind: 'value', el: knobOf('barsSelect') },
   length: { kind: 'value', el: knobOf('lengthSelect') },
@@ -1081,13 +1084,13 @@ const CHANGE = {
   },
   groove: (dir) => setStyle(step(STYLE_ORDER, settings.style, dir)),
   tune: (dir) => stepSelect($('tuneSelect'), dir),
-  key: (dir) => stepSelect($('keySelect'), dir),
   tempo: (dir) => nudgeTempo(dir),
   bars: (dir) => stepSelect($('barsSelect'), dir),
   length: (dir) => stepSelect($('lengthSelect'), dir),
 };
 const ACTIVATE = {
   shuffle: () => $('randomTuneBtn').click(),
+  key: openKeyWheel,
   star: () => $('favBtn').click(),
   tones: () => $('showTonesCb').click(),
   play: () => $('playBtn').click(),
@@ -1144,6 +1147,7 @@ $('restartBtn').addEventListener('click', restartGame);
 $('resultAgainBtn').addEventListener('click', () => { $('resultModal').hidden = true; startGame({ again: true }); });
 $('resultBackBtn').addEventListener('click', backToSetup);
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && keyWheel.isOpen) return keyWheel.close();
   if (e.key === 'Escape' && !$('syncModal').hidden) return closeSync();
   if (e.key === 'Escape' && game && !params.has('keys')) backToSetup();
 });
