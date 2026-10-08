@@ -69,7 +69,6 @@ function buildChords(prog, key) {
 const STYLE_ICONS = { swing: '🎷', bossa: '🌴', lofi: '📼', ballad: '🕯️', funk: '🕺', reggae: '🌿' };
 
 function renderSetup() {
-  renderBandIntro();
   $('styleGrid').innerHTML = STYLE_ORDER.map((id) => {
     const s = STYLES[id];
     return `<button type="button" class="style-card${id === settings.style ? ' is-on' : ''}" data-style="${id}">
@@ -164,13 +163,18 @@ const ghostSprite = (part, style) => {
   return sprite(MAPS[`ghost-${gear}`] ? `ghost-${gear}` : 'ghost', { px: 5 });
 };
 const ghostHtml = (m, style) => `<div class="ghost ghost-${m.color}" data-part="${m.id}">${ghostSprite(m.id, style)}<span class="ghost-name">${m.id === 'guest' ? GUESTS[style].name : m.name}</span></div>`;
-// On the setup page the guest is a secret: a faint silhouette with its
-// instrument, named only on hover.
-function renderBandIntro() {
-  const style = settings.style;
-  $('bandIntro').innerHTML = BAND.slice(0, 3).map((m) => ghostHtml(m, style)).join('')
-    + `<div class="ghost ghost-lime is-secret" data-part="guest" tabindex="0" title="Secret guest: ${GUESTS[style].name}. Joins when the band is on fire.">${ghostSprite('guest', style)}<span class="ghost-name">???</span></div>`;
-}
+// On the setup page the guest is a secret: a pale ghost with no instrument,
+// since who sits in depends on the groove. Hover (or tap) for a teaser.
+$('bandIntro').innerHTML = BAND.slice(0, 3).map((m) => ghostHtml(m, settings.style)).join('')
+  + `<button type="button" class="ghost is-secret" data-part="guest" aria-expanded="false" aria-describedby="secretTip">
+      <span class="secret-mark" aria-hidden="true">?</span>${sprite('ghost', { px: 5 })}<span class="ghost-name">???</span>
+      <span class="secret-tip" id="secretTip" role="tooltip"><b>Secret guest</b>Every groove has its own. Get the band on fire and they walk on stage.</span>
+    </button>`;
+const secret = $('bandIntro').querySelector('.is-secret');
+const openSecret = (open) => { secret.classList.toggle('open', open); secret.setAttribute('aria-expanded', String(open)); };
+secret.addEventListener('click', (e) => { e.stopPropagation(); openSecret(!secret.classList.contains('open')); });
+document.addEventListener('click', () => openSecret(false));
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') openSecret(false); });
 const guestName = () => GUESTS[game?.style || settings.style].name;
 
 // ---- Keyboard strip (C2 to C7) ----

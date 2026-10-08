@@ -241,7 +241,7 @@ input[type="range"] { accent-color: var(--pink); width: 100%; }
 /* ---------- ghosts ---------- */
 
 .band-intro, .ghost-band { display: flex; justify-content: center; gap: 2.2rem; }
-.band-intro { margin: 0.4rem 0 1.8rem; }
+.band-intro { margin: 0.4rem 0 1.8rem; align-items: flex-end; }
 .ghost { display: flex; flex-direction: column; align-items: center; gap: 0.35rem; transition: opacity 0.4s ease, filter 0.4s ease; }
 .ghost .sprite { display: block; animation: float 2.4s ease-in-out infinite; }
 .ghost-cyan { color: var(--cyan); }
@@ -255,10 +255,34 @@ input[type="range"] { accent-color: var(--pink); width: 100%; }
 
 .ghost-lime { color: var(--lime); }
 .ghost-lime .sprite { filter: drop-shadow(0 0 10px var(--lime)); }
-/* The secret guest on the setup page: a faint, flickering silhouette. */
-.ghost.is-secret { opacity: 0.4; cursor: help; animation: buzz 4.3s infinite 0.7s; }
-.ghost.is-secret .sprite { animation-delay: -2.2s; }
-.ghost.is-secret:hover, .ghost.is-secret:focus-visible { opacity: 0.9; animation: none; outline: none; }
+/* The secret guest on the setup page: a pale, flickering ghost with a
+   "?" over its head and a teaser on hover (desktop) or tap (phone). */
+.ghost.is-secret {
+  position: relative; color: #d9d0e6; cursor: help;
+  background: none; border: 0; padding: 0; font: inherit;
+}
+.ghost.is-secret > .sprite, .ghost.is-secret > .ghost-name { opacity: 0.35; animation: buzz 4.3s infinite 0.7s; transition: opacity 0.2s; }
+.ghost.is-secret > .sprite { filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5)); }
+.ghost.is-secret:hover > .sprite, .ghost.is-secret.open > .sprite,
+.ghost.is-secret:focus-visible > .sprite { opacity: 0.75; animation: float 2.4s ease-in-out infinite; }
+.secret-mark {
+  position: absolute; top: -18px; left: 50%; translate: -50% 0;
+  font-family: var(--font-display); font-size: 0.8rem; color: var(--lime);
+  text-shadow: 0 0 8px var(--lime); animation: secretBlink 1.6s ease-in-out infinite;
+}
+@keyframes secretBlink { 50% { opacity: 0.25; transform: translateY(-3px); } }
+.secret-tip {
+  position: absolute; z-index: 20; bottom: calc(100% + 22px); left: 50%; translate: -50% 0;
+  width: max-content; max-width: min(240px, 80vw); padding: 0.6rem 0.8rem;
+  background: var(--paper); border: 2px solid var(--lime); border-radius: 8px;
+  box-shadow: 0 0 18px rgba(182, 255, 59, 0.35);
+  font-family: var(--font-body); font-size: 1.05rem; line-height: 1.15; color: var(--ivory); text-align: left;
+  opacity: 0; visibility: hidden; transition: opacity 0.15s;
+}
+.secret-tip b { display: block; margin-bottom: 0.3rem; font-family: var(--font-display); font-size: 0.5rem; font-weight: 400; color: var(--lime); text-transform: uppercase; letter-spacing: 0.1em; }
+@media (hover: hover) { .ghost.is-secret:hover .secret-tip { opacity: 1; visibility: visible; } }
+.ghost.is-secret.open .secret-tip, .ghost.is-secret:focus-visible .secret-tip { opacity: 1; visibility: visible; }
+@media (max-width: 700px) { .secret-tip { left: auto; right: 0; translate: none; } }
 
 /* On stage, ghosts bob on the beat instead of floating freely, and bob
    harder as the band heats up. */
@@ -685,4 +709,5 @@ body[data-energy="3"] .beat-glow { --glow: 0.55; }
   .hall-style { display: none; }
   .band-intro, .ghost-band { gap: 1.2rem; }
   .ghost .sprite { width: 74px; height: auto; }
+  .ghost.is-secret .sprite { width: 47px; }
 }
