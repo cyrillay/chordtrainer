@@ -371,14 +371,17 @@ test('piano remote: one key alone is a command, a chord is not', async () => {
   r.noteOff(60); r.noteOff(64); r.noteOff(67);   // a C chord does nothing
   r.noteOn(67, false); r.noteOff(67);            // pressed while playing: never a command
   assert.deepEqual(got, [67]);
-  // Intervals from middle C.
+  // Intervals from C, in any octave.
   assert.equal(gestureOf(57), 'down');             // A3, minor third below
   assert.equal(gestureOf(56), 'down');             // A♭3, major third below
   assert.equal(gestureOf(64), 'up');               // E4
   assert.equal(gestureOf(63), 'up');               // E♭4
   assert.equal(gestureOf(67), 'select');           // G4
   assert.equal(gestureOf(60), null);
-  assert.equal(gestureOf(76), null);               // E5: only around middle C
+  assert.equal(gestureOf(76), 'up');               // E5
+  assert.equal(gestureOf(33), 'down');             // A1
+  assert.equal(gestureOf(91), 'select');           // G6
+  assert.equal(gestureOf(72), null);               // C5
 });
 
 test('piano remote: hold a third and it repeats, faster', async (t) => {
@@ -432,6 +435,11 @@ test('menu cursor: thirds move, the fifth takes and lets go a setting', async ()
   // A row appears above: the cursor stays on the same row.
   nav.setItems([{ id: 'favs', kind: 'value' }, ...nav.items]);
   assert.equal(nav.current.id, 'play');
+  // With wrap, the ends meet (the results screen).
+  const end = new MenuNav([{ id: 'back', kind: 'action' }, { id: 'again', kind: 'action' }], 'again', { wrap: true });
+  assert.deepEqual(end.handle('down'), { type: 'focus', id: 'back' });
+  assert.deepEqual(end.handle('up'), { type: 'focus', id: 'again' });
+  assert.deepEqual(end.handle('up'), { type: 'focus', id: 'back' });
   assert.equal(step(['a', 'b', 'c'], 'c', 1), 'a');
   assert.equal(step(['a', 'b', 'c'], 'a', -1), 'c');
 });

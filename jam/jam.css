@@ -699,9 +699,6 @@ body[data-energy="3"] .beat-glow { --glow: 0.55; }
 .kw.is-down, .kbk.is-down { background: var(--deg); box-shadow: 0 0 16px var(--deg); }
 .is-down.deg-wrong { box-shadow: 0 0 20px var(--crimson), inset 0 0 0 2px #fff; }
 
-.kb-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.3rem 0.9rem; margin-top: 0.5rem; color: var(--ivory-dim); font-size: 1.05rem; }
-.kb-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
-.kb-legend span::before { content: ''; width: 0.8rem; height: 0.8rem; border-radius: 2px; background: var(--deg); box-shadow: 0 0 6px var(--deg); }
 
 .play-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
 
