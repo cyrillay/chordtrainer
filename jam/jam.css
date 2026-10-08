@@ -495,7 +495,8 @@ body.beat-odd .ghost-band .ghost:nth-child(even) .sprite { transform: translateY
 .chord-big.pop { animation: chordPop 0.28s cubic-bezier(.2, .9, .3, 1.4); }
 @keyframes chordPop { from { transform: scale(0.7); opacity: 0.3; } }
 .chord-tones { display: flex; justify-content: center; gap: 0.5rem; min-height: 1.6rem; color: var(--ivory-dim); font-size: 1.3rem; }
-.chord-tones .req { color: var(--cyan); text-shadow: 0 0 8px rgba(24, 240, 255, 0.7); }
+.chord-tones span { color: var(--deg, var(--ivory-dim)); opacity: 0.6; }
+.chord-tones .req { opacity: 1; text-shadow: 0 0 8px var(--deg); }
 
 .next-chords { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0.6rem 1rem; min-height: 4.6rem; color: var(--ivory-dim); }
 .nx-card {
@@ -639,11 +640,30 @@ body[data-energy="3"] .beat-glow { --glow: 0.55; }
 .kw, .kbk { position: absolute; top: 0; border-radius: 0 0 4px 4px; transition: background 0.06s, box-shadow 0.06s; }
 .kw { height: 100%; background: #1d1230; border: 1px solid #3b2559; }
 .kbk { height: 62%; background: #07030d; border: 1px solid #3b2559; z-index: 2; }
-.kw.is-hint { background: #1f4a5c; box-shadow: inset 0 -10px 14px rgba(0, 240, 255, 0.35); }
-.kbk.is-hint { background: #10394a; box-shadow: inset 0 -6px 10px rgba(0, 240, 255, 0.4); }
-.is-down.is-tone { background: var(--cyan); box-shadow: 0 0 16px var(--cyan); }
-.is-down.is-colour { background: var(--orange); box-shadow: 0 0 16px var(--orange); }
-.is-down.is-wrong { background: var(--crimson); box-shadow: 0 0 16px var(--crimson); }
+
+/* Colour code by what the note does in the chord. Major is warm, minor
+   is cool: the 3rds are the pure colours (yellow, blue), the 7ths their
+   deeper cousins (orange, violet). Root white, 5th green, any other
+   extension pink, a wrong note red. Same colours on the keys to play
+   (faint), the keys you hold (full) and the note names. */
+.deg-root { --deg: #ffffff; } .hint-root { --hint: #ffffff; }
+.deg-M3 { --deg: #ffe14a; } .hint-M3 { --hint: #ffe14a; }
+.deg-m3 { --deg: #3d8bff; } .hint-m3 { --hint: #3d8bff; }
+.deg-P5 { --deg: var(--lime); } .hint-P5 { --hint: var(--lime); }
+.deg-M7 { --deg: var(--orange); } .hint-M7 { --hint: var(--orange); }
+.deg-m7 { --deg: #b06bff; } .hint-m7 { --hint: #b06bff; }
+.deg-ext { --deg: var(--pink); } .hint-ext { --hint: var(--pink); }
+.deg-wrong { --deg: var(--crimson); }
+.is-free { --deg: var(--cyan); }
+
+.kw.is-hint { background: color-mix(in srgb, var(--hint) 22%, #1d1230); box-shadow: inset 0 -10px 14px color-mix(in srgb, var(--hint) 35%, transparent); }
+.kbk.is-hint { background: color-mix(in srgb, var(--hint) 26%, #07030d); box-shadow: inset 0 -6px 10px color-mix(in srgb, var(--hint) 40%, transparent); }
+.kw.is-down, .kbk.is-down { background: var(--deg); box-shadow: 0 0 16px var(--deg); }
+.is-down.deg-wrong { box-shadow: 0 0 20px var(--crimson), inset 0 0 0 2px #fff; }
+
+.kb-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.3rem 0.9rem; margin-top: 0.5rem; color: var(--ivory-dim); font-size: 1.05rem; }
+.kb-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+.kb-legend span::before { content: ''; width: 0.8rem; height: 0.8rem; border-radius: 2px; background: var(--deg); box-shadow: 0 0 6px var(--deg); }
 
 .play-actions { display: flex; justify-content: center; margin-top: 1.2rem; }
 
