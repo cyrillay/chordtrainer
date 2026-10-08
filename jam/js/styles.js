@@ -194,31 +194,85 @@ const KEYS = {
   reggae: () => [[2, 1], [6, 1], [10, 1], [14, 1]],
 };
 
-// Everything one bar needs. energy 0..3; keys sit out at energy 0, a bell
-// line joins at 3.
+// ---- Band tiers ----
+// The band grows one player at a time as you string chords together and
+// loses one on each miss. Tier 1 is where a set starts.
+
+export const TIERS = [
+  { part: null, name: 'Drums and bass' },
+  { part: 'keys', name: 'Keys', plural: true },
+  { part: 'perc', name: 'Shaker' },
+  { part: 'horns', name: 'Horns', plural: true },
+  { part: 'strings', name: 'Strings', plural: true },
+  { part: 'lead', name: 'Bell' },
+];
+export const MAX_ENERGY = TIERS.length - 1;
+
+// Drum pattern level (0..3 in STYLES) for each tier.
+const DRUM_LEVEL = [0, 1, 2, 2, 3, 3];
+
+// Who plays at a tier: everyone whose tier is at or below it.
+export function partsAt(energy) {
+  const e = Math.max(0, Math.min(MAX_ENERGY, energy));
+  return new Set(['drums', 'bass', ...TIERS.slice(1, e + 1).map((t) => t.part)]);
+}
+
+// ---- Extra players: [step, dur] patterns per bar ----
+
+const PERC = {
+  swing:  { voice: 'tamb', pattern: '...x.....x..' },
+  bossa:  { voice: 'shaker', pattern: 'xoxoxoxoxoxoxoxo' },
+  lofi:   { voice: 'shaker', pattern: '..o...o...o...o.' },
+  ballad: { voice: 'shaker', pattern: 'o...o...o...o...' },
+  funk:   { voice: 'tamb', pattern: '....x.......x...' },
+  reggae: { voice: 'shaker', pattern: 'o.x.o.x.o.x.o.x.' },
+};
+
+const HORNS = {
+  swing:  [[3, 2], [11, 1]],
+  bossa:  [[0, 4], [10, 2]],
+  lofi:   [[0, 6], [8, 6]],
+  ballad: [[0, 16]],
+  funk:   [[0, 1], [3, 1], [10, 1], [14, 2]],
+  reggae: [[0, 4], [8, 4]],
+};
+
+// Horn section: the chord's top three notes, an octave over the keys.
+export function hornVoicing(chord) {
+  return keysVoicing(chord).map((m) => m + 12);
+}
+
+// Everything one bar needs. energy 0..MAX_ENERGY, see TIERS.
 export function barEvents(styleId, { chord, next, energy = 1, rng = Math.random }) {
   const style = STYLES[styleId];
-  const e = Math.max(0, Math.min(3, energy));
+  const e = Math.max(0, Math.min(MAX_ENERGY, energy));
+  const parts = partsAt(e);
   const drums = [];
   for (const [voice, levels] of Object.entries(style.drums)) {
-    const pattern = levels[e];
-    for (let s = 0; s < pattern.length; s++) {
-      const ch = pattern[s];
-      if (ch === 'x') drums.push({ step: s, voice, vel: 1 });
-      else if (ch === 'o') drums.push({ step: s, voice, vel: 0.45 });
-    }
+    pushHits(drums, levels[DRUM_LEVEL[e]], voice);
   }
+  if (parts.has('perc')) pushHits(drums, PERC[styleId].pattern, PERC[styleId].voice);
   const bass = BASS[styleId](chord, next || chord, rng);
   const voicing = keysVoicing(chord);
-  const keys = e === 0 ? [] : KEYS[styleId](rng).map(([step, dur]) => ({ step, dur, notes: voicing }));
+  const keys = parts.has('keys') ? KEYS[styleId](rng).map(([step, dur]) => ({ step, dur, notes: voicing })) : [];
+  const horns = parts.has('horns') ? HORNS[styleId].map(([step, dur]) => ({ step, dur, notes: hornVoicing(chord) })) : [];
+  const strings = parts.has('strings') ? [{ step: 0, dur: style.steps, notes: [bassRoot(chord) + 24, ...voicing] }] : [];
   const lead = [];
-  if (e === 3) {
+  if (parts.has('lead')) {
     const tones = voicing.map((m) => m + 12);
     for (let s = 0; s < style.steps; s += style.steps / 8) {
       if (rng() < 0.55) lead.push({ step: s, midi: pick(tones, rng), dur: style.steps / 8 });
     }
   }
-  return { steps: style.steps, drums, bass, keys, lead };
+  return { steps: style.steps, drums, bass, keys, horns, strings, lead };
+}
+
+function pushHits(out, pattern, voice) {
+  for (let s = 0; s < pattern.length; s++) {
+    const ch = pattern[s];
+    if (ch === 'x') out.push({ step: s, voice, vel: 1 });
+    else if (ch === 'o') out.push({ step: s, voice, vel: 0.45 });
+  }
 }
 
 // Four stick clicks before the band comes in.
