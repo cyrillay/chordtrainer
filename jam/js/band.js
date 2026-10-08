@@ -10,6 +10,20 @@ const TICK_MS = 25;
 
 const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
+// Wind guest voices. partials: [wave, frequency multiple, gain]. air: where
+// the breath noise sits, as a multiple of the note. depth: vibrato width.
+const REEDS = {
+  sax:      { partials: [['sawtooth', 1, 1]], peak: 0.075, a: 0.03, r: 0.08, cut: 1800, q: 1.5, breath: 0.012, air: 3, vib: 5, depth: 0.006, scoop: 1 },
+  melodica: { partials: [['square', 1, 1]], peak: 0.05, a: 0.02, r: 0.06, cut: 2400, q: 1, breath: 0.008, air: 3, vib: 3, depth: 0.004, scoop: 1 },
+  // Warm low flute: mostly fundamental, a touch of octave and twelfth,
+  // gentle air under it.
+  flute:    { partials: [['sine', 1, 1], ['sine', 2, 0.22], ['sine', 3, 0.05], ['triangle', 1, 0.15]], peak: 0.07, a: 0.07, r: 0.18, cut: 3200, q: 0.5, breath: 0.006, air: 1.5, vib: 5, depth: 0.0035, scoop: 0.99 },
+  // Harmon-muted trumpet, cool and nasal (Chet Baker on a bossa).
+  trumpet:  { partials: [['sawtooth', 1, 1]], peak: 0.16, a: 0.025, r: 0.1, cut: 3400, q: 0.7, bp: 1500, bpQ: 2.5, breath: 0.004, air: 2, vib: 5, depth: 0.003, scoop: 0.98 },
+  // Soft breathy tenor (Getz on a bossa).
+  tenor:    { partials: [['sawtooth', 1, 1], ['sine', 1, 0.6]], peak: 0.06, a: 0.05, r: 0.15, cut: 1100, q: 0.7, breath: 0.014, air: 2.5, vib: 4.5, depth: 0.004, scoop: 0.98 },
+};
+
 export class Band {
   constructor() {
     this.ctx = null;
@@ -170,10 +184,18 @@ export class Band {
   makeBus(styleId) {
     const ctx = this.ctx;
     const out = ctx.createGain();
-    out.gain.value = 0.9;
+    out.gain.value = 0.6;
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -16;
     comp.ratio.value = 4;
+    // The glue compressor adds its own make-up gain, which pushed the mix
+    // past full scale. A fast limiter after the master keeps it clean.
+    const limit = ctx.createDynamicsCompressor();
+    limit.threshold.value = -4;
+    limit.knee.value = 0;
+    limit.ratio.value = 20;
+    limit.attack.value = 0.001;
+    limit.release.value = 0.12;
     const tone = ctx.createBiquadFilter();
     tone.type = 'lowpass';
     tone.frequency.value = styleId === 'lofi' ? 3200 : 16000;
@@ -184,7 +206,7 @@ export class Band {
     wet.gain.value = styleId === 'ballad' ? 0.32 : styleId === 'lofi' ? 0.22 : 0.16;
     dry.connect(tone);
     dry.connect(verb).connect(wet).connect(tone);
-    tone.connect(comp).connect(out).connect(ctx.destination);
+    tone.connect(comp).connect(out).connect(limit).connect(ctx.destination);
 
     let crackle = null;
     if (STYLES[styleId].crackle) {
@@ -434,36 +456,55 @@ export class Band {
     for (const m of notes) this.reed(patch, m, t, dur);
   }
 
-  // Sax, flute and melodica: one held note with breath and a late vibrato.
+  // Wind guests: one held note with breath, a soft scoop into the pitch
+  // and a late vibrato. Every partial shares the same vibrato, so the
+  // note bends as one instead of beating against itself.
   reed(patch, midi, t, dur) {
     const out = this.bus?.input;
     if (!out) return;
     const f = hz(midi);
     const len = Math.max(0.1, dur * 0.92);
-    const shape = {
-      sax:      { wave: 'sawtooth', peak: 0.075, a: 0.03, cut: 1800, q: 1.5, breath: 0.012, vib: 5 },
-      flute:    { wave: 'sine', peak: 0.11, a: 0.07, cut: 4000, q: 0.7, breath: 0.03, vib: 6 },
-      melodica: { wave: 'square', peak: 0.05, a: 0.02, cut: 2400, q: 1, breath: 0.008, vib: 3 },
-    }[patch];
-    const g = this.env(t, { a: shape.a, peak: shape.peak, d: 0.1, s: 0.8, hold: Math.max(0, len - 0.15), r: 0.08 });
-    const lp = this.filter('lowpass', shape.cut, shape.q);
-    lp.connect(g).connect(out);
-    const o = this.osc(shape.wave, f, t, t + len + 0.1, lp);
-    if (patch === 'flute') this.osc('sine', f * 2, t, t + len + 0.1, this.envGain(0.18, lp));
-    // Vibrato comes in after the attack, like a player leaning on the note.
+    const shape = REEDS[patch];
+    const g = this.env(t, { a: shape.a, peak: shape.peak, d: 0.12, s: 0.82, hold: Math.max(0, len - 0.18), r: shape.r });
+    let dest = this.filter('lowpass', shape.cut, shape.q);
+    dest.connect(g).connect(out);
+    if (shape.bp) {
+      const bp = this.filter('bandpass', shape.bp, shape.bpQ);
+      bp.connect(dest);
+      dest = bp;
+    }
+    const end = t + len + shape.r + 0.05;
+    const oscs = shape.partials.map(([wave, mult, gain]) => {
+      const o = this.ctx.createOscillator();
+      o.type = wave;
+      // Start a little flat and lean up into the note.
+      o.frequency.setValueAtTime(f * mult * shape.scoop, t);
+      o.frequency.exponentialRampToValueAtTime(f * mult, t + 0.06);
+      o.connect(this.envGain(gain, dest));
+      o.start(t);
+      o.stop(end);
+      return [o, mult];
+    });
     if (len > 0.3) {
       const lfo = this.ctx.createOscillator();
       lfo.frequency.value = shape.vib;
-      const depth = this.ctx.createGain();
-      depth.gain.setValueAtTime(0, t);
-      depth.gain.linearRampToValueAtTime(f * 0.006, t + Math.min(0.4, len));
-      lfo.connect(depth).connect(o.frequency);
       lfo.start(t);
-      lfo.stop(t + len + 0.1);
+      lfo.stop(end);
+      for (const [o, mult] of oscs) {
+        const depth = this.ctx.createGain();
+        depth.gain.setValueAtTime(0, t);
+        depth.gain.setValueAtTime(0, t + Math.min(0.25, len * 0.4));
+        depth.gain.linearRampToValueAtTime(f * mult * shape.depth, t + Math.min(0.6, len));
+        lfo.connect(depth).connect(o.frequency);
+      }
     }
-    const bg = this.env(t, { a: 0.02, peak: shape.breath, d: 0.1, s: 0.5, hold: Math.max(0, len - 0.15), r: 0.05 });
+    // Breath: a short chiff on the attack, then a thin bed of air.
+    const chiff = this.env(t, { a: 0.005, peak: shape.breath * 2.5, d: 0.06 });
+    chiff.connect(out);
+    this.noiseSrc(t, 0.08, this.filter('bandpass', Math.min(8000, f * shape.air), 1.2)).connect(chiff);
+    const bg = this.env(t, { a: 0.04, peak: shape.breath, d: 0.1, s: 0.6, hold: Math.max(0, len - 0.2), r: shape.r });
     bg.connect(out);
-    this.noiseSrc(t, len, this.filter('bandpass', Math.min(9000, f * 3), 1.5)).connect(bg);
+    this.noiseSrc(t, len + shape.r, this.filter('bandpass', Math.min(8000, f * shape.air), 2)).connect(bg);
   }
 
   envGain(v, dest) {
