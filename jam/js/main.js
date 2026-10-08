@@ -18,13 +18,15 @@ import { sprite, MAPS } from './sprites.js';
 import { track, logRun } from '../../js/stats/log.js';
 import { JamTracker } from './achievements.js';
 import { initTrophyCase, grant, bump, setMax, setFinished } from './trophyCase.js';
+import { isFavourite, toggleFavourite, removeFavourite, cleanFavourites } from './favourites.js';
+import { PianoRemote, MenuNav, MIDDLE_C, gestureOf, step } from './remote.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 
 // ---- Settings + high scores ----
 
-const LS = { settings: 'ghostJam.settings', scores: 'ghostJam.scores', midi: 'ghostJam.midiAuto', guests: 'ghostJam.guestsMet' };
+const LS = { settings: 'ghostJam.settings', scores: 'ghostJam.scores', midi: 'ghostJam.midiAuto', guests: 'ghostJam.guestsMet', favs: 'ghostJam.favourites' };
 const read = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
 const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } };
 
@@ -33,6 +35,9 @@ const settings = Object.assign({
 }, read(LS.settings, {}));
 let scores = read(LS.scores, {});
 const guestsMet = new Set(read(LS.guests, []));
+let favs = cleanFavourites(read(LS.favs, []), {
+  tunes: new Set(PROGRESSIONS.map((p) => p.name)), styles: new Set(STYLE_ORDER), keys: new Set(NOTE_NAMES),
+});
 const scoreKey = () => `${settings.tune}|${settings.style}`;
 const save = () => write(LS.settings, settings);
 
@@ -65,6 +70,10 @@ function buildChords(prog, key) {
   return prog.tokens.map((t) => romanToChord(t, key, mode)).filter(Boolean);
 }
 
+// Major or minor is part of the tune (a minor ii–V–i is not a major one
+// played darker), so the key menu picks the tonic and names the mode.
+const keyName = (key, prog) => `${NOTE_DISPLAY[key]} ${progressionMode(prog)}`;
+
 // ---- Setup view ----
 
 const STYLE_ICONS = { swing: '🎷', bossa: '🌴', lofi: '📼', ballad: '🕯️', funk: '🕺', reggae: '🌿' };
@@ -87,12 +96,6 @@ function renderSetup() {
   }
   sel.value = tuneByName(settings.tune).name;
 
-  const keySel = $('keySelect');
-  if (!keySel.options.length) {
-    keySel.innerHTML = '<option value="random">Random</option>' + NOTE_NAMES.map((n) => `<option value="${n}">${NOTE_DISPLAY[n]}</option>`).join('');
-  }
-  keySel.value = settings.key;
-
   const st = STYLES[settings.style];
   const tempo = settings.tempo ?? st.tempo.def;
   const range = $('tempoRange');
@@ -103,8 +106,27 @@ function renderSetup() {
   $('barsSelect').value = String(settings.bars);
   $('lengthSelect').value = String(settings.length);
   $('showTonesCb').checked = settings.showTones;
-  renderTunePreview();
+  renderCombo();
   renderHall();
+}
+
+// Everything that follows the groove, tune and key: the key menu, the
+// preview and the favourites.
+function renderCombo() {
+  renderKeyMenu();
+  renderTunePreview();
+  renderFavs();
+}
+
+function renderKeyMenu() {
+  const prog = tuneByName(settings.tune);
+  const mode = progressionMode(prog);
+  const keySel = $('keySelect');
+  if (keySel.dataset.mode !== mode) {
+    keySel.innerHTML = '<option value="random">Random</option>' + NOTE_NAMES.map((n) => `<option value="${n}">${keyName(n, prog)}</option>`).join('');
+    keySel.dataset.mode = mode;
+  }
+  keySel.value = settings.key;
 }
 
 function renderTunePreview() {
@@ -113,8 +135,80 @@ function renderTunePreview() {
   const chords = buildChords(prog, key);
   const best = scores[scoreKey()];
   $('tunePreview').innerHTML = `<span class="tp-chords">${chords.map((c) => `<span>${formatChordHtml(c)}</span>`).join('')}</span>`
-    + `<span class="tp-meta">${settings.key === 'random' ? 'Shown in C, played in a random key' : `In ${NOTE_DISPLAY[key]}`}${fitsStyle(prog, settings.style) ? '' : ` · Off-style for ${STYLES[settings.style].name}`}${best ? ` · Best ${best.score.toLocaleString()} (${best.rank})` : ''}</span>`;
+    + `<span class="tp-meta">${settings.key === 'random' ? `Shown in ${keyName('C', prog)}, played in a random key` : `In ${keyName(key, prog)}`}${fitsStyle(prog, settings.style) ? '' : ` · Off-style for ${STYLES[settings.style].name}`}${best ? ` · Best ${best.score.toLocaleString()} (${best.rank})` : ''}</span>`;
 }
+
+// ---- Favourites: a groove, a tune and a key, one tap away ----
+
+const combo = () => ({ style: settings.style, tune: settings.tune, key: settings.key });
+
+function renderFavs() {
+  $('favs').hidden = !favs.length;
+  const now = combo();
+  $('favList').innerHTML = favs.map((f, i) => {
+    const prog = tuneByName(f.tune);
+    const on = isFavourite([f], now);
+    const key = f.key === 'random' ? 'Random key' : keyName(f.key, prog);
+    return `<span class="fav${on ? ' is-on' : ''}">
+      <button type="button" class="fav-go" data-fav="${i}"><span class="fav-tune">${f.tune}</span><span class="fav-meta">${STYLE_ICONS[f.style]} ${STYLES[f.style].name} · ${key}</span></button>
+      <button type="button" class="fav-x" data-unfav="${i}" aria-label="Remove ${f.tune.replace(/"/g, '&quot;')} from favourites">&times;</button>
+    </span>`;
+  }).join('');
+  const starred = isFavourite(favs, now);
+  const btn = $('favBtn');
+  btn.setAttribute('aria-pressed', String(starred));
+  btn.title = starred ? 'Remove from your favourites' : 'Add this groove, tune and key to your favourites';
+  syncSetupRows();
+}
+
+$('favBtn').addEventListener('click', () => {
+  favs = toggleFavourite(favs, combo());
+  write(LS.favs, favs);
+  renderFavs();
+});
+$('favList').addEventListener('click', (e) => {
+  const x = e.target.closest('[data-unfav]');
+  if (x) {
+    favs = removeFavourite(favs, Number(x.dataset.unfav));
+    write(LS.favs, favs);
+    renderFavs();
+    return;
+  }
+  const go = e.target.closest('[data-fav]');
+  if (!go) return;
+  const f = favs[Number(go.dataset.fav)];
+  const prevStyle = settings.style;
+  if (f.style !== prevStyle) settings.tempo = null;
+  Object.assign(settings, f);
+  save();
+  renderSetup();
+  if (f.style !== prevStyle) grooveTip(f.style);
+});
+
+// ---- Groove tips: a small note when a groove wants a sound from your keyboard ----
+
+const GROOVE_TIPS = {
+  funk: { icon: '🎹', title: 'Funk tip', text: 'Switch your keyboard to its Clav sound. Funk on a Clav is pure gold.' },
+};
+let tipTimer = 0;
+function grooveTip(style) {
+  const tip = GROOVE_TIPS[style];
+  const el = $('grooveTip');
+  clearTimeout(tipTimer);
+  if (!tip) { hideTip(); return; }
+  el.innerHTML = `<span class="groove-tip-icon" aria-hidden="true">${tip.icon}</span><span><b>${tip.title}</b>${tip.text}</span>`;
+  el.hidden = false;
+  void el.offsetWidth;
+  el.classList.add('visible');
+  tipTimer = setTimeout(hideTip, 5000);
+}
+function hideTip() {
+  const el = $('grooveTip');
+  clearTimeout(tipTimer);
+  el.classList.remove('visible');
+  tipTimer = setTimeout(() => { el.hidden = true; }, 400);
+}
+$('grooveTip').addEventListener('click', hideTip);
 
 function renderHall() {
   const rows = Object.entries(scores)
@@ -126,23 +220,26 @@ function renderHall() {
     : '<li class="hall-empty">No scores yet. The stage is yours.</li>';
 }
 
-$('styleGrid').addEventListener('click', (e) => {
-  const card = e.target.closest('[data-style]');
-  if (!card) return;
-  settings.style = card.dataset.style;
+function setStyle(id) {
+  if (id !== settings.style) grooveTip(id);
+  settings.style = id;
   settings.tempo = null; // each groove has its own home tempo
   // A new groove keeps the tune only if it suits it.
   if (!fitsStyle(tuneByName(settings.tune), settings.style)) settings.tune = randomTune(settings.style);
   save();
   renderSetup();
+}
+$('styleGrid').addEventListener('click', (e) => {
+  const card = e.target.closest('[data-style]');
+  if (card) setStyle(card.dataset.style);
 });
-$('tuneSelect').addEventListener('change', (e) => { settings.tune = e.target.value; save(); renderTunePreview(); });
+$('tuneSelect').addEventListener('change', (e) => { settings.tune = e.target.value; save(); renderCombo(); });
 $('randomTuneBtn').addEventListener('click', () => {
   settings.tune = randomTune(settings.style);
   save();
   renderSetup();
 });
-$('keySelect').addEventListener('change', (e) => { settings.key = e.target.value; save(); renderTunePreview(); });
+$('keySelect').addEventListener('change', (e) => { settings.key = e.target.value; save(); renderCombo(); });
 $('tempoRange').addEventListener('input', (e) => { settings.tempo = Number(e.target.value); $('tempoVal').textContent = e.target.value; save(); });
 $('barsSelect').addEventListener('change', (e) => { settings.bars = Number(e.target.value); save(); });
 $('lengthSelect').addEventListener('change', (e) => { settings.length = Number(e.target.value); save(); });
@@ -251,6 +348,9 @@ function midiStatus({ state, names }) {
   else if (state === 'unsupported') renderMidiHint(status, 'MIDI not supported here');
   else if (state === 'denied') renderMidiHint(status, 'MIDI access denied', { html: DENIED_HELP_HTML });
   $('midiGate').hidden = state === 'connected';
+  $('remote').hidden = state !== 'connected';
+  $('resultRemote').hidden = state !== 'connected';
+  paintNav();
   const copy = gateCopy(state);
   $('gateTitle').textContent = copy.title;
   $('gateSub').textContent = copy.sub;
@@ -272,7 +372,8 @@ let game = null;
 function hiFor(key) { return scores[key]?.score || 0; }
 
 // again: replay the last set as it was (same tune, same key).
-function startGame({ again = false } = {}) {
+// restart: the same, but the set was cut short, so it is no encore.
+function startGame({ again = false, restart = false } = {}) {
   if (midiState !== 'connected') {
     const gate = $('midiGate');
     gate.classList.remove('shake');
@@ -304,14 +405,14 @@ function startGame({ again = false } = {}) {
     over: false,
     hits: new Map(),        // slot index -> { voicing, velocities } when it landed
     tracker: new JamTracker({ style: settings.style, chorusLen: chords.length }),
-    encore: last ? last.encore + 1 : 0,
+    encore: last ? last.encore + (restart ? 0 : 1) : 0,
   };
 
   $('viewSetup').hidden = true;
   $('viewPlay').hidden = false;
   $('resultModal').hidden = true;
   $('tuneTitle').textContent = prog.name;
-  $('tuneMeta').textContent = `${style.name} · ${NOTE_DISPLAY[key]} · ${tempo} bpm${style.anchor ? ' · Play on the and' : ''}`;
+  $('tuneMeta').textContent = `${style.name} · ${keyName(key, prog)} · ${tempo} bpm${style.anchor ? ' · Play on the and' : ''}`;
   $('ghostBand').innerHTML = BAND.map((m) => ghostHtml(m, settings.style)).join('');
   $('hudHi').textContent = hiFor(game.scoreKey).toLocaleString();
   renderHud();
@@ -351,6 +452,7 @@ function judgeFor(k) {
       start: target(k) * 1000,
       end: (slotEnd(k) + anchorSec()) * 1000,
       beatMs: band.beat * 1000,
+      prevChord: k > 0 ? game.chords[(k - 1) % game.chords.length] : null,
     });
     game.judges.set(k, j);
   }
@@ -374,6 +476,7 @@ function heldPcs() {
 }
 
 function onNoteOn(midi, velocity = 80, tPerf = performance.now()) {
+  remote.noteOn(midi, remoteScreen() !== null);
   held.set(midi, null);
   velocities.set(midi, velocity);
   let shownAs = null;
@@ -394,6 +497,7 @@ function onNoteOn(midi, velocity = 80, tPerf = performance.now()) {
 }
 
 function onNoteOff(midi) {
+  remote.noteOff(midi);
   held.delete(midi);
   velocities.delete(midi);
   keyState(midi);
@@ -686,7 +790,7 @@ function finish() {
       acc: +s.accuracy.toFixed(3), combo: s.bestCombo, ...s.counts,
     });
   }
-  $('resultEyebrow').textContent = `${game.prog.name} · ${STYLES[game.style].name} · ${NOTE_DISPLAY[game.key]}`;
+  $('resultEyebrow').textContent = `${game.prog.name} · ${STYLES[game.style].name} · ${keyName(game.key, game.prog)}`;
   $('resultRank').textContent = s.total ? s.rank : '·';
   $('resultRank').dataset.rank = s.rank;
   $('resultScore').textContent = s.score.toLocaleString();
@@ -700,6 +804,8 @@ function finish() {
     <div><b>${s.bestCombo}</b><span>Best combo</span></div>
     <div><b>${Math.round(s.accuracy * 100)}%</b><span>Accuracy</span></div>`;
   $('resultModal').hidden = false;
+  resultNav.setItems(resultNav.items, 'again');
+  paintNav();
   trackFinish();
 }
 
@@ -720,6 +826,16 @@ function stopGame() {
   if (!game.over) finish();
 }
 
+// Start the set over from the count-in, same tune and key. The cut set is
+// dropped: no results screen, no high score.
+function restartGame() {
+  if (!game) return;
+  if (!game.over) { game.over = true; cancelAnimationFrame(game.raf); band.stop(); }
+  $('shoutLayer').innerHTML = '';
+  for (const b of document.querySelectorAll('.tier-banner')) b.remove();
+  startGame({ again: true, restart: true });
+}
+
 function backToSetup() {
   if (game && !game.over) { game.over = true; cancelAnimationFrame(game.raf); band.stop(); }
   game = null;
@@ -730,8 +846,139 @@ function backToSetup() {
   renderSetup();
 }
 
+// ---- Piano remote + keyboard shortcuts ----
+// On the setup and results screens the piano drives a menu cursor, like a
+// TV remote, in intervals from middle C (see remote.js). The legend under
+// the Play button shows how.
+
+const remote = new PianoRemote({
+  onCommand: (m) => runRemote(m),
+  repeats: (m) => gestureOf(m) === 'up' || gestureOf(m) === 'down',
+});
+
+function remoteScreen() {
+  if (!$('achModal').hidden) return null;
+  if (!game && !$('viewSetup').hidden) return 'setup';
+  if (game?.over && !$('resultModal').hidden) return 'results';
+  return null;
+}
+
+const knobOf = (id) => () => $(id).closest('.knob');
+// Each menu row and the element that lights up for it, top to bottom.
+const SETUP_ROWS = {
+  favs: { kind: 'value', el: () => $('favs') },
+  groove: { kind: 'value', el: () => $('styleGrid') },
+  tune: { kind: 'value', el: () => $('tuneSelect') },
+  shuffle: { kind: 'action', el: () => $('randomTuneBtn') },
+  star: { kind: 'action', el: () => $('favBtn') },
+  key: { kind: 'value', el: knobOf('keySelect') },
+  tempo: { kind: 'value', el: knobOf('tempoRange') },
+  bars: { kind: 'value', el: knobOf('barsSelect') },
+  length: { kind: 'value', el: knobOf('lengthSelect') },
+  tones: { kind: 'action', el: () => $('showTonesCb').closest('.arcade-toggle') },
+  play: { kind: 'action', el: () => $('playBtn') },
+};
+const RESULT_ROWS = {
+  back: { kind: 'action', el: () => $('resultBackBtn') },
+  again: { kind: 'action', el: () => $('resultAgainBtn') },
+};
+const rowsOf = (rows, skip = []) => Object.entries(rows).filter(([id]) => !skip.includes(id)).map(([id, r]) => ({ id, kind: r.kind }));
+const setupNav = new MenuNav(rowsOf(SETUP_ROWS, ['favs']), 'groove');
+const resultNav = new MenuNav(rowsOf(RESULT_ROWS), 'again');
+
+// Light up the row under the cursor (only with a keyboard connected).
+function paintNav() {
+  for (const el of document.querySelectorAll('.nav-focus, .nav-edit')) el.classList.remove('nav-focus', 'nav-edit');
+  const screen = midiState === 'connected' ? remoteScreen() : null;
+  if (!screen) return;
+  const nav = screen === 'setup' ? setupNav : resultNav;
+  const el = (screen === 'setup' ? SETUP_ROWS : RESULT_ROWS)[nav.current.id].el();
+  el.classList.add(nav.editing ? 'nav-edit' : 'nav-focus');
+}
+function syncSetupRows() {
+  setupNav.setItems(rowsOf(SETUP_ROWS, favs.length ? [] : ['favs']));
+  paintNav();
+}
+
+// Move a <select> by one option and tell its listener.
+function stepSelect(sel, dir) {
+  sel.value = step([...sel.options].map((o) => o.value), sel.value, dir);
+  sel.dispatchEvent(new Event('change'));
+}
+
+function nudgeTempo(d) {
+  const range = $('tempoRange');
+  range.value = Number(range.value) + d;
+  range.dispatchEvent(new Event('input'));
+}
+
+const CHANGE = {
+  favs: (dir) => {
+    const i = favs.findIndex((f) => isFavourite([f], combo()));
+    $('favList').querySelector(`[data-fav="${i < 0 ? 0 : (i + dir + favs.length) % favs.length}"]`).click();
+  },
+  groove: (dir) => setStyle(step(STYLE_ORDER, settings.style, dir)),
+  tune: (dir) => stepSelect($('tuneSelect'), dir),
+  key: (dir) => stepSelect($('keySelect'), dir),
+  tempo: (dir) => nudgeTempo(dir),
+  bars: (dir) => stepSelect($('barsSelect'), dir),
+  length: (dir) => stepSelect($('lengthSelect'), dir),
+};
+const ACTIVATE = {
+  shuffle: () => $('randomTuneBtn').click(),
+  star: () => $('favBtn').click(),
+  tones: () => $('showTonesCb').click(),
+  play: () => $('playBtn').click(),
+  back: () => $('resultBackBtn').click(),
+  again: () => $('resultAgainBtn').click(),
+};
+
+function runRemote(midi) {
+  const g = gestureOf(midi);
+  const screen = remoteScreen();
+  if (!g || !screen) return;
+  const nav = screen === 'setup' ? setupNav : resultNav;
+  const fx = nav.handle(g);
+  if (fx?.type === 'change') CHANGE[fx.id](fx.dir);
+  if (fx?.type === 'activate') ACTIVATE[fx.id]();
+  paintNav();
+  if (remoteScreen() === screen && fx?.type === 'focus') {
+    (screen === 'setup' ? SETUP_ROWS : RESULT_ROWS)[fx.id].el().scrollIntoView({ block: 'nearest' });
+  }
+}
+
+// The legend: the keys around middle C, F3 to A4, the ones that do something labelled.
+(function buildRemoteLegend() {
+  const LABELS = { [MIDDLE_C - 4]: '↓', [MIDDLE_C - 3]: '↓', [MIDDLE_C]: 'C', [MIDDLE_C + 3]: '↑', [MIDDLE_C + 4]: '↑', [MIDDLE_C + 7]: 'OK' };
+  let html = '';
+  let white = 0;
+  for (let m = MIDDLE_C - 7; m <= MIDDLE_C + 9; m++) {
+    const black = BLACK.has(m % 12);
+    const col = black ? white * 2 : white * 2 + 1;
+    if (!black) white++;
+    const g = gestureOf(m);
+    html += `<span class="rk ${black ? 'rk-black' : 'rk-white'}${g ? ` rk-${g}` : ''}${m === MIDDLE_C ? ' rk-home' : ''}" style="grid-column:${col} / span 2">${LABELS[m] ?? ''}</span>`;
+  }
+  $('remoteKeys').innerHTML = html;
+  $('remoteKeys').style.gridTemplateColumns = `repeat(${white * 2}, 1fr)`;
+})();
+
+document.addEventListener('keydown', (e) => {
+  if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target.closest('input, select, textarea, button, a')) return;
+  if (game && !game.over) {
+    if (e.key === 'r' || e.key === 'R') { e.preventDefault(); restartGame(); }
+    else if (e.key === ' ') { e.preventDefault(); stopGame(); }
+  } else if (e.key === 'Enter') {
+    const screen = remoteScreen();
+    if (screen === 'setup') { e.preventDefault(); startGame(); }
+    else if (screen === 'results') { e.preventDefault(); $('resultAgainBtn').click(); }
+  }
+});
+
 $('playBtn').addEventListener('click', () => startGame());
 $('stopBtn').addEventListener('click', stopGame);
+$('restartBtn').addEventListener('click', restartGame);
 $('resultAgainBtn').addEventListener('click', () => { $('resultModal').hidden = true; startGame({ again: true }); });
 $('resultBackBtn').addEventListener('click', backToSetup);
 document.addEventListener('keydown', (e) => {
@@ -751,5 +998,5 @@ if (params.has('keys')) {
 
 // ?debug exposes hooks for automated tests.
 if (params.has('debug')) {
-  window.__jam = { band, get game() { return game; }, onNoteOn, onNoteOff, startGame, finish, midiStatus };
+  window.__jam = { band, get game() { return game; }, onNoteOn, onNoteOff, startGame, restartGame, finish, midiStatus };
 }
