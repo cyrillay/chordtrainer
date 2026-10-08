@@ -1,12 +1,28 @@
 // Ghost Jam: the ghost band. A Web Audio look-ahead scheduler plays one bar
 // at a time from styles.js, with every instrument synthesized on the fly (no
-// samples to download). Bars are scheduled ~150 ms ahead; the band's energy
+// samples to download). Bars are scheduled ~300 ms ahead; the band's energy
 // is read when a bar is scheduled, so it reacts from the next bar on.
 
 import { STYLES, GUESTS, barEvents, countIn, bassRoot, keysVoicing } from './styles.js';
 
-const LOOKAHEAD = 0.15;   // seconds scheduled ahead
+// A bar is scheduled once it starts within LOOKAHEAD. Generous, so a busy
+// main thread (layout, garbage collection) does not make the band late.
+const LOOKAHEAD = 0.3;    // seconds scheduled ahead
 const TICK_MS = 25;
+// A note whose time has already passed when it is scheduled is dropped:
+// played late, every such note would fire at once and its envelope would
+// jump straight to full level, which clicks.
+const TOO_LATE = 0.005;
+
+// How long each drum voice rings, in seconds, for the pre-rendered kit.
+const DRUM_TAILS = { kick: 0.45, snare: 0.26, hat: 0.11, ride: 0.5, crash: 1.75, rim: 0.1, brush: 0.36, sticks: 0.11 };
+
+// Rendered notes: how much tail to leave room for past the note's length,
+// and how many to keep before starting over.
+const RENDER_TAIL = 2.5;
+const CACHE_MAX = 600;
+const RENDERS_IN_FLIGHT = 2;
+const Offline = globalThis.OfflineAudioContext || globalThis.webkitOfflineAudioContext;
 
 const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
@@ -31,6 +47,10 @@ export class Band {
     this.timer = null;
     this.energy = 1;
     this.muted = new Set();
+    this.cache = new Map();   // key -> AudioBuffer of one rendered note
+    this.queue = [];          // notes waiting to be rendered
+    this.pending = new Set();
+    this.inFlight = 0;
   }
 
   audio() {
@@ -39,6 +59,7 @@ export class Band {
       this.ctx = new Ctor({ latencyHint: 'interactive' });
       this.noise = this.makeNoise();
       this.impulse = this.makeImpulse(2.2);
+      if (Offline) this.loadKit().catch(() => {});
     }
     if (this.ctx.state === 'suspended') this.ctx.resume();
     return this.ctx;
@@ -123,11 +144,13 @@ export class Band {
     const steps = this.style.steps;
     const stepDur = this.barDur / steps;
     const at = (s) => t0 + s * stepDur + (steps === 16 && s % 2 === 1 ? this.style.shuffle * stepDur : 0);
+    const cutoff = this.ctx.currentTime + TOO_LATE;
+    const due = (e) => at(e.step) >= cutoff;
 
     for (let b = 0; b < 4; b++) this.opts.onBeat?.({ bar, beat: b, time: t0 + b * this.beat });
 
     if (bar === 0) {
-      for (const d of countIn(this.opts.style)) this.drum('sticks', at(d.step), d.vel);
+      for (const d of countIn(this.opts.style).filter(due)) this.drum('sticks', at(d.step), d.vel);
       return;
     }
 
@@ -142,12 +165,12 @@ export class Band {
     }
 
     const ev = barEvents(this.opts.style, { chord: cur.chord, next: nextBar.chord, energy: this.energy });
-    if (!this.muted.has('drums')) for (const d of ev.drums) this.drum(d.voice, at(d.step), d.vel);
-    if (!this.muted.has('bass')) for (const n of ev.bass) this.bassNote(n.midi, at(n.step), n.dur * stepDur);
-    if (!this.muted.has('keys')) for (const k of ev.keys) this.keysChord(k.notes, at(k.step), k.dur * stepDur);
-    for (const g of ev.guest) this.guest(g.notes, at(g.step), g.dur * stepDur);
+    if (!this.muted.has('drums')) for (const d of ev.drums.filter(due)) this.drum(d.voice, at(d.step), d.vel);
+    if (!this.muted.has('bass')) for (const n of ev.bass.filter(due)) this.play('synthBass', n.midi, at(n.step), n.dur * stepDur);
+    if (!this.muted.has('keys')) for (const k of ev.keys.filter(due)) this.keysChord(k.notes, at(k.step), k.dur * stepDur);
+    for (const g of ev.guest.filter(due)) this.guest(g.notes, at(g.step), g.dur * stepDur);
     // Crash on the top of each chorus once the band is cooking.
-    if (this.energy >= 2 && cur.first && cur.index === 0 && cur.chorus > 0) this.drum('crash', t0, 0.8);
+    if (this.energy >= 2 && cur.first && cur.index === 0 && cur.chorus > 0 && t0 >= cutoff) this.drum('crash', t0, 0.8);
   }
 
   // The band answers a chord you nailed, with the groove's own drums. On
@@ -175,9 +198,67 @@ export class Band {
     this.drum('kick', t, 1);
     this.drum('crash', t, 1);
     this.keysChord(keysVoicing(home), t, this.barDur);
-    this.bassNote(bassRoot(home), t, this.barDur * 0.8);
+    this.play('synthBass', bassRoot(home), t, this.barDur * 0.8);
     const wait = (t - this.ctx.currentTime + this.barDur) * 1000;
     setTimeout(() => { this.ending = false; this.opts.onEnd?.(); }, Math.max(0, wait));
+  }
+
+  // ---- Rendered notes ----
+  // Every pitched note is synthesized once, offline, then played back as a
+  // sample: one node on the live graph instead of a dozen, several of them
+  // with filter sweeps, which is what made the audio crackle under load.
+  // The first time a note comes up it is synthesized live while its sample
+  // renders; a looping progression is all samples from the second chorus.
+
+  play(method, midi, t, dur) {
+    const out = this.bus?.input;
+    if (!out) return;
+    const key = `${this.opts.style}|${method}|${midi}|${Math.round(dur * 1000)}`;
+    const buf = this.cache.get(key);
+    if (buf) {
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(out);
+      src.start(t);
+      return;
+    }
+    this[method](midi, t, dur);
+    if (!Offline || this.pending.has(key)) return;
+    this.pending.add(key);
+    this.queue.push({ key, method, midi, dur, opts: this.opts, style: this.style });
+    this.renderNext();
+  }
+
+  renderNext() {
+    if (this.inFlight >= RENDERS_IN_FLIGHT || !this.queue.length) return;
+    const job = this.queue.shift();
+    this.inFlight++;
+    const rate = this.ctx.sampleRate;
+    const off = new Offline(1, Math.ceil(rate * (job.dur + RENDER_TAIL)), rate);
+    const r = new Band();
+    Object.assign(r, { ctx: off, noise: this.noise, opts: job.opts, style: job.style, bus: { input: off.destination } });
+    r[job.method](job.midi, 0, job.dur);
+    Promise.resolve(off.startRendering())
+      .then((buf) => {
+        if (this.cache.size >= CACHE_MAX) this.cache.clear();
+        if (buf) this.cache.set(job.key, this.trim(buf));
+      })
+      .catch(() => {})
+      .finally(() => {
+        this.pending.delete(job.key);
+        this.inFlight--;
+        this.renderNext();
+      });
+  }
+
+  // Drop the silent end of a rendered note.
+  trim(buf) {
+    const d = buf.getChannelData(0);
+    let n = d.length;
+    while (n > 0 && Math.abs(d[n - 1]) < 1e-4) n--;
+    const out = this.ctx.createBuffer(1, Math.max(1, n), buf.sampleRate);
+    out.copyToChannel(d.subarray(0, Math.max(1, n)), 0);
+    return out;
   }
 
   // ---- Audio graph ----
@@ -296,9 +377,40 @@ export class Band {
 
   // ---- Drums ----
 
+  // A hit plays a pre-rendered sample once the kit is ready: two nodes
+  // instead of up to eight, each with its own automation.
   drum(voice, t, vel = 1) {
     const out = this.bus?.input;
     if (!out) return;
+    const takes = this.kit?.[voice];
+    if (!takes) return this.synthDrum(voice, t, vel, out);
+    const src = this.ctx.createBufferSource();
+    src.buffer = takes[Math.floor(Math.random() * takes.length)];
+    if (vel === 1) src.connect(out);
+    else src.connect(this.envGain(vel, out));
+    src.start(t);
+  }
+
+  // Render every drum voice once, a few takes each so the noise differs
+  // from hit to hit, at the context's own rate.
+  async loadKit() {
+    const rate = this.ctx.sampleRate;
+    const kit = {};
+    await Promise.all(Object.entries(DRUM_TAILS).map(async ([voice, tail]) => {
+      const takes = voice === 'kick' || voice === 'rim' || voice === 'sticks' ? 1 : 4;
+      kit[voice] = await Promise.all(Array.from({ length: takes }, () => {
+        const off = new Offline(1, Math.ceil(rate * tail), rate);
+        const r = new Band();
+        r.ctx = off;
+        r.noise = this.noise;
+        r.synthDrum(voice, 0, 1, off.destination);
+        return off.startRendering();
+      }));
+    }));
+    this.kit = kit;
+  }
+
+  synthDrum(voice, t, vel, out) {
     switch (voice) {
       case 'kick': {
         const g = this.env(t, { peak: 0.9 * vel, d: 0.35 });
@@ -362,7 +474,7 @@ export class Band {
 
   // ---- Bass ----
 
-  bassNote(midi, t, dur) {
+  synthBass(midi, t, dur) {
     const out = this.bus?.input;
     if (!out) return;
     const f = hz(midi);
@@ -390,7 +502,7 @@ export class Band {
 
   keysChord(notes, t, dur) {
     if (!this.bus) return;
-    for (const m of notes) this.keyNote(m, t, dur);
+    for (const m of notes) this.play('keyNote', m, t, dur);
   }
 
   keyNote(midi, t, dur) {
@@ -451,22 +563,22 @@ export class Band {
 
   guest(notes, t, dur) {
     const patch = GUESTS[this.opts.style].patch;
-    if (patch === 'horns') return this.hornStab(notes, t, dur);
-    if (patch === 'strings') return this.strings(notes, t, dur);
-    if (patch === 'vibes') return notes.forEach((m) => this.vibes(m, t, dur));
-    for (const m of notes) this.reed(patch, m, t, dur);
+    const voice = { horns: 'hornNote', strings: 'stringNote', vibes: 'vibes' }[patch] || 'reed';
+    for (const m of notes) this.play(voice, m, t, dur);
   }
 
   // Wind guests: one held note with breath, a soft scoop into the pitch
   // and a late vibrato. Every partial shares the same vibrato, so the
   // note bends as one instead of beating against itself.
-  reed(patch, midi, t, dur) {
+  reed(midi, t, dur) {
     const out = this.bus?.input;
     if (!out) return;
+    const patch = GUESTS[this.opts.style].patch;
     const f = hz(midi);
     const len = Math.max(0.1, dur * 0.92);
     const shape = REEDS[patch];
-    const g = this.env(t, { a: shape.a, peak: shape.peak, d: 0.12, s: 0.82, hold: Math.max(0, len - 0.18), r: shape.r });
+    const hold = Math.max(0, len - 0.18);
+    const g = this.env(t, { a: shape.a, peak: shape.peak, d: 0.12, s: 0.82, hold, r: shape.r });
     let dest = this.filter('lowpass', shape.cut, shape.q);
     // swell: the filter starts open and settles, like a blown attack.
     if (shape.swell) {
@@ -479,7 +591,8 @@ export class Band {
       bp.connect(dest);
       dest = bp;
     }
-    const end = t + len + shape.r + 0.05;
+    // Never stop the sound before its envelope has closed, even on short notes.
+    const end = t + Math.max(len, shape.a + 0.12 + hold) + shape.r + 0.05;
     const oscs = shape.partials.map(([wave, mult, gain]) => {
       const o = this.ctx.createOscillator();
       o.type = wave;
@@ -522,49 +635,47 @@ export class Band {
 
   // ---- Horns and strings ----
 
-  hornStab(notes, t, dur) {
+  hornNote(m, t, dur) {
     const out = this.bus?.input;
     if (!out) return;
     const len = Math.max(0.1, dur * 0.85);
-    for (const m of notes) {
-      const f = hz(m);
-      const g = this.env(t, { a: 0.03, peak: 0.055, d: 0.08, s: 0.75, hold: Math.max(0, len - 0.12), r: 0.09 });
-      const lp = this.filter('lowpass', 900, 2);
-      lp.frequency.setValueAtTime(700, t);
-      lp.frequency.exponentialRampToValueAtTime(2600, t + 0.05);
-      lp.frequency.exponentialRampToValueAtTime(1300, t + 0.25);
-      lp.connect(g).connect(out);
-      this.osc('sawtooth', f, t, t + len + 0.1, lp, -6);
-      this.osc('sawtooth', f, t, t + len + 0.1, lp, 6);
-    }
+    const f = hz(m);
+    const g = this.env(t, { a: 0.03, peak: 0.055, d: 0.08, s: 0.75, hold: Math.max(0, len - 0.12), r: 0.09 });
+    const lp = this.filter('lowpass', 900, 2);
+    lp.frequency.setValueAtTime(700, t);
+    lp.frequency.exponentialRampToValueAtTime(2600, t + 0.05);
+    lp.frequency.exponentialRampToValueAtTime(1300, t + 0.25);
+    lp.connect(g).connect(out);
+    this.osc('sawtooth', f, t, t + len + 0.1, lp, -6);
+    this.osc('sawtooth', f, t, t + len + 0.1, lp, 6);
   }
 
   // A string section: each note is three players a few cents apart, each
   // with their own slow vibrato, behind a filter that opens as the bows
   // dig in. Static detuned saws sounded like a buzzy synth.
-  strings(notes, t, dur) {
+  stringNote(m, t, dur) {
     const out = this.bus?.input;
     if (!out) return;
-    const end = t + dur + 0.7;
-    for (const m of notes) {
-      const f = hz(m);
-      const g = this.env(t, { a: 0.45, peak: 0.024, d: 0.2, s: 0.85, hold: Math.max(0, dur - 0.75), r: 0.6 });
-      const lp = this.filter('lowpass', 700, 0.6);
-      lp.frequency.setValueAtTime(700, t);
-      lp.frequency.linearRampToValueAtTime(1900, t + 0.5);
-      lp.frequency.linearRampToValueAtTime(1500, t + Math.max(0.6, dur));
-      lp.connect(g).connect(out);
-      for (const [det, rate] of [[-6, 5.1], [0, 5.6], [7, 6.1]]) {
-        const o = this.osc('sawtooth', f, t, end, lp, det);
-        const lfo = this.ctx.createOscillator();
-        lfo.frequency.value = rate;
-        const depth = this.ctx.createGain();
-        depth.gain.setValueAtTime(0, t);
-        depth.gain.linearRampToValueAtTime(f * 0.003, t + 0.6);
-        lfo.connect(depth).connect(o.frequency);
-        lfo.start(t);
-        lfo.stop(end);
-      }
+    const hold = Math.max(0, dur - 0.75);
+    // Play until the envelope has died away (attack, decay, hold, release).
+    const end = t + 0.45 + 0.2 + hold + 0.6 + 0.05;
+    const f = hz(m);
+    const g = this.env(t, { a: 0.45, peak: 0.024, d: 0.2, s: 0.85, hold, r: 0.6 });
+    const lp = this.filter('lowpass', 700, 0.6);
+    lp.frequency.setValueAtTime(700, t);
+    lp.frequency.linearRampToValueAtTime(1900, t + 0.5);
+    lp.frequency.linearRampToValueAtTime(1500, t + Math.max(0.6, dur));
+    lp.connect(g).connect(out);
+    for (const [det, rate] of [[-6, 5.1], [0, 5.6], [7, 6.1]]) {
+      const o = this.osc('sawtooth', f, t, end, lp, det);
+      const lfo = this.ctx.createOscillator();
+      lfo.frequency.value = rate;
+      const depth = this.ctx.createGain();
+      depth.gain.setValueAtTime(0, t);
+      depth.gain.linearRampToValueAtTime(f * 0.003, t + 0.6);
+      lfo.connect(depth).connect(o.frequency);
+      lfo.start(t);
+      lfo.stop(end);
     }
   }
 
