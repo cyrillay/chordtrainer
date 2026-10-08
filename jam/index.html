@@ -33,7 +33,7 @@
     <div class="hd-top">
       <a href="../" class="hd-brand" aria-label="Étude, home">
         <span class="hd-name">Étude</span>
-        <span class="hd-opus">Op. 7 No 11</span>
+        <span class="hd-opus">Op. 7 No 12</span>
       </a>
       <div class="hd-actions">
         <button type="button" id="midiBtn" class="hd-btn">
@@ -122,7 +122,18 @@
             </select>
           </label>
         </div>
-        <label class="arcade-toggle"><input type="checkbox" id="showTonesCb"><span>Show the notes of each chord</span></label>
+        <div class="setup-extras">
+          <label class="arcade-toggle"><input type="checkbox" id="showTonesCb"><span>Show the notes of each chord</span></label>
+          <button type="button" class="sync-link" id="syncBtn" title="Hits land late? Tap along to a few clicks to sync the band with your speakers.">Audio sync<span id="syncVal"></span></button>
+        </div>
+        <div class="sync-panel" id="syncPanel" hidden>
+          <p class="sync-msg" id="syncMsg"></p>
+          <div class="sync-actions">
+            <button type="button" class="sync-link" id="syncAgainBtn">Start</button>
+            <button type="button" class="sync-link" id="syncResetBtn" hidden>Reset</button>
+            <button type="button" class="sync-link" id="syncCloseBtn">Close</button>
+          </div>
+        </div>
 
         <button type="button" class="arcade-btn big" id="playBtn">
           <span class="coin" id="coinSprite"></span>

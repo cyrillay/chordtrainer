@@ -14,6 +14,7 @@ import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, GUESTS, partsAt } from './style
 import { FAMILIES, tuneFamily, fitsStyle, tunesFor } from './tunes.js';
 import { SlotJudge, Scorer, chordTargets, toneRole, multiplier, timingZone, WINDOW } from './judge.js';
 import { Band } from './band.js';
+import { SYNC, measureOffset, offsetFor, storeOffset, forgetOffset } from './sync.js';
 import { sprite, MAPS } from './sprites.js';
 import { track, logRun } from '../../js/stats/log.js';
 import { JamTracker } from './achievements.js';
@@ -24,7 +25,7 @@ const params = new URLSearchParams(location.search);
 
 // ---- Settings + high scores ----
 
-const LS = { settings: 'ghostJam.settings', scores: 'ghostJam.scores', midi: 'ghostJam.midiAuto', guests: 'ghostJam.guestsMet' };
+const LS = { settings: 'ghostJam.settings', scores: 'ghostJam.scores', midi: 'ghostJam.midiAuto', guests: 'ghostJam.guestsMet', sync: 'ghostJam.sync' };
 const read = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
 const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } };
 
@@ -247,6 +248,7 @@ function midiStatus({ state, names }) {
 function connect() {
   band.audio(); // unlock audio on the same click
   connectMidi({ onNoteOn, onNoteOff, onStatus: midiStatus });
+  renderSync();
 }
 $('midiBtn').addEventListener('click', () => { if (midiState !== 'connected') connect(); });
 $('gateConnectBtn').addEventListener('click', connect);
@@ -312,6 +314,8 @@ function startGame({ again = false } = {}) {
   renderNext(-1);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
+  stopSync();
+  applySync();
   band.energy = 1;
   band.start({
     style: settings.style, tempo, chords, barsPerChord, choruses,
@@ -361,6 +365,7 @@ function heldPcs() {
 }
 
 function onNoteOn(midi, velocity = 80, tPerf = performance.now()) {
+  if (sync) syncTap(toAudioTime(tPerf));
   held.set(midi, null);
   velocities.set(midi, velocity);
   let role = 'tone';
@@ -385,6 +390,112 @@ function onNoteOff(midi) {
   velocities.delete(midi);
   keyState(midi, null);
 }
+
+// ---- Audio sync ----
+// A quiet tap test on the setup screen: you tap along to clicks and the
+// median lag is added to the latency the browser reports (see sync.js).
+
+let syncSaved = read(LS.sync, []);
+let sync = null;   // the running test: { clicks, taps, count, out, timer }
+
+const syncOffset = () => (band.ctx ? offsetFor(syncSaved, band.reportedLatency) : 0);
+const fmtMs = (s) => `${s > 0 ? '+' : ''}${Math.round(s * 1000)} ms`;
+
+function applySync() {
+  band.extraLatency = syncOffset();
+}
+
+function renderSync() {
+  const off = syncOffset();
+  const on = Math.round(off * 1000) !== 0;
+  $('syncVal').innerHTML = on ? ` · <b>${fmtMs(off)}</b>` : '';
+  $('syncResetBtn').hidden = !on || !!sync;
+}
+
+function openSync() {
+  if (!$('syncPanel').hidden && !sync) return closeSync();
+  $('syncPanel').hidden = false;
+  if (sync) return;
+  $('syncMsg').textContent = `Hits land late? Tap any key on each click you hear, through the speakers you play with. ${SYNC.clicks} clicks.`;
+  $('syncAgainBtn').textContent = 'Start';
+  $('syncAgainBtn').hidden = false;
+  renderSync();
+}
+
+function closeSync() {
+  stopSync();
+  $('syncPanel').hidden = true;
+}
+
+function stopSync() {
+  if (!sync) return;
+  clearTimeout(sync.timer);
+  sync.out.disconnect();
+  sync = null;
+  applySync();
+}
+
+function startSync() {
+  if (midiState !== 'connected') {
+    if (midiState === 'off') connect();
+    $('syncMsg').textContent = 'Connect your keyboard first, then press Start.';
+    return;
+  }
+  stopSync();
+  const ctx = band.audio();
+  band.extraLatency = 0; // measure against what the browser reports
+  const out = ctx.createGain();
+  out.connect(ctx.destination);
+  const t0 = ctx.currentTime + 0.8;
+  const clicks = Array.from({ length: SYNC.clicks }, (_, i) => t0 + i * SYNC.interval);
+  clicks.forEach((t, i) => band.click(t, i < SYNC.warmup ? 0.7 : 1, out));
+  const wait = (t0 - ctx.currentTime + SYNC.clicks * SYNC.interval + 0.2) * 1000;
+  sync = { clicks, taps: [], count: 0, out, timer: setTimeout(endSync, wait) };
+  $('syncAgainBtn').hidden = true;
+  $('syncResetBtn').hidden = true;
+  $('syncMsg').innerHTML = 'Listen and tap… <b>0</b>';
+}
+
+function syncTap(t) {
+  const last = sync.taps[sync.taps.length - 1];
+  sync.taps.push(t);
+  if (last === undefined || t - last > 0.1) sync.count++;
+  $('syncMsg').innerHTML = `Listen and tap… <b>${sync.count}</b>`;
+}
+
+function endSync() {
+  const { clicks, taps } = sync;
+  stopSync();
+  const r = measureOffset(taps, clicks);
+  let msg;
+  if (r.error === 'few') msg = 'Not enough taps to measure. Tap once on each click and try again.';
+  else if (r.error === 'uneven') msg = 'The taps were too uneven to trust. Try again, relaxed.';
+  else {
+    syncSaved = storeOffset(syncSaved, band.reportedLatency, r.offset);
+    write(LS.sync, syncSaved);
+    applySync();
+    msg = Math.abs(r.offset) < 0.01
+      ? 'Already in sync. Nothing to change.'
+      : `You hear the band <b>${Math.abs(Math.round(r.offset * 1000))} ms</b> ${r.offset > 0 ? 'late' : 'early'}. Saved for these speakers.`;
+  }
+  $('syncMsg').innerHTML = msg;
+  $('syncAgainBtn').textContent = 'Again';
+  $('syncAgainBtn').hidden = false;
+  renderSync();
+}
+
+function resetSync() {
+  syncSaved = forgetOffset(syncSaved, band.reportedLatency);
+  write(LS.sync, syncSaved);
+  applySync();
+  $('syncMsg').textContent = 'Back to the latency the browser reports.';
+  renderSync();
+}
+
+$('syncBtn').addEventListener('click', openSync);
+$('syncAgainBtn').addEventListener('click', startSync);
+$('syncResetBtn').addEventListener('click', resetSync);
+$('syncCloseBtn').addEventListener('click', closeSync);
 
 // ---- Frame loop: beat lights, chord changes, grading ----
 
@@ -736,5 +847,5 @@ if (params.has('keys')) {
 
 // ?debug exposes hooks for automated tests.
 if (params.has('debug')) {
-  window.__jam = { band, get game() { return game; }, onNoteOn, onNoteOff, startGame, finish, midiStatus };
+  window.__jam = { band, get game() { return game; }, get sync() { return sync; }, onNoteOn, onNoteOff, startGame, finish, midiStatus };
 }
