@@ -19,6 +19,7 @@ import { track, logRun } from '../../js/stats/log.js';
 import { JamTracker } from './achievements.js';
 import { initTrophyCase, grant, bump, setMax, setFinished } from './trophyCase.js';
 import { isFavourite, toggleFavourite, removeFavourite, cleanFavourites } from './favourites.js';
+import { PianoRemote, SETUP_KEYS, RESULT_KEYS, step } from './remote.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -218,16 +219,18 @@ function renderHall() {
     : '<li class="hall-empty">No scores yet. The stage is yours.</li>';
 }
 
-$('styleGrid').addEventListener('click', (e) => {
-  const card = e.target.closest('[data-style]');
-  if (!card) return;
-  if (card.dataset.style !== settings.style) grooveTip(card.dataset.style);
-  settings.style = card.dataset.style;
+function setStyle(id) {
+  if (id !== settings.style) grooveTip(id);
+  settings.style = id;
   settings.tempo = null; // each groove has its own home tempo
   // A new groove keeps the tune only if it suits it.
   if (!fitsStyle(tuneByName(settings.tune), settings.style)) settings.tune = randomTune(settings.style);
   save();
   renderSetup();
+}
+$('styleGrid').addEventListener('click', (e) => {
+  const card = e.target.closest('[data-style]');
+  if (card) setStyle(card.dataset.style);
 });
 $('tuneSelect').addEventListener('change', (e) => { settings.tune = e.target.value; save(); renderCombo(); });
 $('randomTuneBtn').addEventListener('click', () => {
@@ -331,6 +334,8 @@ function midiStatus({ state, names }) {
   else if (state === 'unsupported') renderMidiHint(status, 'MIDI not supported here');
   else if (state === 'denied') renderMidiHint(status, 'MIDI access denied', { html: DENIED_HELP_HTML });
   $('midiGate').hidden = state === 'connected';
+  $('remote').hidden = state !== 'connected';
+  $('resultRemote').hidden = state !== 'connected';
   const copy = gateCopy(state);
   $('gateTitle').textContent = copy.title;
   $('gateSub').textContent = copy.sub;
@@ -454,6 +459,7 @@ function heldPcs() {
 }
 
 function onNoteOn(midi, velocity = 80, tPerf = performance.now()) {
+  remote.noteOn(midi, remoteScreen() !== null);
   held.set(midi, null);
   velocities.set(midi, velocity);
   let role = 'tone';
@@ -474,6 +480,8 @@ function onNoteOn(midi, velocity = 80, tPerf = performance.now()) {
 }
 
 function onNoteOff(midi) {
+  const pc = remote.noteOff(midi);
+  if (pc !== null) runRemote(pc);
   held.delete(midi);
   velocities.delete(midi);
   keyState(midi, null);
@@ -817,6 +825,97 @@ function backToSetup() {
   $('viewSetup').hidden = false;
   renderSetup();
 }
+
+// ---- Piano remote + keyboard shortcuts ----
+// On the setup and results screens a single key on the piano is a command
+// (see remote.js). The legend under the Play button shows which.
+
+const remote = new PianoRemote();
+
+function remoteScreen() {
+  if (!$('achModal').hidden) return null;
+  if (!game && !$('viewSetup').hidden) return 'setup';
+  if (game?.over && !$('resultModal').hidden) return 'results';
+  return null;
+}
+
+function flash(el) {
+  if (!el) return;
+  el.classList.remove('remote-flash');
+  void el.offsetWidth;
+  el.classList.add('remote-flash');
+  el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+// Move a <select> by one option and tell its listener.
+function stepSelect(sel, dir) {
+  sel.value = step([...sel.options].map((o) => o.value), sel.value, dir);
+  sel.dispatchEvent(new Event('change'));
+  flash(sel);
+}
+
+const SETUP_ACTIONS = {
+  play: () => $('playBtn').click(),
+  shuffle: () => { $('randomTuneBtn').click(); flash($('tuneSelect')); },
+  groovePrev: () => { setStyle(step(STYLE_ORDER, settings.style, -1)); flash($('styleGrid').querySelector('.is-on')); },
+  grooveNext: () => { setStyle(step(STYLE_ORDER, settings.style, 1)); flash($('styleGrid').querySelector('.is-on')); },
+  favourite: () => { $('favBtn').click(); flash($('favBtn')); },
+  tunePrev: () => stepSelect($('tuneSelect'), -1),
+  tuneNext: () => stepSelect($('tuneSelect'), 1),
+  keyPrev: () => stepSelect($('keySelect'), -1),
+  keyNext: () => stepSelect($('keySelect'), 1),
+  tempoDown: () => nudgeTempo(-5),
+  tempoUp: () => nudgeTempo(5),
+  nextFavourite: () => {
+    if (!favs.length) return;
+    const i = favs.findIndex((f) => isFavourite([f], combo()));
+    $('favList').querySelector(`[data-fav="${(i + 1) % favs.length}"]`).click();
+    flash($('favList').querySelector('.fav.is-on'));
+  },
+};
+const RESULT_ACTIONS = {
+  again: () => $('resultAgainBtn').click(),
+  back: () => $('resultBackBtn').click(),
+};
+
+function nudgeTempo(d) {
+  const range = $('tempoRange');
+  range.value = Number(range.value) + d;
+  range.dispatchEvent(new Event('input'));
+  flash(range.closest('.knob'));
+}
+
+function runRemote(pc) {
+  const screen = remoteScreen();
+  const cmd = screen === 'setup' ? SETUP_KEYS[pc] : screen === 'results' ? RESULT_KEYS[pc] : null;
+  if (!cmd) return;
+  (screen === 'setup' ? SETUP_ACTIONS : RESULT_ACTIONS)[cmd.id]();
+}
+
+// One octave, laid out like a piano: white keys below, black keys above.
+const BLACK_PCS = [1, 3, 6, 8, 10];
+const NOTE_LBL = ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'];
+const WHITE_COL = { 0: 1, 2: 3, 4: 5, 5: 7, 7: 9, 9: 11, 11: 13 };
+$('remoteKeys').innerHTML = Object.entries(SETUP_KEYS).map(([pc, k]) => {
+  pc = Number(pc);
+  const black = BLACK_PCS.includes(pc);
+  const col = black ? WHITE_COL[pc - 1] + 1 : WHITE_COL[pc];
+  return `<span class="rk ${black ? 'rk-black' : 'rk-white'}" style="grid-column:${col} / span 2"><b>${NOTE_LBL[pc]}</b>${k.label}</span>`;
+}).join('');
+$('resultRemote').innerHTML = `Piano: ${Object.entries(RESULT_KEYS).map(([pc, k]) => `<b>${NOTE_LBL[pc]}</b> ${k.label}`).join(' · ')}`;
+
+document.addEventListener('keydown', (e) => {
+  if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target.closest('input, select, textarea, button, a')) return;
+  if (game && !game.over) {
+    if (e.key === 'r' || e.key === 'R') { e.preventDefault(); restartGame(); }
+    else if (e.key === ' ') { e.preventDefault(); stopGame(); }
+  } else if (e.key === 'Enter') {
+    const screen = remoteScreen();
+    if (screen === 'setup') { e.preventDefault(); startGame(); }
+    else if (screen === 'results') { e.preventDefault(); $('resultAgainBtn').click(); }
+  }
+});
 
 $('playBtn').addEventListener('click', () => startGame());
 $('stopBtn').addEventListener('click', stopGame);

@@ -324,3 +324,22 @@ test('favourites: toggle, newest first, capped, cleaned', async () => {
     [b, { ...b, key: 'C' }]);
   assert.deepEqual(cleanFavourites('junk', ctx), []);
 });
+
+test('piano remote: one key alone is a command, a chord is not', async () => {
+  const { PianoRemote, SETUP_KEYS, step } = await import('../jam/js/remote.js');
+  const r = new PianoRemote();
+  r.noteOn(62, true);
+  assert.equal(r.noteOff(62), 2);                // D, any octave
+  r.noteOn(60, true); r.noteOn(64, true); r.noteOn(67, true);
+  assert.equal(r.noteOff(60), null);
+  assert.equal(r.noteOff(64), null);
+  assert.equal(r.noteOff(67), null);              // a C chord does nothing
+  r.noteOn(60, false);
+  assert.equal(r.noteOff(60), null);              // pressed while playing: never a command
+  r.noteOn(60, true); r.noteOn(72, true); r.noteOff(72);
+  assert.equal(r.noteOff(60), null);              // another key joined in
+  assert.equal(Object.keys(SETUP_KEYS).length, 12);
+  assert.equal(new Set(Object.values(SETUP_KEYS).map((k) => k.id)).size, 12);
+  assert.equal(step(['a', 'b', 'c'], 'c', 1), 'a');
+  assert.equal(step(['a', 'b', 'c'], 'a', -1), 'c');
+});
