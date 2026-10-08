@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildChord } from '../js/core/theory.js';
 import { PROGRESSIONS, romanToChord, progressionMode } from '../js/training/progressions.js';
-import { chordTargets, toneRole, SlotJudge, Scorer, multiplier, nextEnergy, timingZone } from '../jam/js/judge.js';
+import { chordTargets, toneRole, hintVoicing, SlotJudge, Scorer, multiplier, nextEnergy, timingZone } from '../jam/js/judge.js';
 import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, GUESTS, partsAt, guestEvents, barEvents, bassRoot, keysVoicing, countIn } from '../jam/js/styles.js';
 import { FAMILIES, tuneFamily, tuneStyles, fitsStyle, tunesFor } from '../jam/js/tunes.js';
 
@@ -302,4 +302,10 @@ test('tunes: bebop stays in swing, baroque stays out of funk', () => {
   assert.ok(!fitsStyle(byName('La Folia'), 'funk'));
   assert.ok(!fitsStyle(byName('Smoke on the Water'), 'bossa'));
   assert.ok(fitsStyle(byName('Dorian vamp'), 'funk'));
+});
+
+test('hint voicing: close position from the root, around middle C', () => {
+  assert.deepEqual(hintVoicing(buildChord('C', 'maj')), [48, 52, 55]);
+  assert.deepEqual(hintVoicing(buildChord('G', 'dom7')), [55, 59, 62, 65]);
+  assert.deepEqual(hintVoicing(buildChord('B', 'm7b5')), [59, 62, 65, 69]);
 });

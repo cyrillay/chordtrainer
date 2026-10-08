@@ -12,7 +12,7 @@ import { connectMidi } from '../../sightreading/js/midi.js';
 import { attachComputerKeyboard } from '../../arpeggio/js/midi.js';
 import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, GUESTS, partsAt } from './styles.js';
 import { FAMILIES, tuneFamily, fitsStyle, tunesFor } from './tunes.js';
-import { SlotJudge, Scorer, chordTargets, toneRole, multiplier, timingZone, WINDOW } from './judge.js';
+import { SlotJudge, Scorer, chordTargets, toneRole, hintVoicing, multiplier, timingZone, WINDOW } from './judge.js';
 import { Band } from './band.js';
 import { sprite, MAPS } from './sprites.js';
 import { track, logRun } from '../../js/stats/log.js';
@@ -220,6 +220,13 @@ function keyState(midi, role) {
   if (role) k.classList.add('is-down', `is-${role}`);
 }
 
+// Faint glow on the keys of the current chord, so you see where to play.
+function showHint(chord) {
+  for (const k of kbKeys.values()) k.classList.remove('is-hint');
+  if (!chord) return;
+  for (const m of hintVoicing(chord)) kbKeys.get(m)?.classList.add('is-hint');
+}
+
 // ---- MIDI ----
 
 let midiState = 'off';
@@ -309,6 +316,7 @@ function startGame({ again = false } = {}) {
   $('gaugeReadout').className = 'gauge-readout';
   $('chordBig').innerHTML = '<span class="count">Ready</span>';
   $('chordTones').innerHTML = '';
+  showHint(null);
   renderNext(-1);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -458,6 +466,7 @@ function showSlot(k) {
   } else {
     $('chordTones').innerHTML = '';
   }
+  showHint(settings.showTones ? chord : null);
   const chorus = Math.floor(k / game.chords.length);
   $('tuneChorus').textContent = Number.isFinite(game.choruses) ? `Chorus ${chorus + 1}/${game.choruses}` : `Chorus ${chorus + 1}`;
   renderNext(k);
@@ -657,6 +666,7 @@ function finish() {
   game.over = true;
   cancelAnimationFrame(game.raf);
   band.stop();
+  showHint(null);
   const s = game.scorer;
   const key = game.scoreKey;
   const prev = scores[key];
@@ -708,6 +718,7 @@ function stopGame() {
 function backToSetup() {
   if (game && !game.over) { game.over = true; cancelAnimationFrame(game.raf); band.stop(); }
   game = null;
+  showHint(null);
   $('resultModal').hidden = true;
   $('viewPlay').hidden = true;
   $('viewSetup').hidden = false;

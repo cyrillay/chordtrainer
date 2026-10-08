@@ -639,6 +639,8 @@ body[data-energy="3"] .beat-glow { --glow: 0.55; }
 .kw, .kbk { position: absolute; top: 0; border-radius: 0 0 4px 4px; transition: background 0.06s, box-shadow 0.06s; }
 .kw { height: 100%; background: #1d1230; border: 1px solid #3b2559; }
 .kbk { height: 62%; background: #07030d; border: 1px solid #3b2559; z-index: 2; }
+.kw.is-hint { background: #1f4a5c; box-shadow: inset 0 -10px 14px rgba(0, 240, 255, 0.35); }
+.kbk.is-hint { background: #10394a; box-shadow: inset 0 -6px 10px rgba(0, 240, 255, 0.4); }
 .is-down.is-tone { background: var(--cyan); box-shadow: 0 0 16px var(--cyan); }
 .is-down.is-colour { background: var(--orange); box-shadow: 0 0 16px var(--orange); }
 .is-down.is-wrong { background: var(--crimson); box-shadow: 0 0 16px var(--crimson); }

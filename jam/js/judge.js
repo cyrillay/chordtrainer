@@ -53,6 +53,14 @@ export function toneRole(targets, pc) {
   return 'wrong';
 }
 
+// Where to put your hands for a chord: close position from the root, the
+// root in the octave from C3, so the hint sits around middle C.
+export const HINT_LOW = 48;
+export function hintVoicing(chord) {
+  const root = HINT_LOW + noteToPitchClass(chord.root);
+  return CHORD_FORMULAS[chord.quality].intervals.map((iv) => root + iv);
+}
+
 export const GRADES = ['perfect', 'good', 'late', 'miss'];
 export const POINTS = { perfect: 300, good: 150, late: 50, miss: 0 };
 export const COLOUR_BONUS = 25;
