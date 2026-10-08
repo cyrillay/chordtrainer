@@ -250,7 +250,6 @@ input[type="range"] { accent-color: var(--pink); width: 100%; }
 .ghost-cyan .sprite { filter: drop-shadow(0 0 10px var(--cyan)); }
 .ghost-pink .sprite { filter: drop-shadow(0 0 10px var(--pink)); animation-delay: -0.8s; }
 .ghost-orange .sprite { filter: drop-shadow(0 0 10px var(--orange)); animation-delay: -1.6s; }
-.ghost-name { font-family: var(--font-display); font-size: 0.45rem; letter-spacing: 0.14em; text-transform: uppercase; }
 @keyframes float { 50% { transform: translateY(-6px); } }
 
 .ghost-lime { color: var(--lime); }
@@ -261,7 +260,7 @@ input[type="range"] { accent-color: var(--pink); width: 100%; }
   position: relative; color: #d9d0e6; cursor: help;
   background: none; border: 0; padding: 0; font: inherit;
 }
-.ghost.is-secret > .sprite, .ghost.is-secret > .ghost-name { opacity: 0.35; animation: buzz 4.3s infinite 0.7s; transition: opacity 0.2s; }
+.ghost.is-secret > .sprite { opacity: 0.35; animation: buzz 4.3s infinite 0.7s; transition: opacity 0.2s; }
 .ghost.is-secret > .sprite { filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5)); }
 .ghost.is-secret:hover > .sprite, .ghost.is-secret.open > .sprite,
 .ghost.is-secret:focus-visible > .sprite { opacity: 0.75; animation: float 2.4s ease-in-out infinite; }

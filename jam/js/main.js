@@ -162,12 +162,16 @@ const ghostSprite = (part, style) => {
   const gear = part === 'guest' ? GUESTS[style].patch : part;
   return sprite(MAPS[`ghost-${gear}`] ? `ghost-${gear}` : 'ghost', { px: 5 });
 };
-const ghostHtml = (m, style) => `<div class="ghost ghost-${m.color}" data-part="${m.id}">${ghostSprite(m.id, style)}<span class="ghost-name">${m.id === 'guest' ? GUESTS[style].name : m.name}</span></div>`;
+// No caption: the instrument says who is who, the name stays for screen readers and on hover.
+const ghostHtml = (m, style) => {
+  const name = m.id === 'guest' ? GUESTS[style].name : m.name;
+  return `<div class="ghost ghost-${m.color}" data-part="${m.id}" role="img" aria-label="${name}" title="${name}">${ghostSprite(m.id, style)}</div>`;
+};
 // On the setup page the guest is a secret: a pale ghost with no instrument,
 // since who sits in depends on the groove. Hover (or tap) for a teaser.
 $('bandIntro').innerHTML = BAND.slice(0, 3).map((m) => ghostHtml(m, settings.style)).join('')
-  + `<button type="button" class="ghost is-secret" data-part="guest" aria-expanded="false" aria-describedby="secretTip">
-      ${sprite('ghost', { px: 5 })}<span class="ghost-name">???</span>
+  + `<button type="button" class="ghost is-secret" data-part="guest" aria-label="Secret guest" aria-expanded="false" aria-describedby="secretTip">
+      ${sprite('ghost', { px: 5 })}
       <span class="secret-tip" id="secretTip" role="tooltip"><b>Secret guest</b>Every groove has its own. Get the band on fire and they walk on stage.</span>
     </button>`;
 const secret = $('bandIntro').querySelector('.is-secret');
