@@ -428,7 +428,7 @@ function startGame({ again = false, restart = false } = {}) {
   $('chordTones').innerHTML = '';
   showHint(null);
   renderNext(-1);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  framePlay();
 
   stopSync();
   applySync();
@@ -438,6 +438,17 @@ function startGame({ again = false, restart = false } = {}) {
     onEnd: () => finish(),
   });
   game.raf = requestAnimationFrame(loop);
+}
+
+// Frame the set: the stage in view with the piano at the bottom of the
+// screen, the header and the menu scrolled away. On a short screen the
+// stage keeps the top.
+function framePlay() {
+  const top = $('stage').getBoundingClientRect().top + window.scrollY;
+  const bottom = document.querySelector('.kb-frame').getBoundingClientRect().bottom + window.scrollY;
+  const margin = 12;
+  const y = Math.min(top - margin, bottom + margin - window.innerHeight);
+  window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
 }
 
 // Slot timing on the audio clock (seconds). Slot k starts after the count-in bar.
@@ -839,12 +850,14 @@ function renderEnergy(e) {
 function announceTier(prev, e) {
   const up = e > prev;
   const tier = TIERS[up ? e : prev];
+  // Nobody announces a player leaving: their ghost fading says it already.
+  if (!up && !tier.heat) return;
   const el = document.createElement('div');
   el.className = `tier-banner ${up ? 'is-up' : 'is-down'}`;
   const name = tier.part === 'guest' ? guestName() : tier.name;
   const verb = (one, many) => (tier.plural ? many : one);
   if (tier.heat) el.textContent = up ? 'The band heats up!' : 'The band cools down';
-  else el.textContent = up ? `${name} ${verb('joins', 'join')} in!` : `${name} ${verb('sits', 'sit')} out`;
+  else el.textContent = `${name} ${verb('joins', 'join')} in!`;
   document.querySelector('.bandstand').appendChild(el);
   setTimeout(() => el.remove(), 1800);
 }
@@ -997,7 +1010,7 @@ function backToSetup() {
 
 // ---- Piano remote + keyboard shortcuts ----
 // On the setup and results screens the piano drives a menu cursor, like a
-// TV remote, in intervals from middle C (see remote.js). The legend under
+// TV remote, in intervals from C in any octave (see remote.js). The legend under
 // the Play button shows how.
 
 const remote = new PianoRemote({
@@ -1033,7 +1046,7 @@ const RESULT_ROWS = {
 };
 const rowsOf = (rows, skip = []) => Object.entries(rows).filter(([id]) => !skip.includes(id)).map(([id, r]) => ({ id, kind: r.kind }));
 const setupNav = new MenuNav(rowsOf(SETUP_ROWS, ['favs']), 'groove');
-const resultNav = new MenuNav(rowsOf(RESULT_ROWS), 'again');
+const resultNav = new MenuNav(rowsOf(RESULT_ROWS), 'again', { wrap: true });
 
 // Light up the row under the cursor (only with a keyboard connected).
 function paintNav() {
@@ -1096,7 +1109,7 @@ function runRemote(midi) {
   }
 }
 
-// The legend: the keys around middle C, F3 to A4, the ones that do something labelled.
+// The legend: one octave around a C, F to A, the keys that do something labelled.
 (function buildRemoteLegend() {
   const LABELS = { [MIDDLE_C - 4]: '↓', [MIDDLE_C - 3]: '↓', [MIDDLE_C]: 'C', [MIDDLE_C + 3]: '↑', [MIDDLE_C + 4]: '↑', [MIDDLE_C + 7]: 'OK' };
   let html = '';
