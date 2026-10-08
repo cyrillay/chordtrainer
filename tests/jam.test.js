@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { buildChord } from '../js/core/theory.js';
 import { PROGRESSIONS, romanToChord, progressionMode } from '../js/training/progressions.js';
 import { chordTargets, toneRole, SlotJudge, Scorer, multiplier, nextEnergy, timingZone } from '../jam/js/judge.js';
-import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, partsAt, barEvents, bassRoot, keysVoicing, countIn } from '../jam/js/styles.js';
+import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, GUESTS, partsAt, guestEvents, barEvents, bassRoot, keysVoicing, countIn } from '../jam/js/styles.js';
 
 const pcs = (set) => [...set].sort((a, b) => a - b);
 
@@ -70,9 +70,10 @@ test('scorer: combo, multiplier and band energy', () => {
   s.add({ grade: 'miss', base: 0, bonus: 0 });
   assert.equal(s.combo, 0);
   assert.equal(s.energy, 1);
-  assert.equal(nextEnergy(3, 'perfect', 12), 4);
-  assert.equal(nextEnergy(4, 'perfect', 40), MAX_ENERGY);
-  assert.equal(nextEnergy(4, 'good', 2), 4);      // a short streak keeps who is there
+  assert.equal(nextEnergy(2, 'perfect', 8), 3);
+  assert.equal(nextEnergy(3, 'perfect', 40), MAX_ENERGY);
+  assert.equal(MAX_ENERGY, 3);
+  assert.equal(nextEnergy(3, 'good', 2), 3);      // a short streak keeps who is there
   assert.equal(nextEnergy(0, 'miss', 0), 0);
   assert.ok(['S', 'A', 'B', 'C', 'D'].includes(s.rank));
 });
@@ -92,10 +93,13 @@ test('every groove plays every progression chord in range', () => {
             assert.ok(n.midi >= 26 && n.midi <= 56, `${id} bass ${n.midi} on ${chord.symbol}`);
           }
           for (const k of ev.keys) assert.ok(k.step + k.dur <= style.steps, `${id} keys overflow`);
-          for (const h of [...ev.horns, ...ev.strings]) assert.ok(h.step + h.dur <= style.steps, `${id} horns/strings overflow`);
+          for (const g of ev.guest) {
+            assert.ok(g.step >= 0 && g.step + g.dur <= style.steps, `${id} guest overflow`);
+            const range = GUESTS[id].range;
+            if (range) for (const m of g.notes) assert.ok(m >= range[0] && m <= range[1], `${id} guest ${m}`);
+          }
           if (energy === 0) assert.equal(ev.keys.length, 0);
-          assert.equal(ev.horns.length > 0, energy >= 3, `${id} horns at ${energy}`);
-          assert.equal(ev.strings.length > 0, energy >= 4, `${id} strings at ${energy}`);
+          assert.equal(ev.guest.length > 0, energy === MAX_ENERGY, `${id} guest at ${energy}`);
         }
       });
     }
@@ -123,18 +127,40 @@ test('voicings: bass root in the low register, keys around middle C', () => {
   assert.ok(v.every((n) => n >= 53 && n < 65));
 });
 
-test('band tiers: one more player per tier, everyone at the top', () => {
+test('band tiers: drums, bass and keys, the band heats up, then one guest', () => {
   assert.equal(TIERS.length, MAX_ENERGY + 1);
   assert.deepEqual([...partsAt(0)], ['drums', 'bass']);
-  assert.ok(partsAt(1).has('keys') && !partsAt(1).has('perc'));
-  for (let e = 1; e <= MAX_ENERGY; e++) assert.equal(partsAt(e).size, partsAt(e - 1).size + 1);
-  assert.equal(partsAt(99).size, partsAt(MAX_ENERGY).size);
-  // The shaker only plays from its tier on.
-  const chord = buildChord('C', 'maj');
+  assert.deepEqual([...partsAt(1)], ['drums', 'bass', 'keys']);
+  assert.deepEqual([...partsAt(2)], ['drums', 'bass', 'keys']);
+  assert.deepEqual([...partsAt(3)], ['drums', 'bass', 'keys', 'guest']);
+  assert.equal(partsAt(99).size, 4);
+});
+
+test('every groove has its own guest, and lines spell the chord', () => {
+  const names = new Set(STYLE_ORDER.map((id) => GUESTS[id].name));
+  assert.equal(names.size, STYLE_ORDER.length);
+  const dm7 = buildChord('D', 'min7');
+  const g7 = buildChord('G', 'dom7');
+  const dm7Pcs = new Set([2, 5, 9, 0]);
   for (const id of STYLE_ORDER) {
-    const voices = (e) => new Set(barEvents(id, { chord, energy: e, rng: () => 0.3 }).drums.map((d) => d.voice));
-    const perc = (e) => voices(e).has('shaker') || voices(e).has('tamb');
-    assert.ok(!perc(1) && perc(2), id);
+    for (const r of [0, 0.4, 0.8]) {
+      const ev = guestEvents(id, { chord: dm7, next: g7, rng: () => r });
+      assert.ok(ev.length > 0, id);
+      // Every note but a closing lead-in to the next chord is a chord tone.
+      const inner = ev.slice(0, -1).flatMap((e) => e.notes);
+      for (const m of inner) assert.ok(dm7Pcs.has(m % 12), `${id} ${m}`);
+    }
+  }
+  // Lines open on the 3rd or 7th.
+  const first = guestEvents('swing', { chord: dm7, next: dm7, rng: () => 0 })[0].notes[0] % 12;
+  assert.ok([5, 0].includes(first));
+});
+
+test('reggae is played on the off-beat, the rest on the one', () => {
+  assert.equal(STYLES.reggae.anchor, 0.5);
+  for (const id of STYLE_ORDER) {
+    if (id !== 'reggae') assert.equal(STYLES[id].anchor, 0, id);
+    assert.ok(STYLES[id].accent.length > 0, id);
   }
 });
 

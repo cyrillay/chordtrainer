@@ -6,6 +6,10 @@
 // swing feel). Drum patterns are strings, one character per step:
 // 'x' hit, 'o' soft hit, '.' rest. Patterns can differ per band energy
 // (0 thin, 1 normal, 2 busy, 3 everything).
+//
+// anchor: where in the bar you play each chord, in beats from the downbeat.
+// Reggae is 0.5: the skank sits on the off-beat, not on the one.
+// accent: the drums that answer a chord you nail.
 
 import { noteToPitchClass, CHORD_FORMULAS } from '../../js/core/theory.js';
 
@@ -66,7 +70,7 @@ export const STYLES = {
   swing: {
     name: 'Swing', blurb: 'Walking bass, ride cymbal, comping on the and.',
     steps: 12, shuffle: 0, tempo: { min: 90, max: 200, def: 132 },
-    sounds: { bass: 'upright', keys: 'epiano' },
+    sounds: { bass: 'upright', keys: 'epiano' }, anchor: 0, accent: ['kick', 'snare'],
     drums: {
       ride:  ['x..x.xx..x.x', 'x..x.xx..x.x', 'x..x.xx..x.x', 'x..x.xx..x.x'],
       hat:   ['...x.....x..', '...x.....x..', '...x.....x..', '...x.....x..'],
@@ -77,7 +81,7 @@ export const STYLES = {
   bossa: {
     name: 'Bossa', blurb: 'Surdo kick, clave on the rim, nylon guitar.',
     steps: 16, shuffle: 0, tempo: { min: 100, max: 160, def: 128 },
-    sounds: { bass: 'round', keys: 'nylon' },
+    sounds: { bass: 'round', keys: 'nylon' }, anchor: 0, accent: ['kick', 'rim'],
     drums: {
       kick:  ['x.......x.......', 'x..xx..xx..xx..x', 'x..xx..xx..xx..x', 'x..xx..xx..xx..x'],
       rim:   ['x..x..x...x..x..', 'x..x..x...x..x..', 'x..x..x...x..x..', 'x..x..x...x..x..'],
@@ -87,7 +91,7 @@ export const STYLES = {
   lofi: {
     name: 'Lo-fi', blurb: 'Lazy boom bap, dusty keys, vinyl crackle.',
     steps: 16, shuffle: 0.22, tempo: { min: 65, max: 95, def: 80 },
-    sounds: { bass: 'sub', keys: 'dusty' }, crackle: true,
+    sounds: { bass: 'sub', keys: 'dusty' }, crackle: true, anchor: 0, accent: ['kick', 'snare'],
     drums: {
       kick:  ['x.........x.....', 'x.........x.....', 'x......x..x.....', 'x......x.xx...x.'],
       snare: ['....x.......x...', '....x.......x...', '....x.......x..o', '....x..o....x.o.'],
@@ -97,7 +101,7 @@ export const STYLES = {
   ballad: {
     name: 'Ballad', blurb: 'Brushes, long bass notes, a warm pad.',
     steps: 16, shuffle: 0, tempo: { min: 50, max: 80, def: 66 },
-    sounds: { bass: 'round', keys: 'pad' },
+    sounds: { bass: 'round', keys: 'pad' }, anchor: 0, accent: ['kick', 'brush'],
     drums: {
       brush: ['x...x...x...x...', 'x...x...x...x...', 'x.x.x.x.x.x.x.x.', 'x.x.x.x.x.x.x.x.'],
       rim:   ['................', '....x.......x...', '....x.......x...', '....x.......x...'],
@@ -107,7 +111,7 @@ export const STYLES = {
   funk: {
     name: 'Funk', blurb: 'Sixteenth hats, ghost notes, slap bass, clav.',
     steps: 16, shuffle: 0.06, tempo: { min: 85, max: 120, def: 102 },
-    sounds: { bass: 'slap', keys: 'clav' },
+    sounds: { bass: 'slap', keys: 'clav' }, anchor: 0, accent: ['kick', 'snare'],
     drums: {
       kick:  ['x.........x.....', 'x.....x...x..x..', 'x.x...x...x..x..', 'x.x...x..xx..x..'],
       snare: ['....x.......x...', '....x.......x...', '....x..o.o..x..o', '.o..x..o.o..x.oo'],
@@ -117,7 +121,7 @@ export const STYLES = {
   reggae: {
     name: 'Reggae', blurb: 'One drop, skank on the offbeats, deep bass.',
     steps: 16, shuffle: 0.12, tempo: { min: 66, max: 90, def: 76 },
-    sounds: { bass: 'sub', keys: 'organ' },
+    sounds: { bass: 'sub', keys: 'organ' }, anchor: 0.5, accent: ['kick', 'rim'],
     drums: {
       kick:  ['........x.......', '........x.......', '........x.......', '........x.......'],
       rim:   ['........x.......', '........x.......', '........x.......', '....o...x.....o.'],
@@ -195,52 +199,122 @@ const KEYS = {
 };
 
 // ---- Band tiers ----
-// The band grows one player at a time as you string chords together and
-// loses one on each miss. Tier 1 is where a set starts.
+// Drums, bass and keys, then one guest who depends on the groove. A streak
+// of chords heats the band up, a longer one brings the guest on; each miss
+// takes one step back. Tier 1 is where a set starts.
 
 export const TIERS = [
   { part: null, name: 'Drums and bass' },
   { part: 'keys', name: 'Keys', plural: true },
-  { part: 'perc', name: 'Shaker' },
-  { part: 'horns', name: 'Horns', plural: true },
-  { part: 'strings', name: 'Strings', plural: true },
-  { part: 'lead', name: 'Bell' },
+  { part: null, heat: true, name: 'The band' },
+  { part: 'guest', name: 'Guest' },
 ];
 export const MAX_ENERGY = TIERS.length - 1;
 
-// Drum pattern level (0..3 in STYLES) for each tier.
-const DRUM_LEVEL = [0, 1, 2, 2, 3, 3];
-
-// Who plays at a tier: everyone whose tier is at or below it.
+// Who plays at a tier.
 export function partsAt(energy) {
   const e = Math.max(0, Math.min(MAX_ENERGY, energy));
-  return new Set(['drums', 'bass', ...TIERS.slice(1, e + 1).map((t) => t.part)]);
+  return new Set(['drums', 'bass', ...TIERS.slice(1, e + 1).map((t) => t.part).filter(Boolean)]);
 }
 
-// ---- Extra players: [step, dur] patterns per bar ----
+// ---- Guests: one per groove, with a part written for it ----
+// kind 'line' plays one note at a time in `range`, 'chord' plays the
+// chord. Each groove has a few one-bar rhythms ([step, dur]) to pick from.
 
-const PERC = {
-  swing:  { voice: 'tamb', pattern: '...x.....x..' },
-  bossa:  { voice: 'shaker', pattern: 'xoxoxoxoxoxoxoxo' },
-  lofi:   { voice: 'shaker', pattern: '..o...o...o...o.' },
-  ballad: { voice: 'shaker', pattern: 'o...o...o...o...' },
-  funk:   { voice: 'tamb', pattern: '....x.......x...' },
-  reggae: { voice: 'shaker', pattern: 'o.x.o.x.o.x.o.x.' },
+export const GUESTS = {
+  swing: {
+    name: 'Sax', patch: 'sax', kind: 'line', range: [58, 74],
+    rhythms: [
+      [[0, 2], [2, 1], [3, 2], [5, 1], [6, 5]],
+      [[2, 1], [3, 2], [5, 1], [6, 3], [9, 2], [11, 1]],
+      [[0, 6], [8, 1], [9, 3]],
+    ],
+  },
+  bossa: {
+    name: 'Flute', patch: 'flute', kind: 'line', range: [74, 88],
+    rhythms: [
+      [[0, 6], [6, 2], [8, 8]],
+      [[2, 4], [6, 2], [10, 6]],
+      [[0, 3], [3, 3], [6, 10]],
+    ],
+  },
+  lofi: {
+    name: 'Vibes', patch: 'vibes', kind: 'line', range: [67, 82],
+    rhythms: [
+      [[0, 4], [6, 2], [10, 6]],
+      [[4, 4], [10, 2], [12, 4]],
+      [[0, 8]],
+    ],
+  },
+  ballad: {
+    name: 'Strings', patch: 'strings', kind: 'chord', octave: 12,
+    rhythms: [[[0, 16]]],
+  },
+  funk: {
+    name: 'Horns', patch: 'horns', kind: 'chord', octave: 12,
+    rhythms: [
+      [[0, 1], [3, 1], [10, 1], [14, 2]],
+      [[6, 1], [7, 1], [10, 2]],
+      [[0, 2], [11, 1], [14, 1]],
+    ],
+  },
+  reggae: {
+    name: 'Melodica', patch: 'melodica', kind: 'line', range: [67, 81],
+    rhythms: [
+      [[2, 2], [6, 2], [10, 4]],
+      [[0, 6], [8, 2], [10, 2], [14, 2]],
+      [[2, 1], [3, 1], [6, 6], [14, 2]],
+    ],
+  },
 };
 
-const HORNS = {
-  swing:  [[3, 2], [11, 1]],
-  bossa:  [[0, 4], [10, 2]],
-  lofi:   [[0, 6], [8, 6]],
-  ballad: [[0, 16]],
-  funk:   [[0, 1], [3, 1], [10, 1], [14, 2]],
-  reggae: [[0, 4], [8, 4]],
-};
-
-// Horn section: the chord's top three notes, an octave over the keys.
-export function hornVoicing(chord) {
-  return keysVoicing(chord).map((m) => m + 12);
+// Every chord tone between lo and hi, low to high.
+function tonesIn(chord, [lo, hi]) {
+  const pcs = new Set(chordPcs(chord));
+  const out = [];
+  for (let m = lo; m <= hi; m++) if (pcs.has(m % 12)) out.push(m);
+  return out;
 }
+
+// The 3rd or 7th nearest to `near`: the notes that spell the chord.
+function guideTone(chord, range, near) {
+  const root = noteToPitchClass(chord.root);
+  const guides = new Set([(root + thirdOf(chord)) % 12, (root + seventhOf(chord)) % 12]);
+  const pool = tonesIn(chord, range).filter((m) => guides.has(m % 12));
+  return pool.sort((a, b) => Math.abs(a - near) - Math.abs(b - near))[0];
+}
+
+// One bar of the guest's part.
+export function guestEvents(styleId, { chord, next, rng = Math.random }) {
+  const g = GUESTS[styleId];
+  const rhythm = pick(g.rhythms, rng);
+  if (g.kind === 'chord') {
+    const notes = [bassRoot(chord) + 24, ...keysVoicing(chord)].map((m) => m + g.octave);
+    return rhythm.map(([step, dur]) => ({ step, dur, notes }));
+  }
+  // A line: start on a guide tone mid-range, wander by small steps through
+  // the chord tones, and lead into the next chord when the bar ends on it.
+  const pool = tonesIn(chord, g.range);
+  const mid = (g.range[0] + g.range[1]) / 2;
+  let note = guideTone(chord, g.range, mid);
+  const steps = STYLES[styleId].steps;
+  return rhythm.map(([step, dur], i) => {
+    if (i > 0) {
+      const last = i === rhythm.length - 1;
+      if (last && next && next !== chord && step + dur >= steps) {
+        note = guideTone(next, g.range, note);
+      } else {
+        const at = pool.indexOf(note);
+        const move = pick([-2, -1, 1, 1, 2], rng) * (note > mid + 4 ? -1 : 1);
+        note = pool[Math.max(0, Math.min(pool.length - 1, at + move))];
+      }
+    }
+    return { step, dur, notes: [note] };
+  });
+}
+
+// Drum pattern level (0..3 in STYLES) for each tier.
+const DRUM_LEVEL = [0, 1, 2, 3];
 
 // Everything one bar needs. energy 0..MAX_ENERGY, see TIERS.
 export function barEvents(styleId, { chord, next, energy = 1, rng = Math.random }) {
@@ -251,20 +325,11 @@ export function barEvents(styleId, { chord, next, energy = 1, rng = Math.random 
   for (const [voice, levels] of Object.entries(style.drums)) {
     pushHits(drums, levels[DRUM_LEVEL[e]], voice);
   }
-  if (parts.has('perc')) pushHits(drums, PERC[styleId].pattern, PERC[styleId].voice);
   const bass = BASS[styleId](chord, next || chord, rng);
   const voicing = keysVoicing(chord);
   const keys = parts.has('keys') ? KEYS[styleId](rng).map(([step, dur]) => ({ step, dur, notes: voicing })) : [];
-  const horns = parts.has('horns') ? HORNS[styleId].map(([step, dur]) => ({ step, dur, notes: hornVoicing(chord) })) : [];
-  const strings = parts.has('strings') ? [{ step: 0, dur: style.steps, notes: [bassRoot(chord) + 24, ...voicing] }] : [];
-  const lead = [];
-  if (parts.has('lead')) {
-    const tones = voicing.map((m) => m + 12);
-    for (let s = 0; s < style.steps; s += style.steps / 8) {
-      if (rng() < 0.55) lead.push({ step: s, midi: pick(tones, rng), dur: style.steps / 8 });
-    }
-  }
-  return { steps: style.steps, drums, bass, keys, horns, strings, lead };
+  const guest = parts.has('guest') ? guestEvents(styleId, { chord, next, rng }) : [];
+  return { steps: style.steps, drums, bass, keys, guest };
 }
 
 function pushHits(out, pattern, voice) {
