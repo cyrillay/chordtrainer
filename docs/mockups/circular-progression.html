@@ -42,7 +42,6 @@
   .center-count { fill: var(--orange); filter: drop-shadow(0 0 8px var(--orange)); }
   .center-next { font-family: var(--font-body); font-size: 26px; fill: var(--cyan); text-anchor: middle; }
   .center-small { font-family: 'Press Start 2P', monospace; font-size: 9px; fill: var(--lime); text-anchor: middle; letter-spacing: 1px; }
-  .loop-mark { font-family: 'Press Start 2P', monospace; font-size: 9px; fill: var(--orange); text-anchor: middle; }
   .seam { stroke: var(--orange); stroke-width: 3; stroke-linecap: round; filter: drop-shadow(0 0 4px var(--orange)); }
 
   /* A · the clock hand. */
@@ -62,8 +61,6 @@
   .needle-light { fill: #2b1840; transition: fill 0.05s; }
   .needle-light.beat { fill: var(--cyan); filter: drop-shadow(0 0 6px var(--cyan)); }
   .needle-light.down { fill: var(--pink); filter: drop-shadow(0 0 8px var(--pink)); }
-  .bump { animation: bump 0.16s ease-out; transform-origin: 210px 230px; }
-  @keyframes bump { from { transform: scale(1.025); } }
 </style>
 </head>
 <body>
@@ -95,7 +92,7 @@ const N = CHORDS.length;
 const BEAT = 60 / 132;
 const SLOT = 4 * BEAT;
 const COUNT_IN = SLOT;            // one bar of count-in, like the game
-const FROZEN = q.has('t') ? parseFloat(q.get('t')) : null;
+let FROZEN = q.has('t') ? parseFloat(q.get('t')) : null;
 
 document.getElementById(V === 'disc' ? 'tabDisc' : 'tabClock').classList.add('on');
 document.getElementById('mockTitle').textContent = V === 'disc' ? 'B · The record' : 'A · The clock';
@@ -138,10 +135,6 @@ if (V === 'clock') {
       ticks.push(el('circle', { cx: tx, cy: ty, r: b === 0 ? 5 : 3.2, class: 'tick' + (b === 0 ? ' down' : '') }));
     }
   }
-  // Where the loop starts again.
-  const [sx0, sy0] = pt(R0 - 6, 0), [sx1, sy1] = pt(R1 + 8, 0);
-  el('line', { x1: sx0, y1: sy0, x2: sx1, y2: sy1, class: 'seam' });
-  const lm = el('text', { x: CX, y: CY - R1 - 18, class: 'loop-mark' }); lm.textContent = '↻ CHORUS';
   hand = el('line', { x1: CX, y1: CY, x2: CX, y2: CY - 196, class: 'hand' });
   el('circle', { cx: CX, cy: CY, r: 98, class: 'hub' });
   handTip = el('circle', { cx: CX, cy: CY - 196, r: 7, class: 'hand-tip' });
@@ -178,7 +171,6 @@ if (V === 'clock') {
 
 // ---------- animate ----------
 const start = performance.now();
-let lastBeat = -1;
 function frame(now) {
   const t = FROZEN !== null ? FROZEN : (now - start) / 1000;
   const song = t - COUNT_IN;
@@ -204,6 +196,8 @@ function frame(now) {
   });
 
   centerChord.innerHTML = counting ? `<tspan class="center-count">${beat + 1}</tspan>` : CHORDS[k];
+  // Long names shrink to stay inside the centre.
+  centerChord.style.fontSize = counting ? '' : `${Math.min(92, 330 / Math.max(CHORDS[k].length, 1))}px`;
   centerNext.textContent = counting ? `${CHORDS[0]} first` : `then ${CHORDS[next]}`;
   centerSmall.textContent = counting ? 'COUNT-IN' : `CHORUS ${chorus}/4`;
   document.getElementById('tuneChorus').textContent = counting ? 'Count-in' : `Chorus ${chorus}/4`;
@@ -230,15 +224,16 @@ function frame(now) {
     const fresh = (counting ? (t % BEAT) : (s % BEAT)) < 0.12;
     needleLight.setAttribute('class', 'needle-light' + (fresh ? (beat === 0 ? ' down' : ' beat') : ''));
     labelDisc.classList.toggle('pulse', fresh && beat === 0);
-    const beatId = Math.floor(t / BEAT);
-    if (beatId !== lastBeat && FROZEN === null) {
-      lastBeat = beatId;
-      svg.classList.remove('bump'); void svg.getBoundingClientRect(); svg.classList.add('bump');
-    }
+    // The record bumps on each beat.
+    const since = counting ? t % BEAT : s % BEAT;
+    const bump = 1 + 0.025 * Math.max(0, 1 - since / 0.16);
+    svg.style.transform = `scale(${bump})`;
   }
   if (FROZEN === null) requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+// For recording: render any moment on demand.
+window.renderAt = (t) => { FROZEN = t; frame(); };
 </script>
 </body>
 </html>
