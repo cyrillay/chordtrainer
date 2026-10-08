@@ -24,7 +24,7 @@ const params = new URLSearchParams(location.search);
 
 // ---- Settings + high scores ----
 
-const LS = { settings: 'ghostJam.settings', scores: 'ghostJam.scores', midi: 'ghostJam.midiAuto' };
+const LS = { settings: 'ghostJam.settings', scores: 'ghostJam.scores', midi: 'ghostJam.midiAuto', guests: 'ghostJam.guestsMet' };
 const read = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
 const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } };
 
@@ -32,6 +32,7 @@ const settings = Object.assign({
   style: 'swing', tune: 'Autumnal', key: 'random', tempo: null, bars: 1, length: 4, showTones: true,
 }, read(LS.settings, {}));
 let scores = read(LS.scores, {});
+const guestsMet = new Set(read(LS.guests, []));
 const scoreKey = () => `${settings.tune}|${settings.style}`;
 const save = () => write(LS.settings, settings);
 
@@ -69,6 +70,7 @@ function buildChords(prog, key) {
 const STYLE_ICONS = { swing: '🎷', bossa: '🌴', lofi: '📼', ballad: '🕯️', funk: '🕺', reggae: '🌿' };
 
 function renderSetup() {
+  renderSecret();
   $('styleGrid').innerHTML = STYLE_ORDER.map((id) => {
     const s = STYLES[id];
     return `<button type="button" class="style-card${id === settings.style ? ' is-on' : ''}" data-style="${id}">
@@ -167,13 +169,24 @@ const ghostHtml = (m, style) => {
   const name = m.id === 'guest' ? GUESTS[style].name : m.name;
   return `<div class="ghost ghost-${m.color}" data-part="${m.id}" role="img" aria-label="${name}" title="${name}">${ghostSprite(m.id, style)}</div>`;
 };
-// On the setup page the guest is a secret: a pale ghost with no instrument,
-// since who sits in depends on the groove. Hover (or tap) for a teaser.
+// On the setup page the guest is a secret: a pale, padlocked ghost, since
+// who sits in depends on the groove. Hover (or tap) opens the collection:
+// one guest per groove, revealed once you have played them onto the stage.
 $('bandIntro').innerHTML = BAND.slice(0, 3).map((m) => ghostHtml(m, settings.style)).join('')
   + `<button type="button" class="ghost is-secret" data-part="guest" aria-label="Secret guest" aria-expanded="false" aria-describedby="secretTip">
-      ${sprite('ghost', { px: 5 })}
-      <span class="secret-tip" id="secretTip" role="tooltip"><b>Secret guest</b>Every groove has its own. Get the band on fire and they walk on stage.</span>
+      <span class="secret-body">${sprite('ghost-locked', { px: 5 })}</span>
+      <i class="spark s1"></i><i class="spark s2"></i><i class="spark s3"></i>
+      <span class="secret-tip" id="secretTip" role="tooltip"></span>
     </button>`;
+function renderSecret() {
+  const met = STYLE_ORDER.filter((id) => guestsMet.has(id)).length;
+  $('secretTip').innerHTML = `<b>Secret guest</b>
+    <span class="secret-lede">Every groove hides its own. Get the band on fire and they walk on stage.</span>
+    <span class="secret-grid">${STYLE_ORDER.map((id) => guestsMet.has(id)
+      ? `<span class="sg is-met">${sprite(`ghost-${GUESTS[id].patch}`, { px: 2 })}<em>${GUESTS[id].name}</em><small>${STYLES[id].name}</small></span>`
+      : `<span class="sg">${sprite('ghost-locked', { px: 2 })}<em>???</em><small>${STYLES[id].name}</small></span>`).join('')}</span>
+    <span class="secret-count">${met} / ${STYLE_ORDER.length} met</span>`;
+}
 const secret = $('bandIntro').querySelector('.is-secret');
 const openSecret = (open) => { secret.classList.toggle('open', open); secret.setAttribute('aria-expanded', String(open)); };
 secret.addEventListener('click', (e) => { e.stopPropagation(); openSecret(!secret.classList.contains('open')); });
@@ -550,6 +563,10 @@ function renderEnergy(e) {
     g.classList.toggle('is-off', !on);
     g.classList.toggle('is-wild', e >= MAX_ENERGY);
     if (on && !was && game?.energy >= 0) {
+      if (g.dataset.part === 'guest' && !guestsMet.has(game.style)) {
+        guestsMet.add(game.style);
+        write(LS.guests, [...guestsMet]);
+      }
       g.classList.remove('joins');
       void g.offsetWidth;
       g.classList.add('joins');

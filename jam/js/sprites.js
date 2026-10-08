@@ -95,7 +95,12 @@ const GEAR = {
     '.DDDDD.............',
     '..DDD..............',
   ]]],
-  keys: [[2, 14, [
+  // The pianist looks down at the keys.
+  keys: [[6, 9, [
+    'WWWW..WWWW',
+    'WPPW..WPPW',
+    '.PP....PP.',
+  ]], [2, 14, [
     'KKKKKKKKKKKKKKKKKK',
     'WPWPWWPWPWPWWPWPWW',
     'WWWWWWWWWWWWWWWWWW',
@@ -152,6 +157,15 @@ const GEAR = {
 };
 
 GEAR.trumpet = GEAR.horns;
+// The secret guest, padlocked until the band is on fire.
+GEAR.locked = [[9, 11, [
+  '.GGG.',
+  'G...G',
+  'AAAAA',
+  'AAKAA',
+  'AAKAA',
+  'AAAAA',
+]]];
 
 for (const [id, pieces] of Object.entries(GEAR)) {
   const grid = Array.from({ length: 18 }, () => Array(22).fill('.'));

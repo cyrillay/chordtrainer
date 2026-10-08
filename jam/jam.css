@@ -254,25 +254,57 @@ input[type="range"] { accent-color: var(--pink); width: 100%; }
 
 .ghost-lime { color: var(--lime); }
 .ghost-lime .sprite { filter: drop-shadow(0 0 10px var(--lime)); }
-/* The secret guest on the setup page: a pale, flickering ghost with a
-   teaser on hover (desktop) or tap (phone). */
+/* The secret guest on the setup page: a pale, padlocked ghost that
+   glitches now and then, with stars twinkling around it. Hover (desktop)
+   or tap (phone) opens the guest collection. */
 .ghost.is-secret {
-  position: relative; color: #d9d0e6; cursor: help;
+  position: relative; color: #e4dcf0; cursor: pointer;
   background: none; border: 0; padding: 0; font: inherit;
 }
-.ghost.is-secret > .sprite { opacity: 0.35; animation: buzz 4.3s infinite 0.7s; transition: opacity 0.2s; }
-.ghost.is-secret > .sprite { filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5)); }
-.ghost.is-secret:hover > .sprite, .ghost.is-secret.open > .sprite,
-.ghost.is-secret:focus-visible > .sprite { opacity: 0.75; animation: float 2.4s ease-in-out infinite; }
+.secret-body { display: block; animation: float 2.4s ease-in-out infinite -2.2s; }
+.secret-body .sprite {
+  opacity: 0.45;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 16px rgba(155, 92, 255, 0.7));
+  animation: haunt 5s infinite;
+  transition: opacity 0.2s;
+}
+/* Mostly faint, then a glitch: a jolt with a pink and cyan split. */
+@keyframes haunt {
+  0%, 86%, 100% { opacity: 0.45; transform: none; }
+  88% { opacity: 0.85; transform: translateX(-3px) skewX(-6deg); filter: drop-shadow(-3px 0 0 var(--pink)) drop-shadow(3px 0 0 var(--cyan)); }
+  90% { opacity: 0.2; transform: translateX(3px); }
+  92% { opacity: 0.9; transform: none; filter: drop-shadow(3px 0 0 var(--pink)) drop-shadow(-3px 0 0 var(--cyan)); }
+  94% { opacity: 0.45; }
+}
+.ghost.is-secret:hover .secret-body .sprite, .ghost.is-secret.open .secret-body .sprite,
+.ghost.is-secret:focus-visible .secret-body .sprite { opacity: 0.85; animation: none; }
+.spark {
+  position: absolute; width: 4px; height: 4px; background: #fff;
+  box-shadow: 0 0 6px #fff, 0 0 12px var(--violet);
+  animation: twinkle 2.2s ease-in-out infinite;
+}
+.spark.s1 { top: 6%; left: 8%; }
+.spark.s2 { top: 30%; right: 4%; animation-delay: -0.8s; }
+.spark.s3 { bottom: 10%; left: 2%; animation-delay: -1.5s; width: 3px; height: 3px; }
+@keyframes twinkle { 0%, 100% { opacity: 0; transform: scale(0.4); } 50% { opacity: 1; transform: scale(1); } }
 .secret-tip {
   position: absolute; z-index: 20; bottom: calc(100% + 10px); left: 50%; translate: -50% 0;
-  width: max-content; max-width: min(240px, 80vw); padding: 0.6rem 0.8rem;
-  background: var(--paper); border: 2px solid var(--lime); border-radius: 8px;
-  box-shadow: 0 0 18px rgba(182, 255, 59, 0.35);
+  width: 290px; max-width: calc(100vw - 2rem); padding: 0.7rem 0.8rem;
+  background: var(--paper); border: 2px solid var(--violet); border-radius: 8px;
+  box-shadow: 0 0 22px rgba(155, 92, 255, 0.5);
   font-family: var(--font-body); font-size: 1.05rem; line-height: 1.15; color: var(--ivory); text-align: left;
   opacity: 0; visibility: hidden; transition: opacity 0.15s;
 }
-.secret-tip b { display: block; margin-bottom: 0.3rem; font-family: var(--font-display); font-size: 0.5rem; font-weight: 400; color: var(--lime); text-transform: uppercase; letter-spacing: 0.1em; }
+.secret-tip b { display: block; margin-bottom: 0.3rem; font-family: var(--font-display); font-size: 0.5rem; font-weight: 400; color: var(--violet); text-transform: uppercase; letter-spacing: 0.1em; text-shadow: 0 0 8px var(--violet); }
+.secret-lede { display: block; color: var(--ivory-dim); }
+.secret-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.35rem; margin: 0.6rem 0 0.4rem; }
+.sg { display: flex; flex-direction: column; align-items: center; padding: 0.3rem 0.1rem; border: 1px dashed var(--line); border-radius: 6px; color: #8b7aa3; }
+.sg .sprite { opacity: 0.5; animation: none; }
+.sg em { font-style: normal; font-family: var(--font-display); font-size: 0.4rem; margin-top: 0.15rem; letter-spacing: 0.08em; }
+.sg small { font-size: 0.85rem; }
+.sg.is-met { border-style: solid; border-color: var(--lime); color: var(--lime); }
+.sg.is-met .sprite { opacity: 1; filter: drop-shadow(0 0 4px var(--lime)); }
+.secret-count { display: block; text-align: right; font-family: var(--font-display); font-size: 0.45rem; color: var(--amber); letter-spacing: 0.08em; }
 @media (hover: hover) { .ghost.is-secret:hover .secret-tip { opacity: 1; visibility: visible; } }
 .ghost.is-secret.open .secret-tip, .ghost.is-secret:focus-visible .secret-tip { opacity: 1; visibility: visible; }
 @media (max-width: 700px) { .secret-tip { left: auto; right: 0; translate: none; } }
@@ -702,5 +734,5 @@ body[data-energy="3"] .beat-glow { --glow: 0.55; }
   .hall-style { display: none; }
   .band-intro, .ghost-band { gap: 1.2rem; }
   .ghost .sprite { width: 74px; height: auto; }
-  .ghost.is-secret .sprite { width: 47px; }
+  .sg .sprite { width: auto; }
 }
