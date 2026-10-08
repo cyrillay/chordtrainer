@@ -410,21 +410,30 @@ function renderSync() {
   const on = Math.round(off * 1000) !== 0;
   $('syncVal').innerHTML = on ? ` · <b>${fmtMs(off)}</b>` : '';
   $('syncResetBtn').hidden = !on || !!sync;
+  if (!sync) {
+    $('syncBig').textContent = on ? fmtMs(off) : '0 ms';
+    $('syncBig').classList.remove('is-wait');
+  }
+}
+
+function renderPips(count = 0) {
+  $('syncPips').innerHTML = Array.from({ length: SYNC.clicks }, (_, i) =>
+    `<i class="${i < SYNC.warmup ? 'warm' : ''}${i < count ? ' on' : ''}"></i>`).join('');
 }
 
 function openSync() {
-  if (!$('syncPanel').hidden && !sync) return closeSync();
-  $('syncPanel').hidden = false;
-  if (sync) return;
-  $('syncMsg').textContent = `Hits land late? Tap any key on each click you hear, through the speakers you play with. ${SYNC.clicks} clicks.`;
+  $('syncModal').hidden = false;
+  $('syncMsg').textContent = `Hits land late? Play through the speakers you jam with and tap any key on each click you hear. ${SYNC.clicks} clicks, the first ${SYNC.warmup} to find the pulse.`;
   $('syncAgainBtn').textContent = 'Start';
   $('syncAgainBtn').hidden = false;
+  renderPips();
   renderSync();
+  $('syncAgainBtn').focus();
 }
 
 function closeSync() {
   stopSync();
-  $('syncPanel').hidden = true;
+  $('syncModal').hidden = true;
 }
 
 function stopSync() {
@@ -453,14 +462,17 @@ function startSync() {
   sync = { clicks, taps: [], count: 0, out, timer: setTimeout(endSync, wait) };
   $('syncAgainBtn').hidden = true;
   $('syncResetBtn').hidden = true;
-  $('syncMsg').innerHTML = 'Listen and tap… <b>0</b>';
+  $('syncBig').textContent = 'Listen';
+  $('syncBig').classList.add('is-wait');
+  $('syncMsg').textContent = 'Tap any key on each click.';
+  renderPips();
 }
 
 function syncTap(t) {
   const last = sync.taps[sync.taps.length - 1];
   sync.taps.push(t);
   if (last === undefined || t - last > 0.1) sync.count++;
-  $('syncMsg').innerHTML = `Listen and tap… <b>${sync.count}</b>`;
+  renderPips(sync.count);
 }
 
 function endSync() {
@@ -476,7 +488,7 @@ function endSync() {
     applySync();
     msg = Math.abs(r.offset) < 0.01
       ? 'Already in sync. Nothing to change.'
-      : `You hear the band <b>${Math.abs(Math.round(r.offset * 1000))} ms</b> ${r.offset > 0 ? 'late' : 'early'}. Saved for these speakers.`;
+      : `You hear the band <b>${Math.abs(Math.round(r.offset * 1000))} ms</b> ${r.offset > 0 ? 'late' : 'early'}. Saved for these speakers: hits and lights now follow what you hear.`;
   }
   $('syncMsg').innerHTML = msg;
   $('syncAgainBtn').textContent = 'Again';
@@ -496,6 +508,7 @@ $('syncBtn').addEventListener('click', openSync);
 $('syncAgainBtn').addEventListener('click', startSync);
 $('syncResetBtn').addEventListener('click', resetSync);
 $('syncCloseBtn').addEventListener('click', closeSync);
+$('syncModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeSync(); });
 
 // ---- Frame loop: beat lights, chord changes, grading ----
 
@@ -831,6 +844,7 @@ $('stopBtn').addEventListener('click', stopGame);
 $('resultAgainBtn').addEventListener('click', () => { $('resultModal').hidden = true; startGame({ again: true }); });
 $('resultBackBtn').addEventListener('click', backToSetup);
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !$('syncModal').hidden) return closeSync();
   if (e.key === 'Escape' && game && !params.has('keys')) backToSetup();
 });
 
