@@ -337,6 +337,7 @@ function judgeFor(k) {
       start: target(k) * 1000,
       end: (slotEnd(k) + anchorSec()) * 1000,
       beatMs: band.beat * 1000,
+      prevChord: k > 0 ? game.chords[(k - 1) % game.chords.length] : null,
     });
     game.judges.set(k, j);
   }
