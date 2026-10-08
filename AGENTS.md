@@ -103,4 +103,6 @@ Every PR that changes something visible carries screenshots of it in the
 description (desktop and phone width when the layout differs). Take them
 with Playwright against `npm start` (Chromium is preinstalled), commit them
 under `docs/screenshots/<branch-or-feature>/` and embed them with their raw
-GitHub URL so they render in the PR.
+GitHub URL so they render in the PR. Save them as **WebP** (quality ~85),
+not PNG: every screenshot stays in the git history forever, and WebP is
+about eight times lighter.

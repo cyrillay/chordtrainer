@@ -139,7 +139,7 @@ body[data-theme="marble"] {
   --line: #2a2a30;
   --gold: #d4a85e;
   --gold-bright: #f0c878;
-  background-image: url("marble-background.png");
+  background-image: url("marble-background.webp");
   background-color: var(--ink);
   background-attachment: fixed;
   background-size: cover;
@@ -155,7 +155,7 @@ body[data-theme="marble-musical"] {
   --line: #2a2a30;
   --gold: #d4a85e;
   --gold-bright: #f0c878;
-  background-image: url("marble-background-musical.png");
+  background-image: url("marble-background-musical.webp");
   background-color: var(--ink);
   background-attachment: fixed;
   background-size: cover;
