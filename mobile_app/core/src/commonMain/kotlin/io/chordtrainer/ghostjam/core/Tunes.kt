@@ -1,6 +1,6 @@
 // Generated from js/training/progressions.js and jam/js/tunes.js by
-// scripts/gen-tunes.mjs. Do not edit by hand: change the web sources and
-// run `node mobile_app/scripts/gen-tunes.mjs`.
+// codegen/gen-tunes.mjs. Do not edit by hand: change the web sources and
+// run `node mobile_app/codegen/gen-tunes.mjs`.
 
 package io.chordtrainer.ghostjam.core
 

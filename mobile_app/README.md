@@ -68,7 +68,7 @@ The rules started as a port of `jam/js/`. When the tunes or their tags change
 on the site, regenerate the Kotlin list from the repo root:
 
 ```sh
-node mobile_app/scripts/gen-tunes.mjs
+node mobile_app/codegen/gen-tunes.mjs
 ```
 
 Rule changes are made by hand in both places, with the tests in
