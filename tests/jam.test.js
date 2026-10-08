@@ -327,15 +327,14 @@ test('favourites: toggle, newest first, capped, cleaned', async () => {
 
 test('piano remote: one key alone is a command, a chord is not', async () => {
   const { PianoRemote, gestureOf } = await import('../jam/js/remote.js');
-  const r = new PianoRemote();
-  r.noteOn(67, true);
-  assert.equal(r.noteOff(67), 67);
+  const got = [];
+  const r = new PianoRemote({ onCommand: (m) => got.push(m) });
+  r.noteOn(67, true); r.noteOff(67);
+  assert.deepEqual(got, [67]);
   r.noteOn(60, true); r.noteOn(64, true); r.noteOn(67, true);
-  assert.equal(r.noteOff(60), null);
-  assert.equal(r.noteOff(64), null);
-  assert.equal(r.noteOff(67), null);              // a C chord does nothing
-  r.noteOn(67, false);
-  assert.equal(r.noteOff(67), null);              // pressed while playing: never a command
+  r.noteOff(60); r.noteOff(64); r.noteOff(67);   // a C chord does nothing
+  r.noteOn(67, false); r.noteOff(67);            // pressed while playing: never a command
+  assert.deepEqual(got, [67]);
   // Intervals from middle C.
   assert.equal(gestureOf(57), 'down');             // A3, minor third below
   assert.equal(gestureOf(56), 'down');             // A♭3, major third below
@@ -344,6 +343,40 @@ test('piano remote: one key alone is a command, a chord is not', async () => {
   assert.equal(gestureOf(67), 'select');           // G4
   assert.equal(gestureOf(60), null);
   assert.equal(gestureOf(76), null);               // E5: only around middle C
+});
+
+test('piano remote: hold a third and it repeats, faster', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  // Timers set from inside a timer only run on a later tick: advance 1 ms at a time.
+  const tick = (ms) => { for (let i = 0; i < ms; i++) t.mock.timers.tick(1); };
+  const { PianoRemote, REPEAT } = await import('../jam/js/remote.js');
+  const got = [];
+  const r = new PianoRemote({ onCommand: (m) => got.push(m), repeats: (m) => m === 64 });
+  r.noteOn(64, true);
+  tick(REPEAT.delay - 1);
+  assert.equal(got.length, 0);
+  tick(1);
+  assert.equal(got.length, 1);
+  tick(REPEAT.interval * (REPEAT.rushAfter - 1));
+  assert.equal(got.length, REPEAT.rushAfter);
+  tick(REPEAT.rush * 4);              // rushing now
+  assert.equal(got.length, REPEAT.rushAfter + 4);
+  r.noteOff(64);                                    // letting go adds nothing
+  tick(1000);
+  assert.equal(got.length, REPEAT.rushAfter + 4);
+  // A quick tap still counts once, on release.
+  got.length = 0;
+  r.noteOn(64, true); tick(100); r.noteOff(64);
+  assert.deepEqual(got, [64]);
+  // A second key stops the repeat.
+  got.length = 0;
+  r.noteOn(64, true); tick(REPEAT.delay); r.noteOn(67, true);
+  tick(1000); r.noteOff(67); r.noteOff(64);
+  assert.deepEqual(got, [64]);
+  // The fifth never repeats.
+  got.length = 0;
+  r.noteOn(67, true); tick(2000); r.noteOff(67);
+  assert.deepEqual(got, [67]);
 });
 
 test('menu cursor: thirds move, the fifth takes and lets go a setting', async () => {

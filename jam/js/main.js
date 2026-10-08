@@ -482,8 +482,7 @@ function onNoteOn(midi, velocity = 80, tPerf = performance.now()) {
 }
 
 function onNoteOff(midi) {
-  const m = remote.noteOff(midi);
-  if (m !== null) runRemote(m);
+  remote.noteOff(midi);
   held.delete(midi);
   velocities.delete(midi);
   keyState(midi, null);
@@ -835,7 +834,10 @@ function backToSetup() {
 // TV remote, in intervals from middle C (see remote.js). The legend under
 // the Play button shows how.
 
-const remote = new PianoRemote();
+const remote = new PianoRemote({
+  onCommand: (m) => runRemote(m),
+  repeats: (m) => gestureOf(m) === 'up' || gestureOf(m) === 'down',
+});
 
 function remoteScreen() {
   if (!$('achModal').hidden) return null;
@@ -901,7 +903,7 @@ const CHANGE = {
   groove: (dir) => setStyle(step(STYLE_ORDER, settings.style, dir)),
   tune: (dir) => stepSelect($('tuneSelect'), dir),
   key: (dir) => stepSelect($('keySelect'), dir),
-  tempo: (dir) => nudgeTempo(dir * 5),
+  tempo: (dir) => nudgeTempo(dir),
   bars: (dir) => stepSelect($('barsSelect'), dir),
   length: (dir) => stepSelect($('lengthSelect'), dir),
 };
@@ -924,7 +926,7 @@ function runRemote(midi) {
   if (fx?.type === 'activate') ACTIVATE[fx.id]();
   paintNav();
   if (remoteScreen() === screen && fx?.type === 'focus') {
-    (screen === 'setup' ? SETUP_ROWS : RESULT_ROWS)[fx.id].el().scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    (screen === 'setup' ? SETUP_ROWS : RESULT_ROWS)[fx.id].el().scrollIntoView({ block: 'nearest' });
   }
 }
 

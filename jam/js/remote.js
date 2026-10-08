@@ -2,8 +2,9 @@
 // middle C. A third below (A or A♭ under middle C) moves down the menu, a
 // third above (E or E♭) moves up, the fifth (G) selects. Once a setting is
 // selected, the thirds change its value (above: more, below: less) and the
-// fifth again lets go. A key counts only when pressed and released on its
-// own, so chords are just music, and nothing listens while a set plays.
+// fifth again lets go. A key counts only when played on its own, so chords
+// are just music, and nothing listens while a set plays. Hold a third and it
+// repeats, faster and faster.
 
 export const MIDDLE_C = 60;
 
@@ -14,12 +15,21 @@ const GESTURES = {
 };
 export const gestureOf = (midi) => GESTURES[midi] ?? null;
 
-// Single keys only: returns the MIDI note once every key is up, or null.
+// Single keys only. onCommand(midi) fires when a key is released having been
+// pressed alone. A key that repeats (the thirds) also fires while held: after
+// REPEAT.delay, then every REPEAT.interval, faster after REPEAT.rushAfter
+// repeats; letting go then fires nothing more. A second key cancels it all.
+export const REPEAT = { delay: 350, interval: 90, rush: 35, rushAfter: 8 };
+
 export class PianoRemote {
-  constructor() {
+  constructor({ onCommand = () => {}, repeats = () => false } = {}) {
+    this.onCommand = onCommand;
+    this.repeats = repeats;
     this.held = new Set();
-    this.armed = null;    // the key that opened the gesture, if it can be a command
-    this.spoiled = false; // another key joined in: it was a chord
+    this.armed = null;     // the key that opened the gesture, if it can be a command
+    this.spoiled = false;  // another key joined in: it was a chord
+    this.fired = 0;        // repeats already fired by this hold
+    this.timer = 0;
   }
 
   // enabled: whether a command may start now (a menu is on screen).
@@ -27,19 +37,33 @@ export class PianoRemote {
     if (this.held.size === 0) {
       this.armed = enabled ? midi : null;
       this.spoiled = false;
+      this.fired = 0;
+      if (this.armed !== null && this.repeats(midi)) this.#schedule(REPEAT.delay);
     } else {
       this.spoiled = true;
+      this.#stop();
     }
     this.held.add(midi);
   }
 
   noteOff(midi) {
     this.held.delete(midi);
-    if (this.held.size) return null;
+    if (this.held.size) return;
+    this.#stop();
     const m = this.armed;
     this.armed = null;
-    return m === null || this.spoiled ? null : m;
+    if (m !== null && !this.spoiled && !this.fired) this.onCommand(m);
   }
+
+  #schedule(ms) {
+    this.timer = setTimeout(() => {
+      this.fired++;
+      this.onCommand(this.armed);
+      this.#schedule(this.fired >= REPEAT.rushAfter ? REPEAT.rush : REPEAT.interval);
+    }, ms);
+  }
+
+  #stop() { clearTimeout(this.timer); this.timer = 0; }
 }
 
 // The menu cursor. items: [{ id, kind: 'value' | 'action' }], top to bottom.
