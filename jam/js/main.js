@@ -12,7 +12,7 @@ import { connectMidi } from '../../sightreading/js/midi.js';
 import { attachComputerKeyboard } from '../../arpeggio/js/midi.js';
 import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, GUESTS, partsAt } from './styles.js';
 import { FAMILIES, tuneFamily, fitsStyle, tunesFor } from './tunes.js';
-import { SlotJudge, Scorer, chordTargets, toneRole, multiplier, timingZone, WINDOW } from './judge.js';
+import { SlotJudge, Scorer, chordTargets, hintVoicing, toneDegree, DEGREES, multiplier, timingZone, WINDOW } from './judge.js';
 import { Band } from './band.js';
 import { sprite, MAPS } from './sprites.js';
 import { track, logRun } from '../../js/stats/log.js';
@@ -310,11 +310,24 @@ const kbKeys = new Map();
   for (const k of el.querySelectorAll('[data-m]')) kbKeys.set(Number(k.dataset.m), k);
 })();
 
-function keyState(midi, role) {
+// Keys are coloured by what the note does in the chord (see DEGREES):
+// full colour while held, a faint glow on the keys to play.
+const DEG_CLASSES = DEGREES.map((d) => `deg-${d}`);
+const HINT_CLASSES = DEGREES.map((d) => `hint-${d}`);
+
+// chord: the chord the note is judged against, or null outside a set.
+function keyState(midi, chord) {
   const k = kbKeys.get(midi);
   if (!k) return;
-  k.classList.remove('is-tone', 'is-colour', 'is-wrong', 'is-down');
-  if (role) k.classList.add('is-down', `is-${role}`);
+  k.classList.remove('is-down', 'is-free', ...DEG_CLASSES);
+  if (chord === undefined) return;
+  k.classList.add('is-down', chord ? `deg-${toneDegree(chord, midi % 12)}` : 'is-free');
+}
+
+function showHint(chord) {
+  for (const k of kbKeys.values()) k.classList.remove('is-hint', ...HINT_CLASSES);
+  if (!chord) return;
+  for (const m of hintVoicing(chord)) kbKeys.get(m)?.classList.add('is-hint', `hint-${toneDegree(chord, m % 12)}`);
 }
 
 // ---- MIDI ----
@@ -410,6 +423,7 @@ function startGame({ again = false, restart = false } = {}) {
   $('gaugeReadout').className = 'gauge-readout';
   $('chordBig').innerHTML = '<span class="count">Ready</span>';
   $('chordTones').innerHTML = '';
+  showHint(null);
   renderNext(-1);
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -465,7 +479,7 @@ function onNoteOn(midi, velocity = 80, tPerf = performance.now()) {
   remote.noteOn(midi, remoteScreen() !== null);
   held.set(midi, null);
   velocities.set(midi, velocity);
-  let role = 'tone';
+  let shownAs = null;
   if (game && !game.over && band.ctx) {
     game.tracker.note();
     const t = toAudioTime(tPerf);
@@ -473,20 +487,20 @@ function onNoteOn(midi, velocity = 80, tPerf = performance.now()) {
     const j = judgeFor(k);
     if (j && !j.done) {
       const before = j.hitAt;
-      role = j.noteOn(midi % 12, t * 1000, heldPcs());
+      j.noteOn(midi % 12, t * 1000, heldPcs());
       if (before === null && j.hitAt !== null) onHit(k, j);
     }
-    else if (k >= 0) role = toneRole(chordTargets(game.chords[k % game.chords.length]), midi % 12);
+    if (k >= 0) shownAs = game.chords[k % game.chords.length];
   }
-  held.set(midi, role);
-  keyState(midi, role);
+  held.set(midi, shownAs);
+  keyState(midi, shownAs);
 }
 
 function onNoteOff(midi) {
   remote.noteOff(midi);
   held.delete(midi);
   velocities.delete(midi);
-  keyState(midi, null);
+  keyState(midi);
 }
 
 // ---- Frame loop: beat lights, chord changes, grading ----
@@ -558,16 +572,16 @@ function showSlot(k) {
     const t = chordTargets(chord);
     const spelled = spellChordTones(chord);
     $('chordTones').innerHTML = chord.orderedNotes.map((pc, i) =>
-      `<span class="${t.required.has(pc) ? 'req' : ''}">${spelled[i].display}</span>`).join('');
+      `<span class="deg-${toneDegree(chord, pc)}${t.required.has(pc) ? ' req' : ''}">${spelled[i].display}</span>`).join('');
   } else {
     $('chordTones').innerHTML = '';
   }
+  showHint(settings.showTones ? chord : null);
   const chorus = Math.floor(k / game.chords.length);
   $('tuneChorus').textContent = Number.isFinite(game.choruses) ? `Chorus ${chorus + 1}/${game.choruses}` : `Chorus ${chorus + 1}`;
   renderNext(k);
   // Re-colour keys already held against the new chord.
-  const targets = chordTargets(chord);
-  for (const m of held.keys()) keyState(m, toneRole(targets, m % 12));
+  for (const m of held.keys()) { held.set(m, chord); keyState(m, chord); }
 }
 
 function renderNext(k) {
@@ -761,6 +775,7 @@ function finish() {
   game.over = true;
   cancelAnimationFrame(game.raf);
   band.stop();
+  showHint(null);
   const s = game.scorer;
   const key = game.scoreKey;
   const prev = scores[key];
@@ -824,6 +839,7 @@ function restartGame() {
 function backToSetup() {
   if (game && !game.over) { game.over = true; cancelAnimationFrame(game.raf); band.stop(); }
   game = null;
+  showHint(null);
   $('resultModal').hidden = true;
   $('viewPlay').hidden = true;
   $('viewSetup').hidden = false;

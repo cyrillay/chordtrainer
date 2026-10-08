@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildChord } from '../js/core/theory.js';
 import { PROGRESSIONS, romanToChord, progressionMode } from '../js/training/progressions.js';
-import { chordTargets, toneRole, SlotJudge, Scorer, multiplier, nextEnergy, timingZone } from '../jam/js/judge.js';
+import { chordTargets, toneRole, hintVoicing, toneDegree, SlotJudge, Scorer, multiplier, nextEnergy, timingZone } from '../jam/js/judge.js';
 import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, GUESTS, partsAt, guestEvents, barEvents, bassRoot, keysVoicing, countIn } from '../jam/js/styles.js';
 import { FAMILIES, tuneFamily, tuneStyles, fitsStyle, tunesFor } from '../jam/js/tunes.js';
 
@@ -322,6 +322,22 @@ test('tunes: bebop stays in swing, baroque stays out of funk', () => {
   assert.ok(!fitsStyle(byName('La Folia'), 'funk'));
   assert.ok(!fitsStyle(byName('Smoke on the Water'), 'bossa'));
   assert.ok(fitsStyle(byName('Dorian vamp'), 'funk'));
+});
+
+test('hint voicing: close position from the root, around middle C', () => {
+  assert.deepEqual(hintVoicing(buildChord('C', 'maj')), [48, 52, 55]);
+  assert.deepEqual(hintVoicing(buildChord('G', 'dom7')), [55, 59, 62, 65]);
+  assert.deepEqual(hintVoicing(buildChord('B', 'm7b5')), [59, 62, 65, 69]);
+});
+
+test('tone degrees: one colour per job in the chord', () => {
+  const deg = (chord, pcs) => pcs.map((pc) => toneDegree(chord, pc));
+  assert.deepEqual(deg(buildChord('C', 'maj7'), [0, 4, 7, 11]), ['root', 'M3', 'P5', 'M7']);
+  assert.deepEqual(deg(buildChord('D', 'min7'), [2, 5, 9, 0]), ['root', 'm3', 'P5', 'm7']);
+  assert.deepEqual(deg(buildChord('B', 'm7b5'), [2, 5, 9]), ['m3', 'P5', 'm7']);
+  // A 7th added to a triad is still a 7th, other extensions are "ext".
+  assert.deepEqual(deg(buildChord('C', 'maj'), [11, 2, 9]), ['M7', 'ext', 'ext']);
+  assert.equal(toneDegree(buildChord('G', 'dom7'), 0), 'wrong');
 });
 
 test('favourites: toggle, newest first, capped, cleaned', async () => {
