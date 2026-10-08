@@ -17,6 +17,7 @@ import {
 } from './progress.js';
 import { initAchievements, checkAchievements } from './achievements.js';
 import { restartFloor, restartHint, isRestartNote, isRestartChord } from './keyCommands.js';
+import { track, logRun } from '../../js/stats/log.js';
 
 const $ = (id) => document.getElementById(id);
 const DEBUG = new URLSearchParams(location.search).has('debug');
@@ -460,6 +461,9 @@ function finish() {
   const l = level();
   const before = levelStars(l.id);
   const rec = recordRun(l.id, result, { excerptId: S.excerptId });
+  const ms = Math.min(result.durationMs > 0 ? result.durationMs : S.finishedAt - S.armedAt, 20 * 60000);
+  track('sightreading', { ok: result.correct || 0, miss: result.wrong || 0, ms: Number.isFinite(ms) ? ms : 0 });
+  logRun('sightreading', { level: l.id, mode: result.mode, acc: +result.accuracy.toFixed(3), stars: result.stars, notes: result.total });
 
   // Achievement events.
   if (result.mode === 'tempo' && result.total && result.perfect === result.total && result.wrong === 0) bump('event.metronomic');

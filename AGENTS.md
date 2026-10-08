@@ -13,12 +13,14 @@ Static site, no build step: plain HTML, CSS and ES modules. Run it with
 | V   | Repertoire (interleaved practice) | `/scoretrainer/` | Op. 5 |
 | ♭VII | Ghost Jam (backing band) | `/jam/` | Op. 7 |
 | (none) | PDF to MIDI converter | `/pdf2midi/` | Anh. 1 |
+| Σ | Statistics | `/stats/` | Anh. 2 |
 
 The nav numbers are the degrees of the I, vi, ii, V turnaround, which
 resolves back to I (Chords), plus ♭VII, the rock "backdoor" chord that
 also comes home to I. Each app's opus number is its degree, so it
 never changes. The converter is not a mode: it is filed as an appendix
-("Anh.", as in BWV Anh.).
+("Anh.", as in BWV Anh.). Statistics is not a mode either: Anh. 2, and Σ
+(the sum of everything) in the nav, after the turnaround.
 
 ## Version number: bump "No" on every update
 
@@ -33,12 +35,13 @@ Current versions (keep this table in sync):
 
 | App | Current |
 |-----|---------|
-| Chords | Op. 1 No 60 |
-| Sight-reading | Op. 6 No 7 |
-| Arpeggios | Op. 2 No 7 |
-| Repertoire | Op. 5 No 10 |
-| Ghost Jam | Op. 7 No 5 |
-| PDF to MIDI | Anh. 1 No 8 |
+| Chords | Op. 1 No 61 |
+| Sight-reading | Op. 6 No 8 |
+| Arpeggios | Op. 2 No 8 |
+| Repertoire | Op. 5 No 11 |
+| Ghost Jam | Op. 7 No 6 |
+| PDF to MIDI | Anh. 1 No 9 |
+| Statistics | Anh. 2 No 1 |
 
 ## Shared pieces
 
@@ -54,6 +57,11 @@ Current versions (keep this table in sync):
   its help bubble (Bluetooth first, then USB) and the "connect your
   keyboard" card used by Arpeggios and Sight-reading.
 - `js/ux/infoTip.js`: "?" help bubbles that open on click only.
+- `js/stats/log.js`: the dated practice log (`localStorage['etude.stats']`)
+  every trainer feeds with `track()` (one event: a chord, an arpeggio, a
+  note run) and `logRun()` (a finished level, exercise or set). The
+  Statistics page (`/stats/`) reads it with the trainers' own stores; the
+  series maths is in `js/stats/compute.js`. A new trainer should call both.
 
 ## Ghost Jam is the exception
 
@@ -72,3 +80,11 @@ and scheduling, untested), `jam/js/main.js` (UI).
 - English, short sentences.
 - No dashes between clauses (no "this — that"). Use a full stop, a comma
   or "·". A lone "—" as an empty-value placeholder is fine.
+
+## Pull requests: include screenshots
+
+Every PR that changes something visible carries screenshots of it in the
+description (desktop and phone width when the layout differs). Take them
+with Playwright against `npm start` (Chromium is preinstalled), commit them
+under `docs/screenshots/<branch-or-feature>/` and embed them with their raw
+GitHub URL so they render in the PR.

@@ -6,6 +6,7 @@ import { loadMidiFromFile } from './midiSource.js';
 import { createMarking } from './pdfMarking.js';
 import { buildChunks } from './chunker.js';
 import { createSession } from './session.js';
+import { track, logRun } from '../../js/stats/log.js';
 import { renderChunk, planLayout } from './renderer.js';
 import {
   hashFile, loadConfig, saveConfig,
@@ -353,10 +354,13 @@ function enterPlayView(chunks, displayMs) {
   const layout = planLayout(source, chunks, container.clientWidth || 900);
 
   session?.destroy?.();
+  drill = { piece: source?.name || 'Untitled', hash: fileHash, chunks: 0, rounds: 1, total: chunks.length, start: Date.now() };
   session = createSession({
     chunks,
     displayMs,
     onChunkChange: async ({ chunk, positionInRound, roundSize, round, canGoBack }) => {
+      if (drill) { drill.chunks++; drill.rounds = round; }
+      track('repertoire', { maxGap: displayMs * 1.5 + 5000 });
       $('chunkPos').textContent = positionInRound;
       $('chunkTotal').textContent = roundSize;
       $('roundNum').textContent = round;
@@ -387,6 +391,16 @@ function enterPlayView(chunks, displayMs) {
   session.start();
 }
 
+// One drill = one play view, logged for the Statistics page when it ends.
+let drill = null;
+function endDrill() {
+  if (drill && drill.chunks > 1) {
+    logRun('repertoire', { piece: drill.piece, hash: drill.hash, chunks: drill.chunks, rounds: drill.rounds, size: drill.total, ms: Date.now() - drill.start });
+  }
+  drill = null;
+}
+window.addEventListener('pagehide', endDrill);
+
 function formatMs(ms) {
   const total = Math.max(0, Math.ceil(ms / 1000));
   const m = Math.floor(total / 60);
@@ -401,6 +415,7 @@ $('prevBtn').addEventListener('click', () => session?.prev());
 $('nextBtn').addEventListener('click', () => session?.next());
 $('pauseBtn').addEventListener('click', () => session?.toggle());
 $('exitSessionBtn').addEventListener('click', async () => {
+  endDrill();
   session?.destroy();
   session = null;
   // For PDFs, "Back to setup" means back to the marking step — that's the

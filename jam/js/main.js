@@ -14,6 +14,7 @@ import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, partsAt } from './styles.js';
 import { SlotJudge, Scorer, chordTargets, toneRole, multiplier, timingZone, WINDOW } from './judge.js';
 import { Band } from './band.js';
 import { sprite } from './sprites.js';
+import { track, logRun } from '../../js/stats/log.js';
 import { JamTracker } from './achievements.js';
 import { initTrophyCase, grant, bump, setMax, setFinished } from './trophyCase.js';
 
@@ -458,6 +459,7 @@ function grade(k) {
   trackChord(k, j, res);
   shout(res, gained);
   renderHud();
+  track('jam', { ok: res.grade === 'miss' ? 0 : 1, miss: res.grade === 'miss' ? 1 : 0, maxGap: 20000 });
 }
 
 // Feed a graded chord (and any change of energy) to the achievements.
@@ -611,6 +613,12 @@ function finish() {
   if (isHi) {
     scores[key] = { score: s.score, rank: s.rank, date: Date.now() };
     write(LS.scores, scores);
+  }
+  if (s.total) {
+    logRun('jam', {
+      tune: game.prog.name, style: game.style, key: game.key, score: s.score, rank: s.rank,
+      acc: +s.accuracy.toFixed(3), combo: s.bestCombo, ...s.counts,
+    });
   }
   $('resultEyebrow').textContent = `${game.prog.name} · ${STYLES[game.style].name} · ${NOTE_DISPLAY[game.key]}`;
   $('resultRank').textContent = s.total ? s.rank : '·';

@@ -15,6 +15,7 @@ import { createMidi, attachComputerKeyboard } from './midi.js';
 import { loadSettings, saveSettings, loadProgress, saveProgress, loadWeak, saveWeak, clearWeak } from './storage.js';
 import { initAchievements, grant, bump, setMax, setValue } from './achievements.js';
 import * as eggs from './eggs.js';
+import { track, logRun } from '../../js/stats/log.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -430,6 +431,7 @@ function completeTask(result, { timedOut = false } = {}) {
   s.score += pts;
   if (result.gaps.length && !timedOut) { s.gapSum += result.durationMs; s.gapCount += result.gaps.length; }
   s.results.push({ ...result, timedOut });
+  track('arpeggio', { ok: clean ? 1 : 0, miss: clean ? 0 : 1, tally: `${result.task.root}|${result.task.quality}` });
 
   // Weak-spot memory (not on timeouts with zero notes — those say nothing about the pattern).
   if (!(timedOut && result.correct === 0)) {
@@ -554,6 +556,10 @@ function finishSession() {
     note = left ? `${left} pattern${left > 1 ? 's' : ''} still on the list.` : 'Nothing left on the list. Well played.';
   }
 
+  logRun('arpeggio', {
+    kind: s.kind, level: s.kind === 'level' ? s.level.id : null, acc: +accuracy.toFixed(3), score: s.score,
+    stars, combo: s.bestCombo, gap: Number.isFinite(avgGapMs) ? Math.round(avgGapMs) : null,
+  });
   showResult(s, { accuracy, avgGapMs, stars, note });
 }
 
