@@ -340,7 +340,19 @@ body[data-energy="3"] { --bob: 11px; --tilt: 7deg; }
 .ghost-band .ghost .sprite { animation: none; transition: transform 0.09s ease-out; }
 body.beat-odd .ghost-band .ghost .sprite { transform: translateY(calc(-1 * var(--bob))) rotate(calc(-1 * var(--tilt))); }
 body.beat-odd .ghost-band .ghost:nth-child(even) .sprite { transform: translateY(calc(-1 * var(--bob))) rotate(var(--tilt)); }
-.ghost.is-off { opacity: 0.14; filter: grayscale(1); }
+/* The band's heat lights each ghost up from left to right, over a dark
+   copy of itself (--fill 0..1, set from main.js). A ghost that is not on
+   stage yet, or any more, keeps still and glows less. */
+.ghost-band .ghost { position: relative; }
+.ghost-dark, .ghost-lit { display: block; }
+.ghost-band .ghost-dark .sprite { opacity: 0.16; filter: grayscale(1); }
+.ghost-lit {
+  position: absolute; inset: 0;
+  clip-path: inset(-40px calc((1 - var(--fill, 1)) * (100% + 16px) - 16px) -40px -40px);
+  transition: clip-path 0.45s ease-out;
+}
+.ghost-band .ghost.is-off .ghost-lit .sprite { opacity: 0.6; filter: none; }
+body.beat-odd .ghost-band .ghost.is-off .sprite { transform: none; }
 .ghost.joins { animation: ghostJoins 0.7s cubic-bezier(.2, .9, .3, 1.4); }
 @keyframes ghostJoins { from { transform: translateY(24px) scale(0.4); opacity: 0; } 60% { transform: translateY(-6px) scale(1.25); opacity: 1; } }
 .ghost.is-wild .sprite { animation: wild 0.5s ease-in-out infinite alternate; }
@@ -664,13 +676,6 @@ body[data-energy="3"] .beat-glow { --glow: 0.55; }
 }
 
 .bandstand { display: flex; align-items: flex-end; justify-content: center; gap: 2rem; margin: 1.2rem 0; flex-wrap: wrap; }
-.energy { display: flex; align-items: flex-end; gap: 4px; }
-.energy-lbl { font-family: var(--font-display); font-size: 0.45rem; color: var(--ivory-dim); text-transform: uppercase; margin-right: 0.5rem; letter-spacing: 0.1em; }
-.energy i { width: 12px; background: #24143a; border: 1px solid #4d2f72; }
-.energy i:nth-child(2) { height: 12px; } .energy i:nth-child(3) { height: 20px; } .energy i:nth-child(4) { height: 28px; } .energy i:nth-child(5) { height: 36px; }
-.energy i.on { background: var(--lime); box-shadow: 0 0 10px var(--lime); }
-.energy i.on:nth-child(4) { background: var(--orange); box-shadow: 0 0 10px var(--orange); }
-.energy i.on:nth-child(5) { background: var(--pink); box-shadow: 0 0 12px var(--pink); }
 
 /* Keyboard strip: neon keys, coloured by what they mean for the chord. */
 .kb-frame { overflow-x: auto; border: 3px solid var(--violet); border-radius: 10px; background: #000; padding: 6px; box-shadow: 0 0 24px rgba(155, 92, 255, 0.3); }
