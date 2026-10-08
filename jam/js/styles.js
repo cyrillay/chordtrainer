@@ -231,7 +231,7 @@ export const GUESTS = {
     ],
   },
   bossa: {
-    name: 'Flute', patch: 'flute', kind: 'line', range: [67, 81],
+    name: 'Trumpet', patch: 'trumpet', kind: 'line', range: [62, 76],
     rhythms: [
       [[0, 6], [6, 2], [8, 8]],
       [[2, 4], [6, 2], [10, 6]],

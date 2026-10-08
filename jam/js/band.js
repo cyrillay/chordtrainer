@@ -13,7 +13,8 @@ const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
 // Wind guest voices. partials: [wave, frequency multiple, gain]. air: where
 // the breath noise sits, as a multiple of the note. depth: vibrato width.
 const REEDS = {
-  sax:      { partials: [['sawtooth', 1, 1]], peak: 0.075, a: 0.03, r: 0.08, cut: 1800, q: 1.5, breath: 0.012, air: 3, vib: 5, depth: 0.006, scoop: 1 },
+  // Tenor in swing: a reedy body around 1 kHz, brighter on the attack.
+  sax:      { partials: [['sawtooth', 1, 1], ['square', 1, 0.3]], peak: 0.08, a: 0.03, r: 0.08, cut: 2600, q: 1, bp: 1000, bpQ: 0.9, swell: 0.55, breath: 0.012, air: 3, vib: 5, depth: 0.005, scoop: 0.99 },
   melodica: { partials: [['square', 1, 1]], peak: 0.05, a: 0.02, r: 0.06, cut: 2400, q: 1, breath: 0.008, air: 3, vib: 3, depth: 0.004, scoop: 1 },
   // Warm low flute: mostly fundamental, a touch of octave and twelfth,
   // gentle air under it.
@@ -452,7 +453,7 @@ export class Band {
     const patch = GUESTS[this.opts.style].patch;
     if (patch === 'horns') return this.hornStab(notes, t, dur);
     if (patch === 'strings') return this.strings(notes, t, dur);
-    if (patch === 'vibes') return notes.forEach((m) => this.bell(m, t, dur, 0.09));
+    if (patch === 'vibes') return notes.forEach((m) => this.vibes(m, t, dur));
     for (const m of notes) this.reed(patch, m, t, dur);
   }
 
@@ -467,6 +468,11 @@ export class Band {
     const shape = REEDS[patch];
     const g = this.env(t, { a: shape.a, peak: shape.peak, d: 0.12, s: 0.82, hold: Math.max(0, len - 0.18), r: shape.r });
     let dest = this.filter('lowpass', shape.cut, shape.q);
+    // swell: the filter starts open and settles, like a blown attack.
+    if (shape.swell) {
+      dest.frequency.setValueAtTime(shape.cut, t);
+      dest.frequency.exponentialRampToValueAtTime(shape.cut * shape.swell, t + 0.25);
+    }
     dest.connect(g).connect(out);
     if (shape.bp) {
       const bp = this.filter('bandpass', shape.bp, shape.bpQ);
@@ -533,16 +539,62 @@ export class Band {
     }
   }
 
+  // A string section: each note is three players a few cents apart, each
+  // with their own slow vibrato, behind a filter that opens as the bows
+  // dig in. Static detuned saws sounded like a buzzy synth.
   strings(notes, t, dur) {
     const out = this.bus?.input;
     if (!out) return;
+    const end = t + dur + 0.7;
     for (const m of notes) {
       const f = hz(m);
-      const g = this.env(t, { a: 0.4, peak: 0.035, d: 0.2, s: 0.85, hold: Math.max(0, dur - 0.7), r: 0.5 });
-      const lp = this.filter('lowpass', 2000);
+      const g = this.env(t, { a: 0.45, peak: 0.024, d: 0.2, s: 0.85, hold: Math.max(0, dur - 0.75), r: 0.6 });
+      const lp = this.filter('lowpass', 700, 0.6);
+      lp.frequency.setValueAtTime(700, t);
+      lp.frequency.linearRampToValueAtTime(1900, t + 0.5);
+      lp.frequency.linearRampToValueAtTime(1500, t + Math.max(0.6, dur));
       lp.connect(g).connect(out);
-      for (const det of [-9, 0, 9]) this.osc('sawtooth', f, t, t + dur + 0.6, lp, det);
+      for (const [det, rate] of [[-6, 5.1], [0, 5.6], [7, 6.1]]) {
+        const o = this.osc('sawtooth', f, t, end, lp, det);
+        const lfo = this.ctx.createOscillator();
+        lfo.frequency.value = rate;
+        const depth = this.ctx.createGain();
+        depth.gain.setValueAtTime(0, t);
+        depth.gain.linearRampToValueAtTime(f * 0.003, t + 0.6);
+        lfo.connect(depth).connect(o.frequency);
+        lfo.start(t);
+        lfo.stop(end);
+      }
     }
+  }
+
+  // Vibraphone: a pure bar tone with its 4th partial ringing briefly on the
+  // strike, and the motor's tremolo on the tail. The old FM bell used an
+  // inharmonic 3.5 ratio, which clanged against the chord.
+  vibes(midi, t, dur) {
+    const out = this.bus?.input;
+    if (!out) return;
+    const f = hz(midi);
+    const ring = Math.min(2.2, dur + 1.2);
+    const trem = this.ctx.createGain();
+    trem.gain.value = 0.8;
+    const lfo = this.ctx.createOscillator();
+    lfo.frequency.value = 4.6;
+    const depth = this.ctx.createGain();
+    depth.gain.value = 0.2;
+    lfo.connect(depth).connect(trem.gain);
+    lfo.start(t);
+    lfo.stop(t + ring + 0.1);
+    trem.connect(out);
+    const body = this.env(t, { a: 0.003, peak: 0.12, d: ring });
+    body.connect(trem);
+    this.osc('sine', f, t, t + ring, body);
+    const strike = this.env(t, { a: 0.002, peak: 0.035, d: 0.25 });
+    strike.connect(trem);
+    this.osc('sine', f * 4, t, t + 0.3, strike);
+    const click = this.env(t, { a: 0.001, peak: 0.008, d: 0.03 });
+    click.connect(out);
+    this.osc('sine', f * 10, t, t + 0.05, click);
   }
 
   bell(midi, t, dur, peak = 0.05) {
