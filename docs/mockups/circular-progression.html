@@ -10,24 +10,48 @@
   Design mockup only, not wired to the game. The chord progression as a
   clock: the ring stays put, a hand sweeps it once per chorus, the dots on
   the inside are the beats. The next chord fades from cyan to pink over
-  the last beat, so the change is already lit when the downbeat lands.
+  the last beat.
+
+  Every chord you play leaves its marks on its section of the ring, for
+  one lap:
+    a note head on the beat track, where you landed (lime on the beat,
+    cyan a bit late, pink late), a red cross for a miss;
+    the colours you added, in orange superscript on the chord symbol (9, 13);
+    an inversion as a slash chord under the name (/E♭);
+    smooth voice leading as a slur from the chord before;
+    rootless, shell, quartal… as a small word on the rim.
+  A copy of each mark then glides down into the ghosts and lights them up.
+
   ?n=4 for a four chord loop, ?t=<seconds> to freeze the animation.
+  The hits are made up (a fixed pattern), only to show the marks.
 -->
 <style>
   .mock-wrap { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 0.8rem; }
   .mock-title { font-family: var(--font-display); font-size: 0.7rem; color: var(--lime); text-transform: uppercase; letter-spacing: 0.1em; }
   .mock-sub { color: var(--ivory-dim); font-size: 1.1rem; }
+  .rec { position: relative; display: flex; flex-direction: column; gap: 0.8rem; padding-bottom: 0.4rem; }
   .stage.mock { min-height: 0; padding: 0.8rem; }
-  .wheel { width: min(420px, 100%); display: block; overflow: visible; }
+  .wheel { width: min(440px, 100%); display: block; overflow: visible; }
+  .fx { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+  .ghost-band .ghost-lit { transition: none; }
+  .ghost-band .ghost.got .ghost-lit .sprite { filter: brightness(1.6) drop-shadow(0 0 16px currentColor); }
 
   .seg { fill: #1d1030; stroke: #4d2f72; stroke-width: 1.5; }
   .seg-next { fill: rgba(24, 240, 255, 0.14); stroke: var(--cyan); stroke-width: 2; filter: drop-shadow(0 0 6px var(--cyan)); }
   .seg-now { fill: rgba(255, 46, 136, 0.3); stroke: var(--pink); stroke-width: 2.5; filter: drop-shadow(0 0 8px var(--pink)); }
-  .lbl { font-family: var(--font-body); font-size: 30px; text-anchor: middle; dominant-baseline: central; }
+  .lbl { font-family: var(--font-body); font-size: 28px; text-anchor: middle; dominant-baseline: central; }
+  .lbl .ext { fill: var(--orange); font-size: 18px; filter: drop-shadow(0 0 3px var(--orange)); }
+  .slash { font-family: var(--font-body); font-size: 19px; text-anchor: middle; dominant-baseline: central; fill: var(--violet); filter: drop-shadow(0 0 3px var(--violet)); }
+  .tag { font-family: var(--font-body); font-size: 15px; text-anchor: middle; dominant-baseline: central; fill: var(--lime); letter-spacing: 0.5px; }
+  .slur { fill: none; stroke: var(--lime); stroke-width: 2.2; stroke-linecap: round; filter: drop-shadow(0 0 3px var(--lime)); }
   .tick { fill: #4d2f72; }
   .tick.down { fill: #6d4a99; }
-  .tick.lit { fill: var(--cyan); filter: drop-shadow(0 0 4px var(--cyan)); }
-  .tick.lit.down { fill: var(--pink); filter: drop-shadow(0 0 5px var(--pink)); }
+  .tick.lit { fill: #8d6ac0; }
+  .note { stroke-width: 1.6; }
+  .note-perfect { fill: var(--lime); stroke: var(--lime); filter: drop-shadow(0 0 4px var(--lime)); }
+  .note-good { fill: var(--cyan); stroke: var(--cyan); filter: drop-shadow(0 0 4px var(--cyan)); }
+  .note-late { fill: var(--pink); stroke: var(--pink); filter: drop-shadow(0 0 4px var(--pink)); }
+  .miss-x { stroke: var(--crimson); stroke-width: 3; stroke-linecap: round; filter: drop-shadow(0 0 4px var(--crimson)); }
   .center-chord { font-family: var(--font-body); font-size: 92px; fill: #fff; text-anchor: middle; dominant-baseline: central; filter: drop-shadow(0 0 6px var(--pink)) drop-shadow(0 0 14px var(--pink)); }
   .center-count { fill: var(--orange); filter: drop-shadow(0 0 8px var(--orange)); }
   .center-next { font-family: var(--font-body); font-size: 26px; fill: var(--cyan); text-anchor: middle; }
@@ -38,6 +62,16 @@
   .hand-tip.beat { fill: var(--cyan); }
   .hand-tip.down { fill: var(--pink); }
   .hub { fill: #0b0614; stroke: var(--violet); stroke-width: 2; }
+
+  /* Marks on their way to the ghosts. */
+  .flyer { position: absolute; left: 0; top: 0; font-family: var(--font-body); font-size: 30px; line-height: 1; white-space: nowrap; transform-origin: 0 0; }
+  .flyer.perfect { color: var(--lime); text-shadow: 0 0 8px var(--lime); }
+  .flyer.good { color: var(--cyan); text-shadow: 0 0 8px var(--cyan); }
+  .flyer.late { color: var(--pink); text-shadow: 0 0 8px var(--pink); }
+  .flyer.miss { color: var(--crimson); text-shadow: 0 0 8px var(--crimson); }
+  .flyer.ext { color: var(--orange); text-shadow: 0 0 8px var(--orange); }
+  .flyer.inv { color: var(--violet); text-shadow: 0 0 8px var(--violet); }
+  .flyer.tag { color: var(--lime); text-shadow: 0 0 8px var(--lime); font-size: 20px; }
 </style>
 </head>
 <body>
@@ -45,7 +79,7 @@
 <div class="app">
   <div class="mock-wrap">
     <div class="mock-title">The clock</div>
-    <div class="mock-sub">The loop stays put and a hand sweeps it, one lap per chorus. The dots on the inside are the beats. The next chord fades in over the last beat.</div>
+    <div class="mock-sub">Each chord leaves its marks on the ring for one lap: a note where you landed, the colours you added, the inversion, a slur for smooth voice leading. Then they glide into the ghosts.</div>
     <div class="tune-bar">
       <div class="tune-info">
         <span id="tuneTitle">Autumnal</span>
@@ -53,24 +87,55 @@
         <span class="tune-chorus" id="tuneChorus">Chorus 1/4</span>
       </div>
     </div>
-    <div class="stage mock"><svg class="wheel" id="wheel" viewBox="0 0 420 460"></svg></div>
+    <div class="rec" id="rec">
+      <div class="stage mock"><svg class="wheel" id="wheel" viewBox="-10 0 440 460"></svg></div>
+      <div class="bandstand"><div class="ghost-band" id="ghostBand"></div></div>
+      <div class="fx" id="fx"></div>
+    </div>
   </div>
 </div>
 
-<script>
+<script type="module">
+import { sprite } from '../../jam/js/sprites.js';
+
 const q = new URLSearchParams(location.search);
-const CHORDS = q.get('n') === '4' ? ['Gm7', 'E♭maj7', 'Cm7', 'D7'] : ['Cm7', 'F7', 'B♭maj7', 'E♭maj7', 'Aø7', 'D7', 'Gm', 'Gm'];
+const FOUR = q.get('n') === '4';
+const CHORDS = FOUR ? ['Gm7', 'E♭maj7', 'Cm7', 'D7'] : ['Cm7', 'F7', 'B♭maj7', 'E♭maj7', 'Aø7', 'D7', 'Gm', 'Gm'];
+// Chord tones, root first, for the slash bass of an inversion.
+const TONES = {
+  Cm7: ['C', 'E♭', 'G', 'B♭'], F7: ['F', 'A', 'C', 'E♭'], 'B♭maj7': ['B♭', 'D', 'F', 'A'], 'E♭maj7': ['E♭', 'G', 'B♭', 'D'],
+  'Aø7': ['A', 'C', 'E♭', 'G'], D7: ['D', 'F♯', 'A', 'C'], Gm: ['G', 'B♭', 'D'], Gm7: ['G', 'B♭', 'D', 'F'],
+};
 const N = CHORDS.length;
 const BEAT = 60 / 132;
 const SLOT = 4 * BEAT;
 const COUNT_IN = SLOT;            // one bar of count-in, like the game
 let FROZEN = q.has('t') ? parseFloat(q.get('t')) : null;
 
-const SVGNS = 'http://www.w3.org/2000/svg';
+// Made-up playing, one entry per chord played, cycling. off: beats from
+// the downbeat. inv: 1 = 3rd in the bass, 2 = 5th, 3 = 7th.
+const PLAY = [
+  { grade: 'perfect', off: 0.02, ext: ['9'] },
+  { grade: 'good', off: 0.35, inv: 1, smooth: true },
+  { grade: 'perfect', off: -0.04, ext: ['9', '13'], tag: 'rootless' },
+  { grade: 'late', off: 1.4 },
+  { grade: 'perfect', off: 0.05, inv: 2, smooth: true },
+  { grade: 'miss' },
+  { grade: 'good', off: 0.5, ext: ['13'], tag: 'shell' },
+  { grade: 'perfect', off: 0, ext: ['9'], smooth: true },
+  { grade: 'perfect', off: 0.03, tag: 'quartal' },
+  { grade: 'good', off: 0.25, ext: ['9'], inv: 1 },
+  { grade: 'perfect', off: -0.02, smooth: true, ext: ['13'] },
+];
+// How much each kind of mark lights the ghosts (a ghost is 1).
+const VALUE = { perfect: 0.14, good: 0.1, late: 0.04, miss: -0.45, ext: 0.06, inv: 0.06, tag: 0.06 };
+const START_HEAT = 0.4;
+
+const svgNS = 'http://www.w3.org/2000/svg';
 const svg = document.getElementById('wheel');
 const CX = 210, CY = 230;
 const el = (tag, attrs, parent = svg) => {
-  const e = document.createElementNS(SVGNS, tag);
+  const e = document.createElementNS(svgNS, tag);
   for (const k in attrs) e.setAttribute(k, attrs[k]);
   parent.appendChild(e);
   return e;
@@ -84,29 +149,51 @@ function arc(r0, r1, a0, a1) {
 }
 const SPAN = 2 * Math.PI / N;
 const GAP = 0.025;
+const R0 = 128, R1 = 186, RB = 114, RLBL = 152;
+// Where beat b (may be fractional) of chord i sits on the beat track.
+const beatAngle = (i, b) => i * SPAN + GAP + (b / 4) * (SPAN - 2 * GAP) + 0.02;
 const smooth = (x) => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
-// Label colours, mixed by weight: idle, next (cyan), now (white).
 const IDLE = [185, 163, 212], CYAN = [24, 240, 255], WHITE = [255, 255, 255];
-const mix = (wn, wc) => {
+const mixColour = (wn, wc) => {
   const wi = Math.max(0, 1 - wn - wc);
   return `rgb(${[0, 1, 2].map((c) => Math.round(IDLE[c] * wi + CYAN[c] * wc + WHITE[c] * wn)).join(',')})`;
 };
 
+// ---------- the song: when each chord lands and what it leaves ----------
+const slotStart = (s) => COUNT_IN + s * SLOT;
+const play = (s) => PLAY[s % PLAY.length];
+const hitTime = (s) => { const p = play(s); return slotStart(s) + (p.grade === 'miss' ? SLOT * 0.5 : p.off * BEAT); };
+const DETACH = 0.35, FLIGHT = 1.1, STAGGER = 0.12;
+
+// The marks of chord s, each with where it sits on the ring (svg coords).
+function marksOf(s) {
+  const i = s % N, p = play(s), out = [];
+  if (p.grade === 'miss') {
+    out.push({ kind: 'miss', text: '✕', at: pt(RB, beatAngle(i, 0)) });
+    return out;
+  }
+  out.push({ kind: p.grade, text: '♪', at: pt(RB, beatAngle(i, Math.max(-0.3, p.off))) });
+  const mid = (i + 0.5) * SPAN;
+  for (const e of p.ext || []) out.push({ kind: 'ext', text: e, at: pt(RLBL - 6, mid + 0.12) });
+  if (p.inv) { const [x, y] = pt(RLBL, mid); out.push({ kind: 'inv', text: '/' + TONES[CHORDS[i]][p.inv], at: [x, y + 15] }); }
+  if (p.smooth) out.push({ kind: 'tag', text: '⌒', at: pt(R1 + 8, i * SPAN) });
+  if (p.tag) out.push({ kind: 'tag', text: p.tag, at: pt(R1 + 12, mid) });
+  return out;
+}
+
 // ---------- build ----------
-// Each chord is a plain segment with a cyan "next" layer and a pink "now"
-// layer on top. Their opacities carry the highlight, so it can fade.
-const R0 = 128, R1 = 186;
-const segs = [], lbls = [], ticks = [];
+const segs = [], ticks = [], lbls = [], marks = [];
 for (let i = 0; i < N; i++) {
   const d = arc(R0, R1, i * SPAN + GAP, (i + 1) * SPAN - GAP);
   el('path', { d, class: 'seg' });
   segs.push({ next: el('path', { d, class: 'seg-next', opacity: 0 }), now: el('path', { d, class: 'seg-now', opacity: 0 }) });
-  const [x, y] = pt((R0 + R1) / 2, (i + 0.5) * SPAN);
-  const t = el('text', { x, y, class: 'lbl' }); t.textContent = CHORDS[i]; lbls.push(t);
+  const [x, y] = pt(RLBL, (i + 0.5) * SPAN);
+  lbls.push(el('text', { x, y, class: 'lbl' }));
   for (let b = 0; b < 4; b++) {
-    const [tx, ty] = pt(114, i * SPAN + GAP + (b / 4) * (SPAN - 2 * GAP) + 0.02);
+    const [tx, ty] = pt(RB, beatAngle(i, b));
     ticks.push(el('circle', { cx: tx, cy: ty, r: b === 0 ? 5 : 3.2, class: 'tick' + (b === 0 ? ' down' : '') }));
   }
+  marks.push(el('g', {}));
 }
 const hand = el('line', { x1: CX, y1: CY, x2: CX, y2: CY - 196, class: 'hand' });
 el('circle', { cx: CX, cy: CY, r: 98, class: 'hub' });
@@ -115,34 +202,108 @@ const centerSmall = el('text', { x: CX, y: CY - 52, class: 'center-small' });
 const centerChord = el('text', { x: CX, y: CY, class: 'center-chord' });
 const centerNext = el('text', { x: CX, y: CY + 62, class: 'center-next' });
 
+const PX = innerWidth < 500 ? 3 : 5;
+const BAND = [['drums', 'cyan'], ['bass', 'pink'], ['keys', 'orange'], ['sax', 'lime']];
+const band = document.getElementById('ghostBand');
+band.innerHTML = BAND.map(([id, c]) => `<div class="ghost ghost-${c}" data-part="${id}"><span class="ghost-dark">${sprite(`ghost-${id}`, { px: PX })}</span><span class="ghost-lit">${sprite(`ghost-${id}`, { px: PX })}</span></div>`).join('');
+const ghosts = [...band.children];
+const fx = document.getElementById('fx');
+
+// Draw the marks of chord s on its section, at opacity o.
+function drawMarks(g, s, o) {
+  const i = s % N, p = play(s);
+  let h = '';
+  if (p.grade === 'miss') {
+    const [x, y] = pt(RB, beatAngle(i, 0));
+    h += `<path class="miss-x" d="M${x - 5} ${y - 5}L${x + 5} ${y + 5}M${x + 5} ${y - 5}L${x - 5} ${y + 5}"/>`;
+  } else {
+    // A note head on the beat track, its stem pointing out.
+    const a = beatAngle(i, Math.max(-0.3, p.off));
+    const [x, y] = pt(RB, a), [sx, sy] = pt(RB + 14, a + 0.06);
+    const deg = a * 180 / Math.PI;
+    h += `<g class="note note-${p.grade}"><ellipse cx="${x}" cy="${y}" rx="6.5" ry="4.6" transform="rotate(${deg - 20} ${x} ${y})"/><line x1="${x + 5.5 * Math.cos(a)}" y1="${y + 5.5 * Math.sin(a)}" x2="${sx + 5.5 * Math.cos(a)}" y2="${sy + 5.5 * Math.sin(a)}"/></g>`;
+    if (p.inv) {
+      const [lx, ly] = pt(RLBL, (i + 0.5) * SPAN);
+      h += `<text class="slash" x="${lx}" y="${ly + 15}">/${TONES[CHORDS[i]][p.inv]}</text>`;
+    }
+    if (p.smooth) {
+      // A slur over the bar line, from the chord before into this one.
+      const w = 0.1;
+      const [x0, y0] = pt(R1 + 4, i * SPAN - w), [x1, y1] = pt(R1 + 4, i * SPAN + w), [cx, cy] = pt(R1 + 12, i * SPAN);
+      h += `<path class="slur" d="M${x0} ${y0}Q${cx} ${cy} ${x1} ${y1}"/>`;
+    }
+    if (p.tag) {
+      const [tx, ty] = pt(R1 + 13, (i + 0.5) * SPAN);
+      h += `<text class="tag" x="${tx}" y="${ty}">${p.tag}</text>`;
+    }
+  }
+  g.innerHTML = h;
+  g.setAttribute('opacity', o.toFixed(3));
+}
+
+// Which chords have been played by time t (slot numbers).
+const slotsBefore = (t) => { const out = []; for (let s = 0; slotStart(s) <= t; s++) out.push(s); return out; };
+
+// Heat at time t: every mark adds its value as it lands in the ghosts.
+function heatAt(t) {
+  let h = START_HEAT;
+  for (const s of slotsBefore(t)) {
+    marksOf(s).forEach((m, j) => {
+      const land = hitTime(s) + DETACH + j * STAGGER + FLIGHT;
+      h = Math.max(0, Math.min(4, h + VALUE[m.kind] * smooth((t - land) / 0.25)));
+    });
+  }
+  return h;
+}
+
+// Where the light edge of the ghosts is, for heat h (in .rec coords).
+function edgeAt(h, box) {
+  const gi = Math.min(3, Math.floor(h));
+  const r = ghosts[gi].getBoundingClientRect();
+  return [r.left - box.left + r.width * Math.min(1, h - gi), r.top - box.top + r.height * 0.45];
+}
+
 // ---------- animate ----------
 const start = performance.now();
 function frame(now) {
   const t = FROZEN !== null ? FROZEN : (now - start) / 1000;
   const song = t - COUNT_IN;
   const counting = song < 0;
-  const slot = Math.floor(song / SLOT);              // -1 during the count-in
-  const k = ((slot % N) + N) % N;                    // current chord (none while counting)
-  const phase = (song - slot * SLOT) / SLOT;         // 0..1 through the bar
+  const slot = Math.floor(song / SLOT);
+  const k = ((slot % N) + N) % N;
+  const phase = (song - slot * SLOT) / SLOT;
   const beat = Math.floor(phase * 4);
   const chorus = Math.floor(Math.max(slot, 0) / N) % 4 + 1;
   const next = (k + 1) % N, after = (k + 2) % N;
-  // The hand-over runs from beat 4 to the next downbeat.
   const f = smooth((phase - 0.75) / 0.25);
 
   for (let i = 0; i < N; i++) {
     let wNow = 0, wNext = 0;
-    if (!counting && i === k) wNow = 1 - f;          // the chord you're on lets go
-    if (i === next) { wNow += f; wNext = 1 - f; }     // the next one turns from cyan to pink
-    if (!counting && i === after && after !== k) wNext += f;   // and the one after starts to glow cyan
+    if (!counting && i === k) wNow = 1 - f;
+    if (i === next) { wNow += f; wNext = 1 - f; }
+    if (!counting && i === after && after !== k) wNext += f;
     segs[i].now.setAttribute('opacity', wNow.toFixed(3));
     segs[i].next.setAttribute('opacity', wNext.toFixed(3));
-    lbls[i].style.fill = mix(wNow, wNext);
+
+    // This lap's marks once the chord is played. Until then, last lap's
+    // fade away as the hand comes round to it again.
+    let s = -1;
+    for (let c = i; slotStart(c) <= t; c += N) s = c;
+    let shown = -1, o = 1;
+    if (s >= 0 && hitTime(s) <= t) shown = s;
+    else if (s - N >= 0) { shown = s - N; o = 1 - smooth((t - slotStart(s)) / (hitTime(s) - slotStart(s))); }
+    if (shown >= 0) drawMarks(marks[i], shown, o); else marks[i].innerHTML = '';
+    const p = shown >= 0 ? play(shown) : null;
+    const ext = p && p.ext && o > 0.5 ? `<tspan class="ext" dy="-9">${p.ext.join('·')}</tspan>` : '';
+    lbls[i].innerHTML = CHORDS[i] + ext;
+    // Room for the slash bass under the name.
+    const [lx, ly] = pt(RLBL, (i + 0.5) * SPAN);
+    lbls[i].setAttribute('y', p && p.inv ? ly - 7 : ly);
+    lbls[i].style.fill = mixColour(wNow, wNext);
   }
   ticks.forEach((d, j) => d.classList.toggle('lit', !counting && Math.floor(j / 4) === k && j % 4 <= beat));
 
   centerChord.innerHTML = counting ? `<tspan class="center-count">${beat + 1}</tspan>` : CHORDS[k];
-  // Long names shrink to stay inside the centre.
   centerChord.style.fontSize = counting ? '' : `${Math.min(92, 330 / CHORDS[k].length)}px`;
   centerNext.textContent = counting ? `${CHORDS[0]} first` : `then ${CHORDS[next]}`;
   centerSmall.textContent = counting ? 'COUNT-IN' : `CHORUS ${chorus}/4`;
@@ -155,12 +316,46 @@ function frame(now) {
   const fresh = (phase * SLOT) % BEAT < 0.12;
   handTip.setAttribute('class', 'hand-tip' + (fresh ? (beat === 0 ? ' down' : ' beat') : ''));
   handTip.setAttribute('r', fresh ? 10 : 7);
+  document.body.classList.toggle('beat-odd', beat % 2 === 1);
+
+  // The ghosts light up as the marks land.
+  const heat = heatAt(t);
+  ghosts.forEach((g, gi) => {
+    g.style.setProperty('--fill', Math.max(0, Math.min(1, heat - gi)).toFixed(3));
+    g.classList.toggle('is-off', heat - gi < 1);
+  });
+  document.body.dataset.energy = String(Math.min(3, Math.floor(heat)));
+
+  // Marks in flight: a copy leaves the ring and glides into the ghosts.
+  const box = document.getElementById('rec').getBoundingClientRect();
+  const m = svg.getScreenCTM();
+  const toBox = ([x, y]) => [m.a * x + m.c * y + m.e - box.left, m.b * x + m.d * y + m.f - box.top];
+  let html = '';
+  const landing = new Set();
+  for (const s of slotsBefore(t)) {
+    marksOf(s).forEach((mk, j) => {
+      const t0 = hitTime(s) + DETACH + j * STAGGER;
+      const u = (t - t0) / FLIGHT;
+      if (u < 0 || u > 1) { if (u > 1 && u < 1 + 0.3 / FLIGHT) landing.add(Math.min(3, Math.floor(heatAt(t0 + FLIGHT)))); return; }
+      const e = smooth(u);
+      const [x0, y0] = toBox(mk.at);
+      const [x1, y1] = edgeAt(heatAt(t0 + FLIGHT - 0.01), box);
+      // Out and round, like it slides off the ring.
+      const cx = x0 + (x0 < box.width / 2 ? -60 : 60), cy = (y0 + y1) / 2;
+      const x = (1 - e) ** 2 * x0 + 2 * (1 - e) * e * cx + e * e * x1;
+      const y = (1 - e) ** 2 * y0 + 2 * (1 - e) * e * cy + e * e * y1;
+      const sc = 1 - 0.45 * e, op = u < 0.85 ? 1 : 1 - (u - 0.85) / 0.15;
+      html += `<span class="flyer ${mk.kind}" style="transform:translate(${x.toFixed(1)}px,${y.toFixed(1)}px) translate(-50%,-50%) scale(${sc.toFixed(2)});opacity:${op.toFixed(2)}">${mk.text}</span>`;
+    });
+  }
+  fx.innerHTML = html;
+  ghosts.forEach((g, gi) => g.classList.toggle('got', landing.has(gi)));
 
   if (FROZEN === null) requestAnimationFrame(frame);
 }
-requestAnimationFrame(frame);
 // For recording: render any moment on demand.
 window.renderAt = (t) => { FROZEN = t; frame(); };
+document.fonts.ready.then(() => requestAnimationFrame(frame));
 </script>
 </body>
 </html>
