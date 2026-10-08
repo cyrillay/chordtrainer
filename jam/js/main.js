@@ -13,7 +13,7 @@ import { attachComputerKeyboard } from '../../arpeggio/js/midi.js';
 import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, GUESTS, partsAt } from './styles.js';
 import { SlotJudge, Scorer, chordTargets, toneRole, multiplier, timingZone, WINDOW } from './judge.js';
 import { Band } from './band.js';
-import { sprite } from './sprites.js';
+import { sprite, MAPS } from './sprites.js';
 import { track, logRun } from '../../js/stats/log.js';
 import { JamTracker } from './achievements.js';
 import { initTrophyCase, grant, bump, setMax, setFinished } from './trophyCase.js';
@@ -147,7 +147,10 @@ const BAND = [
   { id: 'guest', name: 'Guest', color: 'lime' },
 ];
 // Each ghost wears its instrument; the guest's depends on the groove.
-const ghostSprite = (part, style) => sprite(`ghost-${part === 'guest' ? style : part}`, { px: 5 });
+const ghostSprite = (part, style) => {
+  const gear = part === 'guest' ? GUESTS[style].patch : part;
+  return sprite(MAPS[`ghost-${gear}`] ? `ghost-${gear}` : 'ghost', { px: 5 });
+};
 const ghostHtml = (m, style) => `<div class="ghost ghost-${m.color}" data-part="${m.id}">${ghostSprite(m.id, style)}<span class="ghost-name">${m.id === 'guest' ? GUESTS[style].name : m.name}</span></div>`;
 // On the setup page the guest is a secret: a faint silhouette with its
 // instrument, named only on hover.

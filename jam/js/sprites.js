@@ -101,8 +101,8 @@ const GEAR = {
     'WWWWWWWWWWWWWWWWWW',
     'KKKKKKKKKKKKKKKKKK',
   ]]],
-  // Guests, one per groove.
-  swing: [[13, 11, [
+  // Guests, by sound patch (GUESTS in styles.js).
+  sax: [[13, 11, [
     'PAA.....',
     '...A....',
     '...AY...',
@@ -111,8 +111,8 @@ const GEAR = {
     '....AAAA',
     '.....AA.',
   ]]],
-  bossa: [[8, 12, ['SSSGSGSGSSSSSS']]],
-  lofi: [[1, 9, [
+  flute: [[8, 12, ['SSSGSGSGSSSSSS']]],
+  vibes: [[1, 9, [
     '.O..................',
     'O.O.............O...',
     '.T.............O.O..',
@@ -123,7 +123,7 @@ const GEAR = {
     'KKKKKKKKKKKKKKKKKKK.',
     'K.................K.',
   ]]],
-  ballad: [[13, 4, [
+  strings: [[13, 4, [
     '....K...',
     '....D..T',
     '....D.T.',
@@ -136,12 +136,12 @@ const GEAR = {
     '..DDDDD.',
     '...DDD..',
   ]]],
-  funk: [[9, 11, [
+  horns: [[9, 11, [
     '....A.A.A...AA',
     'PAAAAAAAAAAAAA',
     '....AAAAA...AA',
   ]]],
-  reggae: [[4, 12, [
+  melodica: [[4, 12, [
     'S.............',
     'S.............',
     'SCCCCCCCCCCCCC',
@@ -150,6 +150,8 @@ const GEAR = {
     'CCCCCCCCCCCCCC',
   ]]],
 };
+
+GEAR.trumpet = GEAR.horns;
 
 for (const [id, pieces] of Object.entries(GEAR)) {
   const grid = Array.from({ length: 18 }, () => Array(22).fill('.'));
