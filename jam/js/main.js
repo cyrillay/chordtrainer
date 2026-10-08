@@ -12,6 +12,7 @@ import { connectMidi } from '../../sightreading/js/midi.js';
 import { attachComputerKeyboard } from '../../arpeggio/js/midi.js';
 import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, GUESTS, partsAt } from './styles.js';
 import { FAMILIES, tuneFamily, fitsStyle, tunesFor } from './tunes.js';
+import { voicingTags, voicingBonus, voicingWords, bassRole } from './voicing.js';
 import { SlotJudge, Scorer, chordTargets, hintVoicing, toneDegree, DEGREES, multiplier, timingZone, WINDOW } from './judge.js';
 import { Band } from './band.js';
 import { SYNC, measureOffset, offsetFor, storeOffset, forgetOffset } from './sync.js';
@@ -494,6 +495,7 @@ function onNoteOn(midi, velocity = 80, tPerf = performance.now()) {
       const before = j.hitAt;
       j.noteOn(midi % 12, t * 1000, heldPcs());
       if (before === null && j.hitAt !== null) onHit(k, j);
+      else if (before !== null) growVoicing(k);
     }
     if (k >= 0) shownAs = game.chords[k % game.chords.length];
   }
@@ -741,6 +743,7 @@ const pickShout = (g) => SHOUTS[g][Math.floor(Math.random() * SHOUTS[g].length)]
 function grade(k) {
   const j = judgeFor(k);
   const res = j.result();
+  scoreVoicing(k, j, res);
   const prevEnergy = game.scorer.energy;
   const gained = game.scorer.add(res);
   band.energy = game.scorer.energy;
@@ -749,6 +752,15 @@ function grade(k) {
   shout(res, gained);
   renderHud();
   track('jam', { ok: res.grade === 'miss' ? 0 : 1, miss: res.grade === 'miss' ? 1 : 0, maxGap: 20000 });
+}
+
+// Bonus for how the chord was voiced (see voicing.js), on top of the colours.
+function scoreVoicing(k, j, res) {
+  const voicing = game.hits.get(k)?.voicing || null;
+  res.bass = bassRole(j.chord, voicing);
+  res.tags = res.grade === 'miss' ? [] : voicingTags(j.chord, voicing, game.hits.get(k - 1)?.voicing);
+  res.voicingBonus = voicingBonus(res.tags);
+  res.bonus += res.voicingBonus;
 }
 
 // Feed a graded chord (and any change of energy) to the achievements.
@@ -762,6 +774,7 @@ function trackChord(k, j, res) {
     velocities: hit?.velocities || null,
     colourIntervals: [...j.colours].map((pc) => (pc - root + 12) % 12),
     quality: j.chord.quality,
+    chordId: `${j.targets.root}${j.chord.quality}`,
   });
   ids.push(...game.tracker.energy(game.scorer.energy));
   setMax('energy', game.scorer.energy);
@@ -773,7 +786,8 @@ function shout(res, gained) {
   el.className = `shout g-${res.grade}`;
   el.innerHTML = `<span class="shout-word">${pickShout(res.grade)}</span>`
     + (gained ? `<span class="shout-pts">+${gained.toLocaleString()}</span>` : '')
-    + (res.bonus ? `<span class="shout-spicy">Spicy ×${res.colours}</span>` : '');
+    + (res.colours && res.grade !== 'miss' ? `<span class="shout-spicy">Spicy ×${res.colours}</span>` : '')
+    + (res.tags.length ? `<span class="shout-voicing">${voicingWords(res.tags, res.bass).join(' · ')}</span>` : '');
   $('shoutLayer').appendChild(el);
   setTimeout(() => el.remove(), 1300);
   const stage = $('stage');
@@ -869,9 +883,20 @@ function moveGaugeCursor(k, heard) {
 
 const ZONE_WORD = { early: 'Early', perfect: 'On the beat', good: 'A bit late', late: 'Late' };
 
-function onHit(k, j) {
+function heldVoicing() {
   const voicing = [...held.keys()].sort((a, b) => a - b);
-  game.hits.set(k, { voicing, velocities: voicing.map((m) => velocities.get(m) ?? 80) });
+  return { voicing, velocities: voicing.map((m) => velocities.get(m) ?? 80) };
+}
+
+// A key added to a chord that already landed, still holding it (a rolled
+// chord, a colour on top): it belongs to the voicing.
+function growVoicing(k) {
+  const hit = game.hits.get(k);
+  if (hit && hit.voicing.every((m) => held.has(m))) game.hits.set(k, heldVoicing());
+}
+
+function onHit(k, j) {
+  game.hits.set(k, heldVoicing());
   const off = j.offsetBeats;
   const zone = timingZone(off);
   const ms = Math.round(off * band.beat * 1000);

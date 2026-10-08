@@ -33,6 +33,9 @@ export const ACH = [
   { id: 'shells',     vis: 'secret', icon: '\u{1F41A}', name: 'Shell Game',          desc: 'Eight chords in a row with just two notes',        hint: 'Two notes are plenty.' },
   { id: 'planing',    vis: 'secret', icon: '\u{1F17F}\u{FE0F}', name: 'Parallel Parking', desc: 'Four chords in a row with one hand shape, slid around', hint: 'Same shape. New spot.' },
   { id: 'butter',     vis: 'secret', icon: '\u{1F9C8}', name: 'Butter',              desc: 'Eight chords in a row, no voice moving more than a whole step', hint: 'Smooth. Really smooth.' },
+  { id: 'contortionist', vis: 'secret', icon: '\u{1F938}', name: 'Contortionist',  desc: 'Land the same chord with three different notes in the bass in one set', hint: 'Same chord. Turn it over. And again.' },
+  { id: 'upsideDown', vis: 'secret', icon: '\u{1F643}', name: 'Upside Down',         desc: 'Eight chords in a row, never the root in the bass', hint: 'Leave the bottom to the bass player.' },
+  { id: 'evans',      vis: 'secret', icon: '\u{1F3B9}', name: 'Left Hand of Bill',   desc: 'A whole chorus of rootless voicings',             hint: 'Who needs a root? Bill did not.' },
   { id: 'tenFingers', vis: 'secret', icon: '\u{1F590}\u{FE0F}', name: 'All Hands on Deck', desc: 'Land a chord with ten notes and none wrong', hint: 'Count your fingers.' },
   { id: 'basement',   vis: 'secret', icon: '\u{1F573}\u{FE0F}', name: 'Basement Tapes', desc: 'A whole chorus voiced below C3',               hint: 'Down where the pipes rattle.' },
   { id: 'attic',      vis: 'secret', icon: '\u{1F987}', name: 'Attic Ghost',         desc: 'A whole chorus voiced above C6',                   hint: 'Up with the bats.' },
@@ -89,7 +92,8 @@ export class JamTracker {
     this.chorusLen = chorusLen;
     this.chords = [];
     this.chorus = [];
-    this.streaks = { dilla: 0, pushing: 0, atomic: 0, onTheOne: 0, shells: 0, planing: 0, butter: 0 };
+    this.streaks = { dilla: 0, pushing: 0, atomic: 0, onTheOne: 0, shells: 0, planing: 0, butter: 0, upsideDown: 0 };
+    this.inversions = new Map(); // chordId -> bass roles it landed with
     this.lastShape = null;
     this.lastVoicing = null;
     this.hitZero = false;
@@ -101,7 +105,9 @@ export class JamTracker {
   //   grade, offsetBeats, offsetMs, colours (count),
   //   voicing (sorted MIDI notes held when it landed, or null),
   //   velocities (of those notes), wrong, colourIntervals (semitones above
-  //   the root of every colour tone played), quality }
+  //   the root of every colour tone played), quality,
+  //   bass ('root', '3rd', '5th', '7th' or null: see voicing.js),
+  //   tags (voicing tags), chordId (same chord, same id) }
   chord(c) {
     const out = [];
     const s = this.streaks;
@@ -116,6 +122,13 @@ export class JamTracker {
     step('atomic', ok && Math.abs(c.offsetMs) <= ATOMIC_MS, SHORT_STREAK, 'atomic');
     step('onTheOne', this.style === 'funk' && c.grade === 'perfect', STREAK, 'onTheOne');
     step('shells', ok && c.voicing.length === 2, STREAK, 'shells');
+    step('upsideDown', ok && !!c.bass && c.bass !== 'root', STREAK, 'upsideDown');
+    if (ok && c.bass && c.chordId) {
+      const seen = this.inversions.get(c.chordId) || new Set();
+      seen.add(c.bass);
+      this.inversions.set(c.chordId, seen);
+      if (seen.size >= 3) out.push('contortionist');
+    }
 
     const shape = ok && c.voicing.length >= 3 ? shapeOf(c.voicing) : null;
     const slid = shape && shape === this.lastShape && c.voicing[0] !== this.lastVoicing?.[0];
@@ -150,6 +163,7 @@ export class JamTracker {
     if (ch.every((c) => c.grade === 'perfect')) out.push('golden');
     if (!ch.every((c) => landed(c) && c.voicing?.length)) return out;
     if (ch.every((c) => c.colours > 0)) out.push('sauceAll');
+    if (ch.every((c) => c.tags?.includes('rootless'))) out.push('evans');
     if (ch.every((c) => c.voicing.every((m) => m < LOW))) out.push('basement');
     if (ch.every((c) => c.voicing.every((m) => m >= HIGH))) out.push('attic');
     if (this.style === 'ballad' && ch.every((c) => c.velocities?.length && c.velocities.every((v) => v <= LULLABY))) out.push('lullaby');
