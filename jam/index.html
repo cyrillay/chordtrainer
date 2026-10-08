@@ -33,12 +33,17 @@
     <div class="hd-top">
       <a href="../" class="hd-brand" aria-label="Étude, home">
         <span class="hd-name">Étude</span>
-        <span class="hd-opus">Op. 7 No 4</span>
+        <span class="hd-opus">Op. 7 No 6</span>
       </a>
       <div class="hd-actions">
         <button type="button" id="midiBtn" class="hd-btn">
           <span class="hd-dot" aria-hidden="true"></span>
           <span class="hd-midi-label" id="midiLabel">Connect MIDI</span>
+        </button>
+        <button type="button" id="achBtn" class="hd-btn ach-btn" title="Achievements" aria-label="Achievements">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v2h3v3a4 4 0 0 1-4 4h-.34A5 5 0 0 1 13 15.9V18h3v2H8v-2h3v-2.1A5 5 0 0 1 7.34 13H7a4 4 0 0 1-4-4V6h3V4h1zm10 4V6h-2v5a3 3 0 0 0 3-3V8h-1zm-12 0v-2h-1v1a2 2 0 0 0 2 2V8H5z" fill="currentColor"/></svg>
+          <span class="hd-label">Achievements</span>
+          <span class="hd-count" id="achBadge"></span>
         </button>
         <div class="hd-overlay">
           <div class="midi-status" id="midiStatus" aria-live="polite" hidden></div>
@@ -144,6 +149,7 @@
 
     <!-- ==================== PLAY ==================== -->
     <section class="view" id="viewPlay" hidden>
+      <div class="beat-glow" id="beatGlow" aria-hidden="true"></div>
       <div class="hud">
         <div class="hud-cell"><div class="hud-lbl">Score</div><div class="hud-val" id="hudScore">0</div></div>
         <div class="hud-cell hud-combo" id="hudComboCell"><div class="hud-lbl">Combo</div><div class="hud-val"><span id="hudCombo">0</span><small id="hudMult">×1</small></div></div>
@@ -156,6 +162,7 @@
       </div>
 
       <div class="stage" id="stage">
+        <div class="beat-glow in-stage" aria-hidden="true"></div>
         <div class="beat-bulbs" id="beatBulbs"><i></i><i></i><i></i><i></i></div>
         <div class="now-playing">
           <div class="chord-big" id="chordBig">·</div>
@@ -163,12 +170,16 @@
         </div>
         <div class="next-chords" id="nextChords"></div>
         <div class="slot-bar"><div class="slot-fill" id="slotFill"></div></div>
+        <div class="gauge" aria-hidden="true">
+          <div class="gauge-track"><div class="gauge-zones" id="gaugeZones"></div><div class="gauge-ticks" id="gaugeTicks"></div><i class="gauge-cursor" id="gaugeCursor" hidden></i></div>
+          <div class="gauge-legend"><span>Early</span><span class="gauge-readout" id="gaugeReadout"></span><span>Late</span></div>
+        </div>
         <div class="shout-layer" id="shoutLayer" aria-live="polite"></div>
       </div>
 
       <div class="bandstand">
         <div class="ghost-band" id="ghostBand"></div>
-        <div class="energy" id="energyMeter"><span class="energy-lbl">Energy</span><i></i><i></i><i></i><i></i></div>
+        <div class="energy" id="energyMeter"><span class="energy-lbl">Energy</span><i></i><i></i><i></i><i></i><i></i><i></i></div>
       </div>
 
       <div class="kb-frame"><div class="kb" id="keyboard"></div></div>
@@ -199,6 +210,19 @@
     </div>
   </div>
 </div>
+
+<!-- Achievements -->
+<div class="modal" id="achModal" hidden>
+  <div class="modal-box ach-box">
+    <div class="ach-head">
+      <h3 class="ach-title">Achievements <span id="achCount" class="ach-count">0 / 0</span></h3>
+      <button type="button" id="achClose" class="ach-close" aria-label="Close">&times;</button>
+    </div>
+    <div id="achGrid"></div>
+    <button type="button" id="achResetBtn" class="ach-reset">Reset Ghost Jam achievements</button>
+  </div>
+</div>
+<div id="achToast" class="ach-toast" aria-live="polite"></div>
 
 <script type="module" src="js/main.js"></script>
 <script data-goatcounter="https://chordtrainer.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>

@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildChord } from '../js/core/theory.js';
 import { PROGRESSIONS, romanToChord, progressionMode } from '../js/training/progressions.js';
-import { chordTargets, toneRole, SlotJudge, Scorer, multiplier, nextEnergy } from '../jam/js/judge.js';
-import { STYLES, STYLE_ORDER, barEvents, bassRoot, keysVoicing, countIn } from '../jam/js/styles.js';
+import { chordTargets, toneRole, SlotJudge, Scorer, multiplier, nextEnergy, timingZone } from '../jam/js/judge.js';
+import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, partsAt, barEvents, bassRoot, keysVoicing, countIn } from '../jam/js/styles.js';
 
 const pcs = (set) => [...set].sort((a, b) => a - b);
 
@@ -70,7 +70,9 @@ test('scorer: combo, multiplier and band energy', () => {
   s.add({ grade: 'miss', base: 0, bonus: 0 });
   assert.equal(s.combo, 0);
   assert.equal(s.energy, 1);
-  assert.equal(nextEnergy(3, 'perfect', 12), 3);
+  assert.equal(nextEnergy(3, 'perfect', 12), 4);
+  assert.equal(nextEnergy(4, 'perfect', 40), MAX_ENERGY);
+  assert.equal(nextEnergy(4, 'good', 2), 4);      // a short streak keeps who is there
   assert.equal(nextEnergy(0, 'miss', 0), 0);
   assert.ok(['S', 'A', 'B', 'C', 'D'].includes(s.rank));
 });
@@ -82,7 +84,7 @@ test('every groove plays every progression chord in range', () => {
     for (const prog of PROGRESSIONS.slice(0, 40)) {
       const chords = prog.tokens.map((t) => romanToChord(t, 'F#', progressionMode(prog)));
       chords.forEach((chord, i) => {
-        for (const energy of [0, 1, 2, 3]) {
+        for (let energy = 0; energy <= MAX_ENERGY; energy++) {
           const ev = barEvents(id, { chord, next: chords[(i + 1) % chords.length], energy, rng: () => 0.3 });
           for (const d of ev.drums) assert.ok(d.step >= 0 && d.step < style.steps, `${id} drum step`);
           for (const n of ev.bass) {
@@ -90,7 +92,10 @@ test('every groove plays every progression chord in range', () => {
             assert.ok(n.midi >= 26 && n.midi <= 56, `${id} bass ${n.midi} on ${chord.symbol}`);
           }
           for (const k of ev.keys) assert.ok(k.step + k.dur <= style.steps, `${id} keys overflow`);
+          for (const h of [...ev.horns, ...ev.strings]) assert.ok(h.step + h.dur <= style.steps, `${id} horns/strings overflow`);
           if (energy === 0) assert.equal(ev.keys.length, 0);
+          assert.equal(ev.horns.length > 0, energy >= 3, `${id} horns at ${energy}`);
+          assert.equal(ev.strings.length > 0, energy >= 4, `${id} strings at ${energy}`);
         }
       });
     }
@@ -116,4 +121,141 @@ test('voicings: bass root in the low register, keys around middle C', () => {
   const v = keysVoicing(buildChord('D', 'min7'));
   assert.equal(v.length, 3);                       // rootless
   assert.ok(v.every((n) => n >= 53 && n < 65));
+});
+
+test('band tiers: one more player per tier, everyone at the top', () => {
+  assert.equal(TIERS.length, MAX_ENERGY + 1);
+  assert.deepEqual([...partsAt(0)], ['drums', 'bass']);
+  assert.ok(partsAt(1).has('keys') && !partsAt(1).has('perc'));
+  for (let e = 1; e <= MAX_ENERGY; e++) assert.equal(partsAt(e).size, partsAt(e - 1).size + 1);
+  assert.equal(partsAt(99).size, partsAt(MAX_ENERGY).size);
+  // The shaker only plays from its tier on.
+  const chord = buildChord('C', 'maj');
+  for (const id of STYLE_ORDER) {
+    const voices = (e) => new Set(barEvents(id, { chord, energy: e, rng: () => 0.3 }).drums.map((d) => d.voice));
+    const perc = (e) => voices(e).has('shaker') || voices(e).has('tamb');
+    assert.ok(!perc(1) && perc(2), id);
+  }
+});
+
+test('timing zones match the grading windows', () => {
+  assert.equal(timingZone(null), null);
+  assert.equal(timingZone(0), 'perfect');
+  assert.equal(timingZone(-0.2), 'perfect');
+  assert.equal(timingZone(0.25), 'perfect');
+  assert.equal(timingZone(-0.4), 'early');
+  assert.equal(timingZone(0.6), 'good');
+  assert.equal(timingZone(1.4), 'late');
+});
+
+// ---- Achievements ----
+
+import { ACH, JamTracker, smoothMove } from '../jam/js/achievements.js';
+
+const landedChord = (o = {}) => ({
+  grade: 'perfect', offsetBeats: 0, offsetMs: 0, colours: 0, wrong: 0,
+  voicing: [60, 64, 67], velocities: [80, 80, 80], colourIntervals: [], quality: 'maj', ...o,
+});
+const run = (tr, chords) => chords.flatMap((c) => tr.chord(c));
+
+test('achievements: ids are unique and secrets have hints', () => {
+  const ids = ACH.map((a) => a.id);
+  assert.equal(new Set(ids).size, ids.length);
+  for (const a of ACH) {
+    if (a.vis === 'visible') assert.ok(a.metric && a.target, a.id);
+    else assert.ok(a.hint, a.id);
+  }
+});
+
+test('achievements: feel streaks (laid back, pushing, atomic)', () => {
+  let tr = new JamTracker({ style: 'swing', chorusLen: 100 });
+  let ids = run(tr, Array(7).fill(landedChord({ grade: 'good', offsetBeats: 0.5 })));
+  assert.ok(!ids.includes('dilla'));
+  assert.ok(tr.chord(landedChord({ grade: 'good', offsetBeats: 0.5 })).includes('dilla'));
+
+  tr = new JamTracker({ style: 'swing', chorusLen: 100 });
+  ids = run(tr, [...Array(4).fill(landedChord({ offsetBeats: -0.1 })), landedChord({ offsetBeats: 0.1 }), ...Array(4).fill(landedChord({ offsetBeats: -0.1 }))]);
+  assert.ok(!ids.includes('pushing'), 'a hit after the beat breaks the streak');
+
+  tr = new JamTracker({ style: 'swing', chorusLen: 100 });
+  ids = run(tr, [landedChord({ offsetMs: 10 }), landedChord({ offsetMs: -14 }), landedChord({ offsetMs: 3 }), landedChord({ offsetMs: 0 })]);
+  assert.ok(ids.includes('atomic'));
+});
+
+test('achievements: on the one only counts in the funk groove', () => {
+  const eight = Array(8).fill(landedChord());
+  assert.ok(!run(new JamTracker({ style: 'swing', chorusLen: 100 }), eight).includes('onTheOne'));
+  assert.ok(run(new JamTracker({ style: 'funk', chorusLen: 100 }), eight).includes('onTheOne'));
+});
+
+test('achievements: touch (ghost notes, wake the dead)', () => {
+  const tr = new JamTracker({ style: 'swing', chorusLen: 100 });
+  assert.ok(tr.chord(landedChord({ velocities: [20, 30, 35] })).includes('ghostNotes'));
+  assert.ok(tr.chord(landedChord({ velocities: [120, 127, 115] })).includes('wakeDead'));
+  assert.ok(!tr.chord(landedChord({ grade: 'miss', velocities: [20, 30, 35] })).includes('ghostNotes'));
+});
+
+test('achievements: voicings (shells, planing, butter)', () => {
+  let tr = new JamTracker({ style: 'swing', chorusLen: 100 });
+  assert.ok(run(tr, Array(8).fill(landedChord({ voicing: [64, 70], velocities: [80, 80] }))).includes('shells'));
+
+  // Same shape slid to four spots.
+  tr = new JamTracker({ style: 'swing', chorusLen: 100 });
+  const shape = (low) => landedChord({ voicing: [low, low + 4, low + 7] });
+  assert.ok(run(tr, [shape(60), shape(62), shape(65), shape(67)]).includes('planing'));
+  tr = new JamTracker({ style: 'swing', chorusLen: 100 });
+  assert.ok(!run(tr, [shape(60), shape(62), landedChord({ voicing: [60, 63, 67] }), shape(67)]).includes('planing'));
+
+  assert.ok(smoothMove([60, 64, 67], [59, 65, 69]));
+  assert.ok(!smoothMove([60, 64, 67], [60, 64, 70]));
+  assert.ok(!smoothMove([60, 64], [60, 64, 67]));
+  tr = new JamTracker({ style: 'swing', chorusLen: 100 });
+  const ii = [62, 65, 69, 72], V = [62, 65, 67, 71], I = [60, 64, 67, 71];
+  const seq = [ii, V, I, I, ii, V, I, I].map((v) => landedChord({ voicing: v, velocities: v.map(() => 80) }));
+  assert.ok(run(tr, seq).includes('butter'));
+});
+
+test('achievements: colour (hot sauce, altered, sauce on everything)', () => {
+  const tr = new JamTracker({ style: 'swing', chorusLen: 2 });
+  assert.ok(tr.chord(landedChord({ colours: 3 })).includes('hotSauce'));
+  const ids = tr.chord(landedChord({ quality: 'dom7', colours: 2, colourIntervals: [1, 8] }));
+  assert.ok(ids.includes('altered'));
+  assert.ok(ids.includes('sauceAll'), 'both chords of the chorus had colour');
+  assert.ok(!new JamTracker({ style: 'swing', chorusLen: 9 }).chord(landedChord({ quality: 'dom7', colours: 2, colourIntervals: [1, 2] })).includes('altered'));
+});
+
+test('achievements: whole choruses (golden, basement, attic, lullaby)', () => {
+  let tr = new JamTracker({ style: 'ballad', chorusLen: 2 });
+  let ids = run(tr, [landedChord({ velocities: [50, 40, 55] }), landedChord({ velocities: [30, 30, 30] })]);
+  assert.ok(ids.includes('golden'));
+  assert.ok(ids.includes('lullaby'));
+  tr = new JamTracker({ style: 'swing', chorusLen: 2 });
+  ids = run(tr, [landedChord({ voicing: [40, 44, 47] }), landedChord({ voicing: [41, 45, 47], grade: 'good' })]);
+  assert.ok(ids.includes('basement'));
+  assert.ok(!ids.includes('golden'));
+  tr = new JamTracker({ style: 'swing', chorusLen: 2 });
+  assert.ok(run(tr, [landedChord({ voicing: [88, 92, 95] }), landedChord({ voicing: [86, 89, 93] })]).includes('attic'));
+});
+
+test('achievements: back from the dead needs an empty stage first', () => {
+  const tr = new JamTracker({ style: 'swing', chorusLen: 4 });
+  assert.deepEqual(tr.energy(MAX_ENERGY), []);
+  tr.energy(0);
+  assert.deepEqual(tr.energy(MAX_ENERGY), ['lazarus']);
+});
+
+test('achievements: end of the set (stage fright, ghost town, encore, séance)', () => {
+  let tr = new JamTracker({ style: 'swing', chorusLen: 4 });
+  assert.deepEqual(tr.finish({ complete: false, rank: 'D', hour: 20, encore: 0 }), ['stageFright']);
+
+  tr = new JamTracker({ style: 'swing', chorusLen: 4 });
+  run(tr, Array(4).fill(landedChord({ grade: 'miss', voicing: null })));
+  assert.deepEqual(tr.finish({ complete: true, rank: 'D', hour: 20, encore: 0 }), ['ghostTown']);
+
+  tr = new JamTracker({ style: 'swing', chorusLen: 4 });
+  tr.note();
+  run(tr, Array(4).fill(landedChord({ colours: 1 })));
+  const ids = tr.finish({ complete: true, rank: 'S', hour: 3, encore: 2 });
+  assert.ok(ids.includes('encore') && ids.includes('lastOrders') && ids.includes('seance'));
+  assert.ok(!ids.includes('ghostTown'));
 });

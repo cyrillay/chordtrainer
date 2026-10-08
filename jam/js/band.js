@@ -130,9 +130,26 @@ export class Band {
     if (!this.muted.has('drums')) for (const d of ev.drums) this.drum(d.voice, at(d.step), d.vel);
     if (!this.muted.has('bass')) for (const n of ev.bass) this.bassNote(n.midi, at(n.step), n.dur * stepDur);
     if (!this.muted.has('keys')) for (const k of ev.keys) this.keysChord(k.notes, at(k.step), k.dur * stepDur);
+    for (const h of ev.horns) this.hornStab(h.notes, at(h.step), h.dur * stepDur);
+    for (const p of ev.strings) this.strings(p.notes, at(p.step), p.dur * stepDur);
     for (const n of ev.lead) this.bell(n.midi, at(n.step), n.dur * stepDur);
     // Crash on the top of each chorus once the band is cooking.
     if (this.energy >= 2 && cur.first && cur.index === 0 && cur.chorus > 0) this.drum('crash', t0, 0.8);
+  }
+
+  // The band answers a chord you nailed. On the downbeat when it is still
+  // ahead (you anticipated), otherwise on the next eighth note, like a
+  // drummer catching your hit.
+  accent(hitAt, downbeat) {
+    if (!this.bus || !this.ctx) return;
+    const now = this.ctx.currentTime + 0.02;
+    let t = downbeat;
+    if (t < now) {
+      const eighth = this.beat / 2;
+      t = downbeat + Math.ceil((Math.max(now, hitAt) - downbeat) / eighth) * eighth;
+    }
+    this.drum('kick', t, 1);
+    this.drum(this.energy >= 3 ? 'crash' : 'snare', t, 0.9);
   }
 
   // Last chord rings out with a cymbal, then the set is over.
@@ -313,6 +330,22 @@ export class Band {
         this.noiseSrc(t, 0.3, this.filter('bandpass', 3800, 0.6)).connect(g);
         break;
       }
+      case 'shaker': {
+        const g = this.env(t, { a: 0.012, peak: 0.07 * vel, d: 0.07 });
+        g.connect(out);
+        this.noiseSrc(t, 0.1, this.filter('bandpass', 6500, 1.2)).connect(g);
+        break;
+      }
+      case 'tamb': {
+        const g = this.env(t, { peak: 0.11 * vel, d: 0.16 });
+        g.connect(out);
+        this.noiseSrc(t, 0.2, this.filter('highpass', 6800)).connect(g);
+        const jingle = this.env(t, { peak: 0.025 * vel, d: 0.14 });
+        jingle.connect(out);
+        this.osc('square', 5200, t, t + 0.15, jingle);
+        this.osc('square', 6900, t, t + 0.15, jingle);
+        break;
+      }
       case 'sticks': {
         const g = this.env(t, { peak: 0.3 * vel, d: 0.04 });
         g.connect(out);
@@ -406,6 +439,37 @@ export class Band {
         this.osc('sine', f * 3, t, t + 0.2, g);
         break;
       }
+    }
+  }
+
+  // ---- Horns and strings ----
+
+  hornStab(notes, t, dur) {
+    const out = this.bus?.input;
+    if (!out) return;
+    const len = Math.max(0.1, dur * 0.85);
+    for (const m of notes) {
+      const f = hz(m);
+      const g = this.env(t, { a: 0.03, peak: 0.055, d: 0.08, s: 0.75, hold: Math.max(0, len - 0.12), r: 0.09 });
+      const lp = this.filter('lowpass', 900, 2);
+      lp.frequency.setValueAtTime(700, t);
+      lp.frequency.exponentialRampToValueAtTime(2600, t + 0.05);
+      lp.frequency.exponentialRampToValueAtTime(1300, t + 0.25);
+      lp.connect(g).connect(out);
+      this.osc('sawtooth', f, t, t + len + 0.1, lp, -6);
+      this.osc('sawtooth', f, t, t + len + 0.1, lp, 6);
+    }
+  }
+
+  strings(notes, t, dur) {
+    const out = this.bus?.input;
+    if (!out) return;
+    for (const m of notes) {
+      const f = hz(m);
+      const g = this.env(t, { a: 0.4, peak: 0.035, d: 0.2, s: 0.85, hold: Math.max(0, dur - 0.7), r: 0.5 });
+      const lp = this.filter('lowpass', 2000);
+      lp.connect(g).connect(out);
+      for (const det of [-9, 0, 9]) this.osc('sawtooth', f, t, t + dur + 0.6, lp, det);
     }
   }
 

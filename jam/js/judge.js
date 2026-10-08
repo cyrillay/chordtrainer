@@ -60,6 +60,17 @@ export const COLOUR_BONUS = 25;
 // Timing windows, in beats from the chord's downbeat.
 export const WINDOW = { antic: 0.5, perfect: 0.25, good: 1 };
 
+// Where a hit lands on the timing gauge, in beats from the downbeat.
+// Anything before -antic belongs to the previous chord.
+export function timingZone(offsetBeats) {
+  const o = offsetBeats;
+  if (o === null || o === undefined) return null;
+  if (Math.abs(o) <= WINDOW.perfect) return 'perfect';
+  if (o < 0) return 'early';
+  if (o <= WINDOW.good) return 'good';
+  return 'late';
+}
+
 export class SlotJudge {
   constructor({ chord, start, end, beatMs }) {
     this.chord = chord;
@@ -113,13 +124,14 @@ export function multiplier(combo) {
   return Math.min(8, 1 + Math.floor(combo / 4));
 }
 
-// Band energy 0..3. Starts at 1 (drums, bass, keys); a miss drops a level,
-// a streak brings the extras in.
+// Band energy 0..5 (see TIERS in styles.js). Starts at 1 (drums, bass,
+// keys); every 4 chords in a row brings one more player in, a miss sends
+// one home.
+export const ENERGY_STEP = 4;
 export function nextEnergy(energy, grade, combo) {
   if (grade === 'miss') return Math.max(0, energy - 1);
-  if (combo >= 12) return 3;
-  if (combo >= 4) return Math.max(energy, 2);
-  return Math.max(energy, 1);
+  const earned = Math.min(5, 1 + Math.floor(combo / ENERGY_STEP));
+  return Math.max(energy, earned);
 }
 
 export class Scorer {
