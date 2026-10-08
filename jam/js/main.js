@@ -14,6 +14,8 @@ import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, partsAt } from './styles.js';
 import { SlotJudge, Scorer, chordTargets, toneRole, multiplier, timingZone, WINDOW } from './judge.js';
 import { Band } from './band.js';
 import { sprite } from './sprites.js';
+import { JamTracker } from './achievements.js';
+import { initTrophyCase, grant, bump, setMax, setFinished } from './trophyCase.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -179,6 +181,7 @@ function keyState(midi, role) {
 
 let midiState = 'off';
 const held = new Map(); // midi -> role
+const velocities = new Map(); // midi -> velocity of the held key
 
 function midiStatus({ state, names }) {
   midiState = state === 'none' ? 'nodevice' : state;
@@ -212,7 +215,8 @@ let game = null;
 
 function hiFor(key) { return scores[key]?.score || 0; }
 
-function startGame() {
+// again: replay the last set as it was (same tune, same key).
+function startGame({ again = false } = {}) {
   if (midiState !== 'connected') {
     const gate = $('midiGate');
     gate.classList.remove('shake');
@@ -221,8 +225,9 @@ function startGame() {
     if (midiState === 'off') connect();
     return;
   }
-  const prog = tuneByName(settings.tune);
-  const key = resolveKey();
+  const last = again && game ? game : null;
+  const prog = last ? last.prog : tuneByName(settings.tune);
+  const key = last ? last.key : resolveKey();
   const chords = buildChords(prog, key);
   const style = STYLES[settings.style];
   const tempo = Number($('tempoRange').value);
@@ -241,6 +246,9 @@ function startGame() {
     totalSlots: Number.isFinite(choruses) ? chords.length * choruses : Infinity,
     raf: 0,
     over: false,
+    hits: new Map(),        // slot index -> { voicing, velocities } when it landed
+    tracker: new JamTracker({ style: settings.style, chorusLen: chords.length }),
+    encore: last ? last.encore + 1 : 0,
   };
 
   $('viewSetup').hidden = true;
@@ -303,10 +311,12 @@ function heldPcs() {
   return new Set([...held.keys()].map((m) => m % 12));
 }
 
-function onNoteOn(midi, velocity, tPerf = performance.now()) {
+function onNoteOn(midi, velocity = 80, tPerf = performance.now()) {
   held.set(midi, null);
+  velocities.set(midi, velocity);
   let role = 'tone';
   if (game && !game.over && band.ctx) {
+    game.tracker.note();
     const t = toAudioTime(tPerf);
     const k = slotAt(t);
     const j = judgeFor(k);
@@ -323,6 +333,7 @@ function onNoteOn(midi, velocity, tPerf = performance.now()) {
 
 function onNoteOff(midi) {
   held.delete(midi);
+  velocities.delete(midi);
   keyState(midi, null);
 }
 
@@ -444,8 +455,26 @@ function grade(k) {
   const gained = game.scorer.add(res);
   band.energy = game.scorer.energy;
   if (band.energy !== prevEnergy) renderEnergy(band.energy);
+  trackChord(k, j, res);
   shout(res, gained);
   renderHud();
+}
+
+// Feed a graded chord (and any change of energy) to the achievements.
+function trackChord(k, j, res) {
+  const hit = game.hits.get(k);
+  const root = j.targets.root;
+  const ids = game.tracker.chord({
+    ...res,
+    offsetMs: res.offsetBeats === null ? null : res.offsetBeats * band.beat * 1000,
+    voicing: hit?.voicing || null,
+    velocities: hit?.velocities || null,
+    colourIntervals: [...j.colours].map((pc) => (pc - root + 12) % 12),
+    quality: j.chord.quality,
+  });
+  ids.push(...game.tracker.energy(game.scorer.energy));
+  setMax('energy', game.scorer.energy);
+  if (ids.length) grant(ids);
 }
 
 function shout(res, gained) {
@@ -546,6 +575,8 @@ function moveGaugeCursor(k, heard) {
 const ZONE_WORD = { early: 'Early', perfect: 'On the beat', good: 'A bit late', late: 'Late' };
 
 function onHit(k, j) {
+  const voicing = [...held.keys()].sort((a, b) => a - b);
+  game.hits.set(k, { voicing, velocities: voicing.map((m) => velocities.get(m) ?? 80) });
   const off = j.offsetBeats;
   const zone = timingZone(off);
   const ms = Math.round(off * band.beat * 1000);
@@ -595,6 +626,19 @@ function finish() {
     <div><b>${s.bestCombo}</b><span>Best combo</span></div>
     <div><b>${Math.round(s.accuracy * 100)}%</b><span>Accuracy</span></div>`;
   $('resultModal').hidden = false;
+  trackFinish();
+}
+
+function trackFinish() {
+  const s = game.scorer;
+  const complete = Number.isFinite(game.totalSlots) ? game.finalized >= game.totalSlots : game.finalized >= game.chords.length;
+  const ids = game.tracker.finish({ complete, rank: s.rank, hour: new Date().getHours(), encore: game.encore });
+  if (complete && s.total > 0) {
+    bump('sets');
+    if (s.rank === 'S') ids.push('busted');
+    setFinished(game.style, s.rank);
+  }
+  if (ids.length) grant(ids);
 }
 
 function stopGame() {
@@ -611,9 +655,9 @@ function backToSetup() {
   renderSetup();
 }
 
-$('playBtn').addEventListener('click', startGame);
+$('playBtn').addEventListener('click', () => startGame());
 $('stopBtn').addEventListener('click', stopGame);
-$('resultAgainBtn').addEventListener('click', () => { $('resultModal').hidden = true; startGame(); });
+$('resultAgainBtn').addEventListener('click', () => { $('resultModal').hidden = true; startGame({ again: true }); });
 $('resultBackBtn').addEventListener('click', backToSetup);
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && game && !params.has('keys')) backToSetup();
@@ -621,6 +665,7 @@ document.addEventListener('keydown', (e) => {
 
 // ---- Boot ----
 
+initTrophyCase();
 renderSetup();
 if (params.has('keys')) {
   attachComputerKeyboard({ onNoteOn, onNoteOff });
