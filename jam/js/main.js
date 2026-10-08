@@ -18,13 +18,14 @@ import { sprite, MAPS } from './sprites.js';
 import { track, logRun } from '../../js/stats/log.js';
 import { JamTracker } from './achievements.js';
 import { initTrophyCase, grant, bump, setMax, setFinished } from './trophyCase.js';
+import { isFavourite, toggleFavourite, removeFavourite, cleanFavourites } from './favourites.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
 
 // ---- Settings + high scores ----
 
-const LS = { settings: 'ghostJam.settings', scores: 'ghostJam.scores', midi: 'ghostJam.midiAuto', guests: 'ghostJam.guestsMet' };
+const LS = { settings: 'ghostJam.settings', scores: 'ghostJam.scores', midi: 'ghostJam.midiAuto', guests: 'ghostJam.guestsMet', favs: 'ghostJam.favourites' };
 const read = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
 const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } };
 
@@ -33,6 +34,9 @@ const settings = Object.assign({
 }, read(LS.settings, {}));
 let scores = read(LS.scores, {});
 const guestsMet = new Set(read(LS.guests, []));
+let favs = cleanFavourites(read(LS.favs, []), {
+  tunes: new Set(PROGRESSIONS.map((p) => p.name)), styles: new Set(STYLE_ORDER), keys: new Set(NOTE_NAMES),
+});
 const scoreKey = () => `${settings.tune}|${settings.style}`;
 const save = () => write(LS.settings, settings);
 
@@ -65,6 +69,10 @@ function buildChords(prog, key) {
   return prog.tokens.map((t) => romanToChord(t, key, mode)).filter(Boolean);
 }
 
+// Major or minor is part of the tune (a minor ii–V–i is not a major one
+// played darker), so the key menu picks the tonic and names the mode.
+const keyName = (key, prog) => `${NOTE_DISPLAY[key]} ${progressionMode(prog)}`;
+
 // ---- Setup view ----
 
 const STYLE_ICONS = { swing: '🎷', bossa: '🌴', lofi: '📼', ballad: '🕯️', funk: '🕺', reggae: '🌿' };
@@ -87,12 +95,6 @@ function renderSetup() {
   }
   sel.value = tuneByName(settings.tune).name;
 
-  const keySel = $('keySelect');
-  if (!keySel.options.length) {
-    keySel.innerHTML = '<option value="random">Random</option>' + NOTE_NAMES.map((n) => `<option value="${n}">${NOTE_DISPLAY[n]}</option>`).join('');
-  }
-  keySel.value = settings.key;
-
   const st = STYLES[settings.style];
   const tempo = settings.tempo ?? st.tempo.def;
   const range = $('tempoRange');
@@ -103,8 +105,27 @@ function renderSetup() {
   $('barsSelect').value = String(settings.bars);
   $('lengthSelect').value = String(settings.length);
   $('showTonesCb').checked = settings.showTones;
-  renderTunePreview();
+  renderCombo();
   renderHall();
+}
+
+// Everything that follows the groove, tune and key: the key menu, the
+// preview and the favourites.
+function renderCombo() {
+  renderKeyMenu();
+  renderTunePreview();
+  renderFavs();
+}
+
+function renderKeyMenu() {
+  const prog = tuneByName(settings.tune);
+  const mode = progressionMode(prog);
+  const keySel = $('keySelect');
+  if (keySel.dataset.mode !== mode) {
+    keySel.innerHTML = '<option value="random">Random</option>' + NOTE_NAMES.map((n) => `<option value="${n}">${keyName(n, prog)}</option>`).join('');
+    keySel.dataset.mode = mode;
+  }
+  keySel.value = settings.key;
 }
 
 function renderTunePreview() {
@@ -113,8 +134,79 @@ function renderTunePreview() {
   const chords = buildChords(prog, key);
   const best = scores[scoreKey()];
   $('tunePreview').innerHTML = `<span class="tp-chords">${chords.map((c) => `<span>${formatChordHtml(c)}</span>`).join('')}</span>`
-    + `<span class="tp-meta">${settings.key === 'random' ? 'Shown in C, played in a random key' : `In ${NOTE_DISPLAY[key]}`}${fitsStyle(prog, settings.style) ? '' : ` · Off-style for ${STYLES[settings.style].name}`}${best ? ` · Best ${best.score.toLocaleString()} (${best.rank})` : ''}</span>`;
+    + `<span class="tp-meta">${settings.key === 'random' ? `Shown in ${keyName('C', prog)}, played in a random key` : `In ${keyName(key, prog)}`}${fitsStyle(prog, settings.style) ? '' : ` · Off-style for ${STYLES[settings.style].name}`}${best ? ` · Best ${best.score.toLocaleString()} (${best.rank})` : ''}</span>`;
 }
+
+// ---- Favourites: a groove, a tune and a key, one tap away ----
+
+const combo = () => ({ style: settings.style, tune: settings.tune, key: settings.key });
+
+function renderFavs() {
+  $('favs').hidden = !favs.length;
+  const now = combo();
+  $('favList').innerHTML = favs.map((f, i) => {
+    const prog = tuneByName(f.tune);
+    const on = isFavourite([f], now);
+    const key = f.key === 'random' ? 'Random key' : keyName(f.key, prog);
+    return `<span class="fav${on ? ' is-on' : ''}">
+      <button type="button" class="fav-go" data-fav="${i}"><span class="fav-tune">${f.tune}</span><span class="fav-meta">${STYLE_ICONS[f.style]} ${STYLES[f.style].name} · ${key}</span></button>
+      <button type="button" class="fav-x" data-unfav="${i}" aria-label="Remove ${f.tune.replace(/"/g, '&quot;')} from favourites">&times;</button>
+    </span>`;
+  }).join('');
+  const starred = isFavourite(favs, now);
+  const btn = $('favBtn');
+  btn.setAttribute('aria-pressed', String(starred));
+  btn.title = starred ? 'Remove from your favourites' : 'Add this groove, tune and key to your favourites';
+}
+
+$('favBtn').addEventListener('click', () => {
+  favs = toggleFavourite(favs, combo());
+  write(LS.favs, favs);
+  renderFavs();
+});
+$('favList').addEventListener('click', (e) => {
+  const x = e.target.closest('[data-unfav]');
+  if (x) {
+    favs = removeFavourite(favs, Number(x.dataset.unfav));
+    write(LS.favs, favs);
+    renderFavs();
+    return;
+  }
+  const go = e.target.closest('[data-fav]');
+  if (!go) return;
+  const f = favs[Number(go.dataset.fav)];
+  const prevStyle = settings.style;
+  if (f.style !== prevStyle) settings.tempo = null;
+  Object.assign(settings, f);
+  save();
+  renderSetup();
+  if (f.style !== prevStyle) grooveTip(f.style);
+});
+
+// ---- Groove tips: a small note when a groove wants a sound from your keyboard ----
+
+const GROOVE_TIPS = {
+  funk: { icon: '🎹', title: 'Funk tip', text: 'Switch your keyboard to its Clav sound. Funk on a Clav is pure gold.' },
+};
+let tipTimer = 0;
+function grooveTip(style) {
+  const tip = GROOVE_TIPS[style];
+  const el = $('grooveTip');
+  clearTimeout(tipTimer);
+  if (!tip) { hideTip(); return; }
+  el.innerHTML = `<span class="groove-tip-icon" aria-hidden="true">${tip.icon}</span><span><b>${tip.title}</b>${tip.text}</span>`;
+  el.hidden = false;
+  void el.offsetWidth;
+  el.classList.add('visible');
+  tipTimer = setTimeout(hideTip, 5000);
+}
+function hideTip() {
+  const el = $('grooveTip');
+  clearTimeout(tipTimer);
+  el.classList.remove('visible');
+  tipTimer = setTimeout(() => { el.hidden = true; }, 400);
+}
+$('grooveTip').addEventListener('click', hideTip);
 
 function renderHall() {
   const rows = Object.entries(scores)
@@ -129,6 +221,7 @@ function renderHall() {
 $('styleGrid').addEventListener('click', (e) => {
   const card = e.target.closest('[data-style]');
   if (!card) return;
+  if (card.dataset.style !== settings.style) grooveTip(card.dataset.style);
   settings.style = card.dataset.style;
   settings.tempo = null; // each groove has its own home tempo
   // A new groove keeps the tune only if it suits it.
@@ -136,13 +229,13 @@ $('styleGrid').addEventListener('click', (e) => {
   save();
   renderSetup();
 });
-$('tuneSelect').addEventListener('change', (e) => { settings.tune = e.target.value; save(); renderTunePreview(); });
+$('tuneSelect').addEventListener('change', (e) => { settings.tune = e.target.value; save(); renderCombo(); });
 $('randomTuneBtn').addEventListener('click', () => {
   settings.tune = randomTune(settings.style);
   save();
   renderSetup();
 });
-$('keySelect').addEventListener('change', (e) => { settings.key = e.target.value; save(); renderTunePreview(); });
+$('keySelect').addEventListener('change', (e) => { settings.key = e.target.value; save(); renderCombo(); });
 $('tempoRange').addEventListener('input', (e) => { settings.tempo = Number(e.target.value); $('tempoVal').textContent = e.target.value; save(); });
 $('barsSelect').addEventListener('change', (e) => { settings.bars = Number(e.target.value); save(); });
 $('lengthSelect').addEventListener('change', (e) => { settings.length = Number(e.target.value); save(); });
@@ -259,7 +352,8 @@ let game = null;
 function hiFor(key) { return scores[key]?.score || 0; }
 
 // again: replay the last set as it was (same tune, same key).
-function startGame({ again = false } = {}) {
+// restart: the same, but the set was cut short, so it is no encore.
+function startGame({ again = false, restart = false } = {}) {
   if (midiState !== 'connected') {
     const gate = $('midiGate');
     gate.classList.remove('shake');
@@ -291,14 +385,14 @@ function startGame({ again = false } = {}) {
     over: false,
     hits: new Map(),        // slot index -> { voicing, velocities } when it landed
     tracker: new JamTracker({ style: settings.style, chorusLen: chords.length }),
-    encore: last ? last.encore + 1 : 0,
+    encore: last ? last.encore + (restart ? 0 : 1) : 0,
   };
 
   $('viewSetup').hidden = true;
   $('viewPlay').hidden = false;
   $('resultModal').hidden = true;
   $('tuneTitle').textContent = prog.name;
-  $('tuneMeta').textContent = `${style.name} · ${NOTE_DISPLAY[key]} · ${tempo} bpm${style.anchor ? ' · Play on the and' : ''}`;
+  $('tuneMeta').textContent = `${style.name} · ${keyName(key, prog)} · ${tempo} bpm${style.anchor ? ' · Play on the and' : ''}`;
   $('ghostBand').innerHTML = BAND.map((m) => ghostHtml(m, settings.style)).join('');
   $('hudHi').textContent = hiFor(game.scoreKey).toLocaleString();
   renderHud();
@@ -671,7 +765,7 @@ function finish() {
       acc: +s.accuracy.toFixed(3), combo: s.bestCombo, ...s.counts,
     });
   }
-  $('resultEyebrow').textContent = `${game.prog.name} · ${STYLES[game.style].name} · ${NOTE_DISPLAY[game.key]}`;
+  $('resultEyebrow').textContent = `${game.prog.name} · ${STYLES[game.style].name} · ${keyName(game.key, game.prog)}`;
   $('resultRank').textContent = s.total ? s.rank : '·';
   $('resultRank').dataset.rank = s.rank;
   $('resultScore').textContent = s.score.toLocaleString();
@@ -705,6 +799,16 @@ function stopGame() {
   if (!game.over) finish();
 }
 
+// Start the set over from the count-in, same tune and key. The cut set is
+// dropped: no results screen, no high score.
+function restartGame() {
+  if (!game) return;
+  if (!game.over) { game.over = true; cancelAnimationFrame(game.raf); band.stop(); }
+  $('shoutLayer').innerHTML = '';
+  for (const b of document.querySelectorAll('.tier-banner')) b.remove();
+  startGame({ again: true, restart: true });
+}
+
 function backToSetup() {
   if (game && !game.over) { game.over = true; cancelAnimationFrame(game.raf); band.stop(); }
   game = null;
@@ -716,6 +820,7 @@ function backToSetup() {
 
 $('playBtn').addEventListener('click', () => startGame());
 $('stopBtn').addEventListener('click', stopGame);
+$('restartBtn').addEventListener('click', restartGame);
 $('resultAgainBtn').addEventListener('click', () => { $('resultModal').hidden = true; startGame({ again: true }); });
 $('resultBackBtn').addEventListener('click', backToSetup);
 document.addEventListener('keydown', (e) => {
@@ -735,5 +840,5 @@ if (params.has('keys')) {
 
 // ?debug exposes hooks for automated tests.
 if (params.has('debug')) {
-  window.__jam = { band, get game() { return game; }, onNoteOn, onNoteOff, startGame, finish, midiStatus };
+  window.__jam = { band, get game() { return game; }, onNoteOn, onNoteOff, startGame, restartGame, finish, midiStatus };
 }

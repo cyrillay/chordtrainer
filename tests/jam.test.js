@@ -303,3 +303,24 @@ test('tunes: bebop stays in swing, baroque stays out of funk', () => {
   assert.ok(!fitsStyle(byName('Smoke on the Water'), 'bossa'));
   assert.ok(fitsStyle(byName('Dorian vamp'), 'funk'));
 });
+
+test('favourites: toggle, newest first, capped, cleaned', async () => {
+  const { toggleFavourite, isFavourite, removeFavourite, cleanFavourites, MAX_FAVOURITES } = await import('../jam/js/favourites.js');
+  const a = { style: 'funk', tune: 'Dorian vamp', key: 'E' };
+  const b = { style: 'swing', tune: 'Autumnal', key: 'random' };
+  let favs = toggleFavourite([], a);
+  favs = toggleFavourite(favs, b);
+  assert.deepEqual(favs, [b, a]);
+  assert.ok(isFavourite(favs, { ...a }));
+  assert.ok(!isFavourite(favs, { ...a, key: 'F' }));   // another key is another combo
+  favs = toggleFavourite(favs, a);
+  assert.deepEqual(favs, [b]);
+  assert.deepEqual(removeFavourite([a, b], 0), [b]);
+  let many = [];
+  for (let i = 0; i < MAX_FAVOURITES + 3; i++) many = toggleFavourite(many, { ...a, tune: `t${i}` });
+  assert.equal(many.length, MAX_FAVOURITES);
+  const ctx = { tunes: new Set(['Autumnal']), styles: new Set(['swing']), keys: new Set(['C']) };
+  assert.deepEqual(cleanFavourites([b, { ...b, tune: 'Gone' }, { ...b, key: 'H' }, null, { ...b, key: 'C', extra: 1 }], ctx),
+    [b, { ...b, key: 'C' }]);
+  assert.deepEqual(cleanFavourites('junk', ctx), []);
+});

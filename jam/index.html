@@ -33,7 +33,7 @@
     <div class="hd-top">
       <a href="../" class="hd-brand" aria-label="Étude, home">
         <span class="hd-name">Étude</span>
-        <span class="hd-opus">Op. 7 No 10</span>
+        <span class="hd-opus">Op. 7 No 11</span>
       </a>
       <div class="hd-actions">
         <button type="button" id="midiBtn" class="hd-btn">
@@ -88,6 +88,11 @@
       </div>
 
       <div class="cabinet">
+        <div class="favs" id="favs" hidden>
+          <div class="favs-title">Favourites</div>
+          <div class="fav-list" id="favList"></div>
+        </div>
+
         <div class="step-label"><span>1</span> Pick a groove</div>
         <div class="style-grid" id="styleGrid"></div>
 
@@ -95,6 +100,9 @@
         <div class="tune-row">
           <select id="tuneSelect" class="arcade-select" aria-label="Progression"></select>
           <button type="button" class="arcade-btn small ghosty" id="randomTuneBtn" title="Random tune">Shuffle</button>
+          <button type="button" class="arcade-btn small ghosty icon-btn fav-btn" id="favBtn" aria-pressed="false" title="Add this groove, tune and key to your favourites" aria-label="Favourite">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          </button>
         </div>
         <div class="tune-preview" id="tunePreview"></div>
 
@@ -150,15 +158,23 @@
     <!-- ==================== PLAY ==================== -->
     <section class="view" id="viewPlay" hidden>
       <div class="beat-glow" id="beatGlow" aria-hidden="true"></div>
+      <div class="tune-bar">
+        <div class="tune-info">
+          <span id="tuneTitle">Autumnal</span>
+          <span class="tune-meta" id="tuneMeta">Swing · C · 132 bpm</span>
+          <span class="tune-chorus" id="tuneChorus">Count-in</span>
+        </div>
+        <div class="play-actions">
+          <button type="button" class="arcade-btn small ghosty icon-btn" id="restartBtn" title="Restart from the count-in" aria-label="Restart">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M4 3v5h5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button type="button" class="arcade-btn small ghosty" id="stopBtn">Stop</button>
+        </div>
+      </div>
       <div class="hud">
         <div class="hud-cell"><div class="hud-lbl">Score</div><div class="hud-val" id="hudScore">0</div></div>
         <div class="hud-cell hud-combo" id="hudComboCell"><div class="hud-lbl">Combo</div><div class="hud-val"><span id="hudCombo">0</span><small id="hudMult">×1</small></div></div>
         <div class="hud-cell"><div class="hud-lbl">Hi</div><div class="hud-val" id="hudHi">0</div></div>
-      </div>
-      <div class="tune-bar">
-        <span id="tuneTitle">Autumnal</span>
-        <span class="tune-meta" id="tuneMeta">Swing · C · 132 bpm</span>
-        <span class="tune-chorus" id="tuneChorus">Count-in</span>
       </div>
 
       <div class="stage" id="stage">
@@ -183,10 +199,6 @@
       </div>
 
       <div class="kb-frame"><div class="kb" id="keyboard"></div></div>
-
-      <div class="play-actions">
-        <button type="button" class="arcade-btn small ghosty" id="stopBtn">Stop</button>
-      </div>
     </section>
 
   </main>
@@ -223,6 +235,7 @@
   </div>
 </div>
 <div id="achToast" class="ach-toast" aria-live="polite"></div>
+<div id="grooveTip" class="groove-tip" role="status" aria-live="polite" hidden></div>
 
 <script type="module" src="js/main.js"></script>
 <script data-goatcounter="https://chordtrainer.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>

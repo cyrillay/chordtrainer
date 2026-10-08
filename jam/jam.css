@@ -134,6 +134,11 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
   border-color: var(--cyan);
   box-shadow: 0 0 14px rgba(24, 240, 255, 0.3), inset 0 0 10px rgba(24, 240, 255, 0.15);
 }
+/* Square icon buttons (restart, favourite). */
+.arcade-btn.icon-btn { display: inline-grid; place-items: center; padding: 0; width: 2.6rem; height: 2.6rem; }
+.icon-btn svg { width: 1.2rem; height: 1.2rem; }
+.fav-btn[aria-pressed="true"] { color: var(--amber); border-color: var(--amber); box-shadow: 0 0 14px rgba(255, 176, 0, 0.45), inset 0 0 10px rgba(255, 176, 0, 0.2); }
+.fav-btn[aria-pressed="true"] path { fill: currentColor; }
 .arcade-btn.big {
   display: flex;
   align-items: center;
@@ -401,6 +406,19 @@ body.beat-odd .ghost-band .ghost:nth-child(even) .sprite { transform: translateY
 .tp-meta { font-size: 1rem; color: var(--ivory-dim); }
 .accent { color: inherit; }
 
+.favs { margin-bottom: 1.4rem; }
+.favs-title { font-family: var(--font-display); font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--amber); text-shadow: 0 0 8px rgba(255, 176, 0, 0.55); margin-bottom: 0.6rem; }
+.favs-title::before { content: "★ "; }
+.fav-list { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.fav { display: inline-flex; align-items: stretch; border: 1px solid rgba(255, 176, 0, 0.55); border-radius: 6px; background: rgba(0, 0, 0, 0.3); }
+.fav.is-on { border-color: var(--amber); box-shadow: 0 0 12px rgba(255, 176, 0, 0.45); }
+.fav-go { display: inline-flex; align-items: baseline; gap: 0.45rem; padding: 0.2rem 0.3rem 0.2rem 0.6rem; font-size: 1.1rem; line-height: 1.1; text-align: left; }
+.fav-go:hover .fav-tune { color: var(--amber); }
+.fav-tune { color: var(--ivory); }
+.fav-meta { color: var(--ivory-dim); }
+.fav-x { padding: 0 0.5rem; font-size: 1.2rem; color: var(--ivory-dim); }
+.fav-x:hover { color: var(--crimson); }
+
 .knobs { display: grid; grid-template-columns: 1fr 2fr 1fr 1fr; gap: 0.9rem; align-items: end; }
 @media (max-width: 700px) { .knobs { grid-template-columns: 1fr 1fr; } .knob-wide { grid-column: 1 / -1; } }
 .knob { display: flex; flex-direction: column; gap: 0.35rem; }
@@ -445,7 +463,9 @@ body.beat-odd .ghost-band .ghost:nth-child(even) .sprite { transform: translateY
 .hud-combo.is-blazing { border-color: var(--pink); animation: blaze 0.5s ease-in-out infinite alternate; }
 @keyframes blaze { to { box-shadow: 0 0 26px rgba(255, 46, 136, 0.8); } }
 
-.tune-bar { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; align-items: baseline; justify-content: center; margin-bottom: 0.8rem; }
+/* Tune on the left, Restart and Stop on the right: always in reach, no scrolling. */
+.tune-bar { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.8rem; }
+.tune-info { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 0.2rem 1rem; align-items: baseline; }
 #tuneTitle { color: #fff; font-size: 1.4rem; }
 .tune-meta { color: var(--ivory-dim); }
 .tune-chorus { font-family: var(--font-display); font-size: 0.5rem; color: var(--lime); text-transform: uppercase; letter-spacing: 0.1em; }
@@ -643,7 +663,7 @@ body[data-energy="3"] .beat-glow { --glow: 0.55; }
 .is-down.is-colour { background: var(--orange); box-shadow: 0 0 16px var(--orange); }
 .is-down.is-wrong { background: var(--crimson); box-shadow: 0 0 16px var(--crimson); }
 
-.play-actions { display: flex; justify-content: center; margin-top: 1.2rem; }
+.play-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
 
 /* ---------- results ---------- */
 
@@ -736,3 +756,21 @@ body[data-energy="3"] .beat-glow { --glow: 0.55; }
   .ghost .sprite { width: 74px; height: auto; }
   .sg .sprite { width: auto; }
 }
+
+/* A groove tip (Funk: switch to a Clav). Slides in at the bottom, leaves on its own. */
+.groove-tip {
+  position: fixed; left: 50%; bottom: 1.2rem; z-index: 70;
+  display: flex; align-items: center; gap: 0.7rem;
+  width: max-content; max-width: calc(100vw - 2rem);
+  padding: 0.55rem 0.9rem;
+  border: 2px solid var(--orange); border-radius: 10px;
+  background: #0f0719;
+  box-shadow: 0 0 20px rgba(255, 159, 28, 0.35);
+  font-size: 1.1rem; line-height: 1.15;
+  opacity: 0; transform: translate(-50%, 12px);
+  transition: opacity 0.35s, transform 0.35s;
+  cursor: pointer;
+}
+.groove-tip.visible { opacity: 1; transform: translate(-50%, 0); }
+.groove-tip-icon { font-size: 1.6rem; line-height: 1; }
+.groove-tip b { font-family: var(--font-display); font-size: 0.5rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--orange); font-weight: 400; display: block; margin-bottom: 0.2rem; }
