@@ -422,6 +422,32 @@ body.beat-odd .ghost-band .ghost:nth-child(even) .sprite { transform: translateY
 @keyframes flashGood { from { box-shadow: 0 0 60px rgba(182, 255, 59, 0.7), inset 0 0 60px rgba(182, 255, 59, 0.25); } }
 @keyframes flashBad { from { box-shadow: 0 0 60px rgba(255, 59, 59, 0.8), inset 0 0 60px rgba(255, 59, 59, 0.3); } 30% { transform: translateX(-6px); } 60% { transform: translateX(5px); } }
 
+
+/* The stage: a velvet valance on top and two curtains that open when the
+   band starts and close on the last chord. */
+.stage { --velvet: #a3123a; --velvet-dark: #4a0619; }
+.valance {
+  position: absolute; left: 0; right: 0; top: 0; z-index: 6; height: 16px;
+  background:
+    radial-gradient(circle at 50% 0, var(--velvet) 13px, transparent 14px) 0 2px / 28px 16px repeat-x,
+    linear-gradient(var(--velvet-dark), var(--velvet-dark)) top / 100% 4px no-repeat;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.6));
+  pointer-events: none;
+}
+.curtain { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.curtain i {
+  position: absolute; top: 0; bottom: 0; width: 51%;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.35), transparent 30%, rgba(0, 0, 0, 0.45)),
+    repeating-linear-gradient(90deg, var(--velvet-dark) 0 4px, var(--velvet) 14px 22px, var(--velvet-dark) 32px 36px);
+  box-shadow: 0 0 24px rgba(0, 0, 0, 0.7);
+  transition: transform 0.7s cubic-bezier(.6, 0, .3, 1);
+}
+.curtain-l { left: 0; }
+.curtain-r { right: 0; }
+.curtain.is-open .curtain-l { transform: translateX(-93%); }
+.curtain.is-open .curtain-r { transform: translateX(93%); }
+
 .beat-bulbs { display: flex; gap: 0.9rem; }
 .beat-bulbs i {
   width: 16px; height: 16px; border-radius: 50%;
@@ -576,6 +602,33 @@ body[data-energy="3"] .beat-glow { --glow: 0.55; }
 }
 
 .bandstand { display: flex; align-items: flex-end; justify-content: center; gap: 2rem; margin: 1.2rem 0; flex-wrap: wrap; }
+
+/* The ghosts stand on floorboards, each under a spotlight of its colour
+   that flashes when its part plays. */
+.bandstand .ghost-band {
+  padding: 0 1.4rem 4px;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.12), transparent 3px) bottom / 100% 20px no-repeat,
+    repeating-linear-gradient(90deg, #3b2414 0 58px, #1e1009 58px 60px) bottom / 100% 20px no-repeat;
+  border-radius: 4px 4px 0 0;
+}
+.ghost-band .ghost { position: relative; isolation: isolate; }
+.ghost-band .ghost::before {
+  content: ''; position: absolute; z-index: -1; left: 50%; top: -70px; bottom: -4px; width: 130px;
+  transform: translateX(-50%);
+  clip-path: polygon(42% 0, 58% 0, 100% 100%, 0 100%);
+  background: linear-gradient(color-mix(in srgb, currentColor 6%, transparent), color-mix(in srgb, currentColor 30%, transparent));
+  opacity: 0.35;
+  pointer-events: none;
+}
+.ghost-band .ghost.lit::before { animation: spot 0.45s ease-out; }
+@keyframes spot { from { opacity: 1; } }
+
+/* Three misses in a row: the band turns blue and shivers, like ghosts
+   fleeing a power pellet. */
+.ghost-band.scared .ghost:not(.is-off) { color: #3347ff; }
+.ghost-band.scared .ghost:not(.is-off) .sprite { filter: drop-shadow(0 0 10px #3347ff); animation: shiver 0.12s steps(2) infinite; }
+@keyframes shiver { 50% { translate: 1px 0; } }
 .energy { display: flex; align-items: flex-end; gap: 4px; }
 .energy-lbl { font-family: var(--font-display); font-size: 0.45rem; color: var(--ivory-dim); text-transform: uppercase; margin-right: 0.5rem; letter-spacing: 0.1em; }
 .energy i { width: 12px; background: #24143a; border: 1px solid #4d2f72; }

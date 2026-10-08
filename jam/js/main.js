@@ -267,6 +267,8 @@ function startGame({ again = false } = {}) {
   $('tuneTitle').textContent = prog.name;
   $('tuneMeta').textContent = `${style.name} · ${NOTE_DISPLAY[key]} · ${tempo} bpm${style.anchor ? ' · Play on the and' : ''}`;
   $('ghostBand').innerHTML = BAND.map((m) => ghostHtml(m, settings.style)).join('');
+  $('ghostBand').classList.remove('scared');
+  openCurtain();
   $('hudHi').textContent = hiFor(game.scoreKey).toLocaleString();
   renderHud();
   game.energy = -1;
@@ -402,6 +404,7 @@ function onBeat(pos) {
     $('tuneChorus').textContent = 'Count-in';
   }
   document.body.classList.toggle('beat-odd', pos.beat % 2 === 1);
+  if (pos.bar > 0) lightUp(pos.beat);
   for (const glow of document.querySelectorAll('.beat-glow')) {
     glow.classList.remove('pulse', 'down');
     void glow.offsetWidth;
@@ -472,6 +475,8 @@ function grade(k) {
   if (band.energy !== prevEnergy) renderEnergy(band.energy);
   trackChord(k, j, res);
   shout(res, gained);
+  game.missRun = res.grade === 'miss' ? (game.missRun || 0) + 1 : 0;
+  $('ghostBand').classList.toggle('scared', game.missRun >= 3);
   renderHud();
   track('jam', { ok: res.grade === 'miss' ? 0 : 1, miss: res.grade === 'miss' ? 1 : 0, maxGap: 20000 });
 }
@@ -613,6 +618,29 @@ function onHit(k, j) {
   if (zone === 'perfect' && j.wrong === 0) band.accent(j.hitAt / 1000, target(k));
 }
 
+// ---- The stage: curtain and spotlights ----
+
+const CURTAIN_MS = 700;
+function openCurtain() {
+  const c = $('curtain');
+  c.classList.remove('is-open');
+  void c.offsetWidth;
+  c.classList.add('is-open');
+}
+function closeCurtain() { $('curtain').classList.remove('is-open'); }
+
+// Which ghost's spotlight flashes on each beat of the bar: drums on every
+// beat, bass on 1 and 3, keys comp on 2 and 4, the guest answers on 1.
+const LIGHTS = { drums: [0, 1, 2, 3], bass: [0, 2], keys: [1, 3], guest: [0] };
+function lightUp(beat) {
+  for (const g of $('ghostBand').children) {
+    if (g.classList.contains('is-off') || !LIGHTS[g.dataset.part]?.includes(beat)) continue;
+    g.classList.remove('lit');
+    void g.offsetWidth;
+    g.classList.add('lit');
+  }
+}
+
 // ---- End of a set ----
 
 function finish() {
@@ -647,7 +675,9 @@ function finish() {
     <div class="g-miss"><b>${c.miss}</b><span>Miss</span></div>
     <div><b>${s.bestCombo}</b><span>Best combo</span></div>
     <div><b>${Math.round(s.accuracy * 100)}%</b><span>Accuracy</span></div>`;
-  $('resultModal').hidden = false;
+  closeCurtain();
+  const shown = game;
+  setTimeout(() => { if (game === shown) $('resultModal').hidden = false; }, CURTAIN_MS);
   trackFinish();
 }
 
