@@ -4,6 +4,7 @@ import { buildChord } from '../js/core/theory.js';
 import { PROGRESSIONS, romanToChord, progressionMode } from '../js/training/progressions.js';
 import { chordTargets, toneRole, SlotJudge, Scorer, multiplier, nextEnergy, timingZone } from '../jam/js/judge.js';
 import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, GUESTS, partsAt, guestEvents, barEvents, bassRoot, keysVoicing, countIn } from '../jam/js/styles.js';
+import { FAMILIES, tuneFamily, tuneStyles, fitsStyle, tunesFor } from '../jam/js/tunes.js';
 
 const pcs = (set) => [...set].sort((a, b) => a - b);
 
@@ -284,4 +285,21 @@ test('achievements: end of the set (stage fright, ghost town, encore, séance)',
   const ids = tr.finish({ complete: true, rank: 'S', hour: 3, encore: 2 });
   assert.ok(ids.includes('encore') && ids.includes('lastOrders') && ids.includes('seance'));
   assert.ok(!ids.includes('ghostTown'));
+});
+
+test('tunes: every progression suits at least one groove, every groove has tunes', () => {
+  for (const p of PROGRESSIONS) {
+    assert.ok(tuneStyles(p).length > 0, `${p.name} has no style`);
+    assert.ok(FAMILIES.includes(tuneFamily(p)), `${p.name} has no family`);
+    for (const s of tuneStyles(p)) assert.ok(STYLE_ORDER.includes(s), `${p.name}: unknown style ${s}`);
+  }
+  for (const s of STYLE_ORDER) assert.ok(tunesFor(s).length >= 10, `${s} has too few tunes`);
+});
+
+test('tunes: bebop stays in swing, baroque stays out of funk', () => {
+  const byName = (n) => PROGRESSIONS.find((p) => p.name === n);
+  assert.deepEqual(tuneStyles(byName('Rhythm')), ['swing']);
+  assert.ok(!fitsStyle(byName('La Folia'), 'funk'));
+  assert.ok(!fitsStyle(byName('Smoke on the Water'), 'bossa'));
+  assert.ok(fitsStyle(byName('Dorian vamp'), 'funk'));
 });

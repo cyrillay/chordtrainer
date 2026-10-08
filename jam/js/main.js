@@ -6,11 +6,12 @@
 // output latency, so a chord is judged against what you actually heard.
 
 import { formatChordHtml, spellChordTones, NOTE_NAMES, NOTE_DISPLAY } from '../../js/core/theory.js';
-import { PROGRESSIONS, romanToChord, progressionMode, progressionQualities } from '../../js/training/progressions.js';
+import { PROGRESSIONS, romanToChord, progressionMode } from '../../js/training/progressions.js';
 import { renderMidiHint, gateCopy, DENIED_HELP_HTML } from '../../js/midi/midiHelp.js';
 import { connectMidi } from '../../sightreading/js/midi.js';
 import { attachComputerKeyboard } from '../../arpeggio/js/midi.js';
 import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, GUESTS, partsAt } from './styles.js';
+import { FAMILIES, tuneFamily, fitsStyle, tunesFor } from './tunes.js';
 import { SlotJudge, Scorer, chordTargets, toneRole, multiplier, timingZone, WINDOW } from './judge.js';
 import { Band } from './band.js';
 import { sprite } from './sprites.js';
@@ -34,15 +35,24 @@ let scores = read(LS.scores, {});
 const scoreKey = () => `${settings.tune}|${settings.style}`;
 const save = () => write(LS.settings, settings);
 
-// ---- Tunes: the Chords trainer's progressions, grouped for the menu ----
+// ---- Tunes: the Chords trainer's progressions, sorted by the groove ----
+// Tunes that suit the chosen style come first, in their families. The rest
+// stay at the bottom under "Off-style" for anyone who wants Pachelbel in funk.
 
-const SEVENTHS = new Set(['maj7', 'min7', 'dom7', 'm7b5', 'mMaj7']);
-function tuneGroup(prog) {
-  const qs = progressionQualities(prog);
-  if ([...qs].some((q) => SEVENTHS.has(q))) return 'Jazz standards';
-  return progressionMode(prog) === 'minor' ? 'Minor & modal' : 'Pop & rock';
+const randomTune = (style) => {
+  const pool = tunesFor(style);
+  return pool[Math.floor(Math.random() * pool.length)].name;
+};
+const tuneOption = (p) => `<option value="${p.name.replace(/"/g, '&quot;')}">${p.name}</option>`;
+
+function tuneMenuHtml(style) {
+  const fit = PROGRESSIONS.filter((p) => fitsStyle(p, style));
+  const off = PROGRESSIONS.filter((p) => !fitsStyle(p, style));
+  return FAMILIES.map((f) => {
+    const tunes = fit.filter((p) => tuneFamily(p) === f);
+    return tunes.length ? `<optgroup label="${f}">${tunes.map(tuneOption).join('')}</optgroup>` : '';
+  }).join('') + (off.length ? `<optgroup label="Off-style">${off.map(tuneOption).join('')}</optgroup>` : '');
 }
-const GROUPS = ['Jazz standards', 'Pop & rock', 'Minor & modal'];
 const tuneByName = (name) => PROGRESSIONS.find((p) => p.name === name) || PROGRESSIONS.find((p) => p.name === 'Autumnal') || PROGRESSIONS[0];
 
 function resolveKey() {
@@ -69,9 +79,9 @@ function renderSetup() {
   }).join('');
 
   const sel = $('tuneSelect');
-  if (!sel.options.length) {
-    sel.innerHTML = GROUPS.map((g) => `<optgroup label="${g}">${PROGRESSIONS.filter((p) => tuneGroup(p) === g)
-      .map((p) => `<option value="${p.name.replace(/"/g, '&quot;')}">${p.name}</option>`).join('')}</optgroup>`).join('');
+  if (sel.dataset.style !== settings.style) {
+    sel.innerHTML = tuneMenuHtml(settings.style);
+    sel.dataset.style = settings.style;
   }
   sel.value = tuneByName(settings.tune).name;
 
@@ -101,7 +111,7 @@ function renderTunePreview() {
   const chords = buildChords(prog, key);
   const best = scores[scoreKey()];
   $('tunePreview').innerHTML = `<span class="tp-chords">${chords.map((c) => `<span>${formatChordHtml(c)}</span>`).join('')}</span>`
-    + `<span class="tp-meta">${settings.key === 'random' ? 'Shown in C, played in a random key' : `In ${NOTE_DISPLAY[key]}`}${best ? ` · Best ${best.score.toLocaleString()} (${best.rank})` : ''}</span>`;
+    + `<span class="tp-meta">${settings.key === 'random' ? 'Shown in C, played in a random key' : `In ${NOTE_DISPLAY[key]}`}${fitsStyle(prog, settings.style) ? '' : ` · Off-style for ${STYLES[settings.style].name}`}${best ? ` · Best ${best.score.toLocaleString()} (${best.rank})` : ''}</span>`;
 }
 
 function renderHall() {
@@ -119,12 +129,14 @@ $('styleGrid').addEventListener('click', (e) => {
   if (!card) return;
   settings.style = card.dataset.style;
   settings.tempo = null; // each groove has its own home tempo
+  // A new groove keeps the tune only if it suits it.
+  if (!fitsStyle(tuneByName(settings.tune), settings.style)) settings.tune = randomTune(settings.style);
   save();
   renderSetup();
 });
 $('tuneSelect').addEventListener('change', (e) => { settings.tune = e.target.value; save(); renderTunePreview(); });
 $('randomTuneBtn').addEventListener('click', () => {
-  settings.tune = PROGRESSIONS[Math.floor(Math.random() * PROGRESSIONS.length)].name;
+  settings.tune = randomTune(settings.style);
   save();
   renderSetup();
 });
