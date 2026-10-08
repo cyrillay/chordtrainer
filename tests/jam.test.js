@@ -435,3 +435,68 @@ test('menu cursor: thirds move, the fifth takes and lets go a setting', async ()
   assert.equal(step(['a', 'b', 'c'], 'c', 1), 'a');
   assert.equal(step(['a', 'b', 'c'], 'a', -1), 'c');
 });
+
+import { voicingTags, voicingBonus, voicingWords, bassRole, smoothFrom, VOICING_CAP } from '../jam/js/voicing.js';
+
+test('voicing: inversions are read from the lowest note', () => {
+  const C = buildChord('C', 'maj');
+  assert.equal(bassRole(C, [60, 64, 67]), 'root');
+  assert.equal(bassRole(C, [64, 67, 72]), '3rd');
+  assert.equal(bassRole(C, [55, 60, 64]), '5th');
+  assert.equal(bassRole(buildChord('G', 'dom7'), [53, 59, 62]), '7th');
+  assert.equal(bassRole(C, [62, 64, 67]), null);   // a 9th in the bass
+  assert.deepEqual(voicingTags(C, [64, 67, 72]), ['inversion']);
+  assert.deepEqual(voicingWords(['inversion'], '3rd'), ['1st inv.']);
+  assert.deepEqual(voicingTags(C, [60, 64, 67]), []);
+});
+
+test('voicing: smooth means every note within a whole step of the last chord', () => {
+  assert.ok(smoothFrom([62, 65, 69, 72], [62, 65, 67, 71]));     // Dm7 to G7
+  assert.ok(!smoothFrom([60, 64, 67], [65, 69, 72]));            // root position jump
+  assert.ok(!smoothFrom([60, 64, 67], [60, 64, 67]));            // nothing moved
+  assert.ok(!smoothFrom(null, [60, 64, 67]));
+  const G7 = buildChord('G', 'dom7');
+  assert.ok(voicingTags(G7, [65, 69, 71, 76], [65, 69, 72, 76]).includes('smooth'));
+});
+
+test('voicing: rootless, shell, quartal, open', () => {
+  const Dm7 = buildChord('D', 'min7'), G7 = buildChord('G', 'dom7');
+  assert.deepEqual(voicingTags(Dm7, [53, 57, 60, 64]), ['rootless']);    // F A C E
+  assert.deepEqual(voicingTags(G7, [53, 59]), ['shell']);                // F B
+  assert.deepEqual(voicingTags(G7, [55, 59, 65]), ['shell']);            // G B F
+  assert.ok(!voicingTags(buildChord('C', 'maj'), [64, 71]).includes('shell')); // a triad has no shell
+  assert.ok(voicingTags(Dm7, [62, 67, 72, 77]).includes('quartal'));     // D G C F
+  assert.deepEqual(voicingTags(buildChord('C', 'maj7'), [48, 55, 64, 71]), ['open']);
+  assert.deepEqual(voicingTags(G7, [53, 59, 60]), []);                   // C is wrong: no bonus
+});
+
+test('voicing: upper structures on a dominant', () => {
+  const C7 = buildChord('C', 'dom7');
+  assert.ok(voicingTags(C7, [52, 58, 62, 66, 69]).includes('upper'));    // E Bb + D F# A
+  assert.ok(voicingTags(C7, [52, 58, 61, 64, 69]).includes('upper'));    // E Bb + C# E A (A/C7)
+  assert.ok(!voicingTags(C7, [52, 58, 60, 64, 67]).includes('upper'));   // its own triad on top
+  assert.ok(!voicingTags(C7, [48, 55, 62, 66, 69]).includes('upper'));   // no tritone below
+  assert.ok(!voicingTags(buildChord('C', 'maj7'), [52, 59, 62, 66, 69]).includes('upper'));
+});
+
+test('voicing: the bonus is capped', () => {
+  assert.equal(voicingBonus([]), 0);
+  assert.equal(voicingBonus(['inversion']), 25);
+  assert.equal(voicingBonus(['smooth', 'rootless', 'open']), VOICING_CAP);
+});
+
+test('achievements: inversions (contortionist, upside down, Bill Evans)', () => {
+  let tr = new JamTracker({ style: 'swing', chorusLen: 100 });
+  const c = (bass) => landedChord({ bass, chordId: '0maj' });
+  assert.ok(!run(tr, [c('root'), c('3rd'), c('3rd')]).includes('contortionist'));
+  assert.ok(tr.chord(c('5th')).includes('contortionist'));
+
+  tr = new JamTracker({ style: 'swing', chorusLen: 100 });
+  assert.ok(!run(tr, [...Array(7).fill(c('3rd')), c('root')]).includes('upsideDown'));
+  assert.ok(run(tr, Array(8).fill(c('5th'))).includes('upsideDown'));
+
+  tr = new JamTracker({ style: 'swing', chorusLen: 4 });
+  assert.ok(run(tr, Array(4).fill(landedChord({ tags: ['rootless'] }))).includes('evans'));
+  tr = new JamTracker({ style: 'swing', chorusLen: 4 });
+  assert.ok(!run(tr, [...Array(3).fill(landedChord({ tags: ['rootless'] })), landedChord({ tags: [] })]).includes('evans'));
+});
