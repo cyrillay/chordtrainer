@@ -218,8 +218,8 @@ input[type="range"] { accent-color: var(--pink); width: 100%; }
 .prop-ash { color: var(--violet); }
 .wisp {
   position: absolute;
-  left: 18px;
-  bottom: 22px;
+  left: 40px;
+  bottom: 26px;
   width: 10px;
   height: 46px;
   border-radius: 50%;
@@ -227,7 +227,7 @@ input[type="range"] { accent-color: var(--pink); width: 100%; }
   filter: blur(1.5px);
   animation: wisp 3.2s ease-in-out infinite;
 }
-.wisp.w2 { left: 12px; animation-delay: -1.6s; height: 38px; }
+.wisp.w2 { left: 34px; animation-delay: -1.6s; height: 38px; }
 @keyframes wisp {
   0% { transform: translateY(6px) scaleY(0.6) skewX(0deg); opacity: 0; }
   30% { opacity: 1; }

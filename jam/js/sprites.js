@@ -8,8 +8,6 @@ const PALETTE = {
   A: '#ffb000',   // beer
   Y: '#ffe48a',   // bubbles
   O: '#ff6a00',   // ember
-  R: '#ffd23f',   // ember core
-  F: '#d98a3c',   // cigarette filter
   T: '#f3d9a4',   // drumsticks, bow
   D: '#9a5a2a',   // wood
   S: '#cfd8f0',   // silver
@@ -48,14 +46,12 @@ export const MAPS = {
     '.KAAAAAAAK..',
     '.KKKKKKKKK..',
   ],
-  // The cigarette rests in the notch: lit end over the bowl, filter outside.
   ashtray: [
-    '..........WWWFFF.',
-    '....ROWWWW.......',
-    '...GGGGGGGGGGG...',
-    '..GKKGKKKKKKKKG..',
-    '.GGGGGGGGGGGGGGG.',
-    '..GGGGGGGGGGGGG..',
+    '........OWWWWWW..',
+    '...GGGGGGGGGG....',
+    '..GKKKKKKKKKKG...',
+    '.GGGGGGGGGGGGGG..',
+    '..GGGGGGGGGGGG...',
   ],
   coin: [
     '..####..',
