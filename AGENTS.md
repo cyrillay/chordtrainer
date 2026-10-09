@@ -100,7 +100,11 @@ rest of the site out of that style, and that style out of the rest.
 Its logic is split so it can be tested without audio: `jam/js/judge.js`
 (what counts as playing a chord, grading, scoring), `jam/js/styles.js`
 (the six grooves as note events), `jam/js/band.js` (Web Audio synthesis
-and scheduling, untested), `jam/js/main.js` (UI).
+and scheduling, untested). The UI is split by screen: `setupView.js`
+(groove, tune, key, tempo, favourites), `syncView.js` (the audio sync
+test), `playView.js` (the set on stage), `resultsView.js` (the end of a
+set), around `state.js` (settings, scores, the band, the live set).
+`main.js` keeps the MIDI input, the piano remote and the boot.
 
 ## UX: music first
 
