@@ -8,10 +8,11 @@ import {
   dailySeries, streaks, appTotals, hourProfile, weekdayProfile, calendar, runsOf, rolling, formatDuration, dayList,
 } from '../../js/stats/compute.js';
 import { CHORD_FORMULAS, NOTE_NAMES, NOTE_DISPLAY } from '../../js/core/theory.js';
-import { LEVELS as READ_LEVELS } from '../../sightreading/js/levels.js';
-import { LEVELS as ARP_LEVELS } from '../../arpeggio/js/levels.js';
-import { parseWeakKey } from '../../arpeggio/js/engine.js';
-import { STYLES } from '../../jam/js/styles.js';
+import * as READ from '../../sightreading/js/summary.js';
+import * as ARP from '../../arpeggio/js/summary.js';
+import * as JAM from '../../jam/js/summary.js';
+import { ACH as CHORDS_ACH, SECTIONS as CHORDS_SECTIONS, chordsMetricValue } from '../../js/ux/achievements.js';
+import { normalizeStore, unlockedCount, progressOf } from '../../js/ux/achievementKit.js';
 import {
   bars, stacked, calendarHeat, line, keyboardHeat, hbars, coverage, starRow, fifthsHeat, midiName,
 } from './charts.js';
@@ -95,13 +96,55 @@ function last30(app) {
 
 // ---- Overview ----
 
+// Every trainer's case, from its saved store. Sight-reading's progress bars
+// come from its progress store, so they are left out here.
+const CASES = [
+  { app: 'chords', name: 'Chords', list: CHORDS_ACH, sections: CHORDS_SECTIONS, key: KEYS.chords.ACHIEVEMENTS, metricValue: chordsMetricValue },
+  { app: 'sightreading', name: 'Sight-reading', list: READ.ACH, sections: READ.SECTIONS, key: READ.ACH_KEY, noProgress: true },
+  { app: 'arpeggio', name: 'Arpeggios', list: ARP.ACH, sections: ARP.SECTIONS, key: ARP.ACH_KEY },
+  { app: 'jam', name: 'Ghost Jam', list: JAM.ACH, sections: JAM.SECTIONS, key: JAM.ACH_KEY },
+];
+const caseStore = (c) => normalizeStore(read(c.key, null));
+
 function achievementsCount() {
-  const c = Object.keys(D.chords.ach.unlocked || {}).length;
-  const r = Object.values(D.read.ach || {}).filter(Boolean).length;
-  const a = Object.keys(D.arp.ach.unlocked || {}).length;
-  const jam = read(KEYS.jam.ACHIEVEMENTS, null);
-  const j = jam && typeof jam === 'object' ? Object.keys(jam.unlocked || jam).length : 0;
-  return c + r + a + j;
+  return CASES.reduce((n, c) => n + unlockedCount(c.list, caseStore(c)), 0);
+}
+const achievementsTotal = () => CASES.reduce((n, c) => n + c.list.length, 0);
+
+// ---- Achievements: every trainer's trophy case on one page ----
+
+function achTip(a, store, c) {
+  const at = store.unlocked[a.id];
+  if (at) return `${a.name} · ${a.desc} · unlocked ${runDate(at)}`;
+  if (a.vis === 'secret') return `Secret · ${a.hint || 'Hidden'}`;
+  if (a.vis === 'ultra') return `Ultra-rare · ${a.hint || 'Hidden'}`;
+  const p = c.noProgress ? null : progressOf(a, { rootSets: {}, ...store }, c.metricValue);
+  return `${a.name} · ${a.desc}${p ? ` · ${num(p.value)} / ${num(p.target)}` : ''}`;
+}
+
+function achCell(a, store, c) {
+  const on = !!store.unlocked[a.id];
+  const icon = on || a.vis === 'visible' ? a.icon : a.vis === 'ultra' ? '\u{1F512}' : '?';
+  return `<span class="ach-cell${on ? ' is-on' : ''} v-${a.vis}" data-tip="${esc(achTip(a, store, c))}">${icon}</span>`;
+}
+
+function renderAchievements() {
+  const got = achievementsCount();
+  let html = tiles(
+    tile('Unlocked', `${got}<small> / ${achievementsTotal()}</small>`, 'across the trainers'),
+    ...CASES.map((c) => { const s = caseStore(c); return tile(c.name, `${unlockedCount(c.list, s)}<small> / ${c.list.length}</small>`); }),
+  );
+  for (const c of CASES) {
+    const store = caseStore(c);
+    const body = c.sections.map((sec) => {
+      const items = c.list.filter((a) => a.vis === sec.vis);
+      if (!items.length) return '';
+      return `<div class="ach-row"><div class="ach-row-head"><span class="ach-row-label">${esc(sec.label)}</span><span class="ach-row-count">${unlockedCount(items, store)} / ${items.length}</span></div>
+        <div class="ach-cells">${items.map((a) => achCell(a, store, c)).join('')}</div></div>`;
+    }).join('');
+    html += card(c.name, body, { wide: true, sub: `<i class="sw f-bg-${c.app}"></i> ${unlockedCount(c.list, store)} of ${c.list.length} unlocked. Tap a badge for its story.` });
+  }
+  return html;
 }
 
 function renderOverview() {
@@ -118,7 +161,7 @@ function renderOverview() {
     tile('Time played', formatDuration(totalMs), hasLog ? `over ${st.days} day${st.days > 1 ? 's' : ''}` : 'starts now'),
     tile('Streak', `${st.current}<small> day${st.current === 1 ? '' : 's'}</small>`, `best ${st.best}`),
     tile('Chords played', num(chordsDone), `${num(readC.notes || 0)} notes read`),
-    tile('Achievements', num(achievementsCount()), 'unlocked across the trainers'),
+    tile('Achievements', `${num(achievementsCount())}<small> / ${achievementsTotal()}</small>`, 'unlocked across the trainers'),
   );
 
   const weeksFor = (w) => Math.max(8, Math.min(53, Math.floor((w - 22) / 14)));
@@ -274,7 +317,7 @@ function renderSightreading() {
   const p = D.read.progress;
   const c = p.counters || {};
   const levels = p.levels || {};
-  const stars = READ_LEVELS.reduce((s, l) => s + (levels[l.id]?.stars || 0), 0);
+  const stars = READ.LEVELS.reduce((s, l) => s + (levels[l.id]?.stars || 0), 0);
   const runs = runsOf(D.log, 'sightreading');
   const notes = p.notes || {};
 
@@ -282,7 +325,7 @@ function renderSightreading() {
     tile('Exercises', num(c.exercises || 0), `${num(c.tempoRuns || 0)} in Tempo mode`),
     tile('Notes read', num(c.notes || 0)),
     tile('Clean runs', num(c.cleanRuns || 0), 'no wrong note'),
-    tile('Stars', `${stars}<small> / ${READ_LEVELS.length * 3}</small>`),
+    tile('Stars', `${stars}<small> / ${READ.LEVELS.length * 3}</small>`),
   );
   if (!c.exercises) return html + card('Nothing yet', empty('Finish an exercise in Sight-reading and your stats show up here.'), { wide: true });
 
@@ -294,13 +337,13 @@ function renderSightreading() {
     .sort((a, b) => b.rate - a.rate).slice(0, 8);
   html += `<div class="grid2">`
     + card('Accuracy over time', runs.length ? slot((w) => {
-      const pts = runs.map((r) => ({ y: r.acc, label: runDate(r.t), tip: `${runDate(r.t)} · ${READ_LEVELS.find((l) => l.id === r.level)?.name || r.level} · ${r.mode} · ${pct(r.acc)}` }));
+      const pts = runs.map((r) => ({ y: r.acc, label: runDate(r.t), tip: `${runDate(r.t)} · ${READ.LEVELS.find((l) => l.id === r.level)?.name || r.level} · ${r.mode} · ${pct(r.acc)}` }));
       return line({ width: w, points: pts, smooth: rolling(pts.map((p) => p.y), 5), yMin: Math.min(0.5, Math.floor(Math.min(...pts.map((p) => p.y)) * 10) / 10) });
     }) : empty('Your next exercises draw this line.'), { sub: 'Each dot is an exercise. The line is the average of the last five.' })
     + card('Trickiest notes', weakest.length ? hbars(weakest.map((x) => ({ label: midiName(x.m), value: x.rate, text: pct(x.rate), cls: 'f-bg-miss', tip: `${midiName(x.m)} · missed ${x.s.errors} of ${x.s.seen + x.s.errors}` })), { max: Math.max(0.2, weakest[0].rate) }) : empty('No note stands out. Nice.'))
     + `</div>`;
 
-  html += card('Levels', `<div class="levels">${READ_LEVELS.map((l, i) => {
+  html += card('Levels', `<div class="levels">${READ.LEVELS.map((l, i) => {
     const lv = levels[l.id] || {};
     return `<div class="level-row${lv.plays ? '' : ' is-dim'}">
       <span class="level-n">${i + 1}</span><span class="level-name">${esc(l.name)}</span>${starRow(lv.stars || 0)}
@@ -314,7 +357,7 @@ function renderSightreading() {
 
 const START = ['root', '3rd', '5th', '7th'];
 function weakLabel(key) {
-  const w = parseWeakKey(key);
+  const w = ARP.parseWeakKey(key);
   const pc = pcOf(w.root);
   const dir = w.direction === 'up' ? '↑' : w.direction === 'down' ? '↓' : '↕';
   return `${pc >= 0 ? chordLabel(pc, w.quality) : w.root} ${dir} from the ${START[w.start] || 'root'}`;
@@ -324,16 +367,16 @@ function renderArpeggios() {
   const prog = D.arp.progress.levels || {};
   const counters = D.arp.ach.counters || {};
   const totals = appTotals(D.log).arpeggio;
-  const cleared = ARP_LEVELS.filter((l) => (prog[l.id]?.stars || 0) > 0).length;
-  const stars = ARP_LEVELS.reduce((s, l) => s + (prog[l.id]?.stars || 0), 0);
+  const cleared = ARP.LEVELS.filter((l) => (prog[l.id]?.stars || 0) > 0).length;
+  const stars = ARP.LEVELS.reduce((s, l) => s + (prog[l.id]?.stars || 0), 0);
   const runs = runsOf(D.log, 'arpeggio');
   const played = counters['arps.total'] || totals.n;
 
   let html = tiles(
     tile('Arpeggios played', num(played), totals.n ? `${pct(totals.ok / totals.n)} clean` : ''),
     tile('Best combo', num(counters['combo.best'] || 0), 'clean in a row'),
-    tile('Levels cleared', `${cleared}<small> / ${ARP_LEVELS.length}</small>`),
-    tile('Stars', `${stars}<small> / ${ARP_LEVELS.length * 3}</small>`),
+    tile('Levels cleared', `${cleared}<small> / ${ARP.LEVELS.length}</small>`),
+    tile('Stars', `${stars}<small> / ${ARP.LEVELS.length * 3}</small>`),
   );
   if (!played && !cleared) return html + card('Nothing yet', empty('Play a level in Arpeggios and your stats show up here.'), { wide: true });
 
@@ -369,7 +412,7 @@ function renderArpeggios() {
       const pts = runs.map((r) => ({ y: r.acc, label: runDate(r.t), tip: `${runDate(r.t)} · ${r.kind === 'level' ? `Level ${r.level}` : r.kind === 'weak' ? 'Weak spots' : 'Free practice'} · ${pct(r.acc)}${r.stars != null ? ` · ${r.stars}★` : ''}` }));
       return line({ width: w, points: pts, smooth: rolling(pts.map((p) => p.y), 5), yMin: Math.min(0.5, Math.floor(Math.min(...pts.map((p) => p.y)) * 10) / 10) });
     }) : empty('Finish a session to start this line.'), { wide: true, sub: 'Each dot is a session. The line is the average of the last five.' });
-  html += card('The path', `<div class="levels">${ARP_LEVELS.map((l) => {
+  html += card('The path', `<div class="levels">${ARP.LEVELS.map((l) => {
       const lv = prog[l.id] || {};
       return `<div class="level-row${lv.stars ? '' : ' is-dim'}"><span class="level-n">${l.id}</span><span class="level-name">${esc(l.name)}</span>${starRow(lv.stars || 0)}<span class="level-meta">${lv.best ? `${num(lv.best)} pts · ${pct(lv.accuracy || 0)}` : ''}</span></div>`;
     }).join('')}</div>`, { wide: true });
@@ -432,7 +475,7 @@ function renderJam() {
   if (runs.length) {
     html += card('Score per set', slot((w) => {
       const top = Math.max(...runs.map((r) => r.score));
-      const pts = runs.map((r) => ({ y: r.score, label: runDate(r.t), tip: `${runDate(r.t)} · ${r.tune} · ${STYLES[r.style]?.name || r.style} · ${num(r.score)} · rank ${r.rank}` }));
+      const pts = runs.map((r) => ({ y: r.score, label: runDate(r.t), tip: `${runDate(r.t)} · ${r.tune} · ${JAM.STYLES[r.style]?.name || r.style} · ${num(r.score)} · rank ${r.rank}` }));
       return line({ width: w, points: pts, smooth: rolling(pts.map((p) => p.y), 5), yMax: Math.ceil((top || 1) / 5000) * 5000, fmt: (v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : num(v)), cls: 'jam' });
     }), { wide: true, sub: 'Each dot is a set. The line is the average of the last five.' });
 
@@ -446,19 +489,19 @@ function renderJam() {
       + card('Chord grades', hbars(grades.map(([k, label]) => ({ label, value: sum(k) / all, text: `${pct(sum(k) / all)} · ${num(sum(k))}`, cls: `f-bg-grade-${k}` })), { max: 1 }), { sub: 'Every chord you have played on the band, all sets together.' })
       + card('Ranks', hbars(RANKS.map((r) => ({ label: r, value: rankCount[r], text: num(rankCount[r]), cls: 'f-bg-jam' }))))
       + `</div>`;
-    html += card('Grooves', hbars(Object.entries(styleCount).sort((a, b) => b[1] - a[1]).map(([s, n]) => ({ label: STYLES[s]?.name || s, value: n, text: `${n} set${n > 1 ? 's' : ''}`, cls: 'f-bg-jam' }))), { wide: true });
+    html += card('Grooves', hbars(Object.entries(styleCount).sort((a, b) => b[1] - a[1]).map(([s, n]) => ({ label: JAM.STYLES[s]?.name || s, value: n, text: `${n} set${n > 1 ? 's' : ''}`, cls: 'f-bg-jam' }))), { wide: true });
   }
 
   if (hi.length) {
     html += card('High scores', `<table class="table"><thead><tr><th>Tune</th><th>Groove</th><th class="num">Score</th><th>Rank</th><th>Date</th></tr></thead><tbody>${hi.map((h) => `
-      <tr><td>${esc(h.tune)}</td><td>${esc(STYLES[h.style]?.name || h.style)}</td><td class="num">${num(h.score)}</td><td><span class="rank">${esc(h.rank || '·')}</span></td><td>${h.date ? runDate(h.date) : ''}</td></tr>`).join('')}</tbody></table>`, { wide: true });
+      <tr><td>${esc(h.tune)}</td><td>${esc(JAM.STYLES[h.style]?.name || h.style)}</td><td class="num">${num(h.score)}</td><td><span class="rank">${esc(h.rank || '·')}</span></td><td>${h.date ? runDate(h.date) : ''}</td></tr>`).join('')}</tbody></table>`, { wide: true });
   }
   return html;
 }
 
 // ---- Tabs, tooltip, reset ----
 
-const RENDER = { all: renderOverview, chords: renderChords, sightreading: renderSightreading, arpeggio: renderArpeggios, repertoire: renderRepertoire, jam: renderJam };
+const RENDER = { all: renderOverview, chords: renderChords, sightreading: renderSightreading, arpeggio: renderArpeggios, repertoire: renderRepertoire, jam: renderJam, achievements: renderAchievements };
 let tab = RENDER[location.hash.slice(1)] ? location.hash.slice(1) : 'all';
 
 function render() {

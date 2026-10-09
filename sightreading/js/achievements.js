@@ -1,16 +1,18 @@
-// Read Trainer achievements: same look and tiers as the chord trainer's
-// (visible / secret / ultra), separate list and storage. Progress values are
-// read from progress.js, so this module only remembers what's unlocked.
+// Read Trainer achievements: the list and its rules. Progress values are
+// read from progress.js; the kit (js/ux/achievementKit.js) remembers what is
+// unlocked and draws the case.
 
 import { LEVELS } from './levels.js';
 import { counter, levelStars, totalStars, resetProgress } from './progress.js';
+import { KEYS } from '../../js/core/store.js';
+import { createAchievements } from '../../js/ux/achievementKit.js';
 
-const KEY = 'readTrainer.achievements';
+export const KEY = KEYS.sightreading.ACHIEVEMENTS;
 
 const done = (id) => (levelStars(id) >= 1 ? 1 : 0);
 const threeStarLevels = () => LEVELS.filter((l) => levelStars(l.id) >= 3).length;
 
-const ACH = [
+export const ACH = [
   // ---- Visible ----
   { id: 'first',    vis: 'visible', icon: '\u{1F440}', name: 'First Sight',        desc: 'Finish your first exercise',               target: 1,    value: () => counter('exercises') },
   { id: 'ex10',     vis: 'visible', icon: '\u{1F4D6}', name: 'Page Turner',        desc: 'Finish 10 exercises',                      target: 10,   value: () => counter('exercises') },
@@ -41,137 +43,29 @@ const ACH = [
   { id: 'prima',   vis: 'ultra', icon: '\u{1F451}', name: 'Prima Vista',           desc: 'Three stars on every level',               hint: 'Every star in the sky.',                target: LEVELS.length, value: threeStarLevels },
 ];
 
-let unlocked = {};
-let modalEl, gridEl, countEl, toastEl, resetBtnEl;
-const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-
-function load() {
-  try { unlocked = JSON.parse(localStorage.getItem(KEY)) || {}; } catch { unlocked = {}; }
-}
-function save() {
-  try { localStorage.setItem(KEY, JSON.stringify(unlocked)); } catch { /* ignore */ }
-  paintBadge();
-}
-// Unlocked count next to the header trophy (empty until the first one).
-function paintBadge() {
-  const el = document.getElementById('achBadge');
-  if (el) el.textContent = ACH.filter((a) => unlocked[a.id]).length || '';
-}
-
-let toastQueue = Promise.resolve();
-function showToast(a) {
-  toastQueue = toastQueue.then(() => new Promise((resolve) => {
-    toastEl.innerHTML = `
-      <div class="ach-toast-icon">${a.icon}</div>
-      <div class="ach-toast-text">
-        <div class="ach-toast-tier">Achievement unlocked</div>
-        <div class="ach-toast-name">${escapeHtml(a.name)}</div>
-      </div>`;
-    toastEl.classList.add('visible');
-    setTimeout(() => { toastEl.classList.remove('visible'); setTimeout(resolve, 400); }, 3200);
-  }));
-}
-
-// Re-evaluates every achievement; call after anything that changes progress.
-export function checkAchievements({ silent = false } = {}) {
-  const fresh = [];
-  for (const a of ACH) {
-    if (unlocked[a.id]) continue;
-    if (a.value() >= a.target) {
-      unlocked[a.id] = Date.now();
-      fresh.push(a);
-    }
-  }
-  if (fresh.length) {
-    save();
-    if (!silent) fresh.forEach(showToast);
-  }
-  return fresh;
-}
-
-function renderTile(a) {
-  if (unlocked[a.id]) {
-    return `<div class="ach-tile ach-tile-unlocked"><div class="ach-tile-icon">${a.icon}</div>
-      <div class="ach-tile-body"><div class="ach-tile-name">${escapeHtml(a.name)}</div>
-      <div class="ach-tile-desc">${escapeHtml(a.desc)}</div></div></div>`;
-  }
-  if (a.vis === 'secret') {
-    return `<div class="ach-tile ach-tile-locked ach-tile-secret"><div class="ach-tile-icon">?</div>
-      <div class="ach-tile-body"><div class="ach-tile-name">???</div>
-      <div class="ach-tile-desc">${escapeHtml(a.hint)}</div></div></div>`;
-  }
-  if (a.vis === 'ultra') {
-    return `<div class="ach-tile ach-tile-locked ach-tile-ultra"><div class="ach-tile-icon">\u{1F512}</div>
-      <div class="ach-tile-body"><div class="ach-tile-tag">Ultra-rare</div><div class="ach-tile-name">—</div>
-      <div class="ach-tile-desc">${escapeHtml(a.hint)}</div></div><div class="ach-tile-shimmer" aria-hidden="true"></div></div>`;
-  }
-  const value = Math.min(a.value(), a.target);
-  const pct = Math.round((value / a.target) * 100);
-  return `<div class="ach-tile ach-tile-locked"><div class="ach-tile-icon">${a.icon}</div>
-    <div class="ach-tile-body"><div class="ach-tile-name">${escapeHtml(a.name)}</div>
-    <div class="ach-tile-desc">${escapeHtml(a.desc)}</div>
-    <div class="ach-tile-progress"><div class="ach-tile-bar"><div class="ach-tile-fill" style="width:${pct}%"></div></div>
-    <div class="ach-tile-progress-text">${value} / ${a.target}</div></div></div></div>`;
-}
-
-const SECTIONS = [
+export const SECTIONS = [
   { vis: 'visible', label: 'Common',     blurb: 'Earned through steady practice.' },
   { vis: 'secret',  label: 'Rare',       blurb: 'Trigger conditions are hidden. Some things you stumble on.' },
   { vis: 'ultra',   label: 'Ultra-rare', blurb: 'Reserved for those who go truly far.' },
 ];
 
-function renderModal() {
-  gridEl.innerHTML = SECTIONS.map((sec) => {
-    const items = ACH.filter((a) => a.vis === sec.vis);
-    const n = items.filter((a) => unlocked[a.id]).length;
-    return `<div class="ach-section ach-section-${sec.vis}">
-      <div class="ach-section-header"><span class="ach-section-label">${sec.label}</span>
-      <span class="ach-section-count">${n} / ${items.length}</span></div>
-      <div class="ach-section-blurb">${sec.blurb}</div>
-      <div class="ach-grid">${items.map(renderTile).join('')}</div></div>`;
-  }).join('');
-  countEl.textContent = `${ACH.filter((a) => unlocked[a.id]).length} / ${ACH.length}`;
-}
+let kit = null;
 
-let armed = false, armTimer = null;
-function disarm() {
-  armed = false;
-  clearTimeout(armTimer);
-  resetBtnEl.textContent = 'Reset all progress';
-  resetBtnEl.classList.remove('armed');
+// Re-evaluates every achievement; call after anything that changes progress.
+export function checkAchievements({ silent = false } = {}) {
+  return kit ? kit.check({ silent }) : [];
 }
 
 export function initAchievements({ onReset }) {
-  load();
-  paintBadge();
-  modalEl = document.getElementById('achModalOverlay');
-  gridEl = document.getElementById('achGrid');
-  countEl = document.getElementById('achCount');
-  toastEl = document.getElementById('achToast');
-  resetBtnEl = document.getElementById('achResetBtn');
-
-  const close = () => { modalEl.style.display = 'none'; disarm(); };
-  document.getElementById('achBtn').addEventListener('click', () => { renderModal(); modalEl.style.display = 'flex'; });
-  document.getElementById('achModalClose').addEventListener('click', close);
-  modalEl.addEventListener('click', (e) => { if (e.target === modalEl) close(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalEl.style.display === 'flex') close(); });
-
-  // Two-step confirm: wipes stars, unlocked levels and achievements.
-  resetBtnEl.addEventListener('click', () => {
-    if (!armed) {
-      armed = true;
-      resetBtnEl.textContent = 'Click again to erase stars, levels and achievements';
-      resetBtnEl.classList.add('armed');
-      armTimer = setTimeout(disarm, 5000);
-      return;
-    }
-    unlocked = {};
-    save();
-    resetProgress();
-    renderModal();
-    disarm();
-    onReset?.();
+  kit = createAchievements({
+    list: ACH,
+    key: KEY,
+    sections: SECTIONS,
+    ids: { modal: 'achModalOverlay', close: 'achModalClose' },
+    resetLabel: 'Reset all progress',
+    resetConfirm: 'Click again to erase stars, levels and achievements',
+    // Wipes stars and unlocked levels too.
+    onReset: () => { resetProgress(); onReset?.(); },
   });
-
-  checkAchievements({ silent: true });
+  kit.init();
 }

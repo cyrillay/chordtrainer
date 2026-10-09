@@ -798,6 +798,8 @@ body[data-energy="3"] .beat-glow { --glow: 0.55; }
 .ach-tile.is-secret .ach-tile-icon, .ach-tile.is-ultra .ach-tile-icon { filter: none; opacity: 1; font-family: var(--font-display); font-size: 1rem; color: var(--violet); }
 .ach-tile.is-ultra { border-color: var(--violet); animation: ultraGlow 3s ease-in-out infinite; }
 @keyframes ultraGlow { 50% { box-shadow: 0 0 16px rgba(155, 92, 255, 0.55); } }
+.ach-tile-tag { font-family: var(--font-display); font-size: 0.45rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--violet); margin-bottom: 0.2rem; }
+.ach-tile-shimmer { display: none; }
 .ach-tile-progress { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.35rem; font-size: 0.9rem; color: var(--ivory-dim); }
 .ach-tile-bar { flex: 1; height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; }
 .ach-tile-fill { height: 100%; background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }

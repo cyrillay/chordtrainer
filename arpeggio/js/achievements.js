@@ -2,9 +2,10 @@
 // (visible / secret / ultra) but a separate store: these reward *how* you
 // play — touch, timing, curiosity, hidden melodies — more than volume.
 
-import { escapeHtml } from '../../js/core/dom.js';
+import { KEYS } from '../../js/core/store.js';
+import { createAchievements } from '../../js/ux/achievementKit.js';
 
-const LS_KEY = 'arpeggioTrainer.achievements';
+export const KEY = KEYS.arpeggio.ACHIEVEMENTS;
 
 // visible: metric + target (progress bar). secret/ultra: granted by events.
 export const ACH = [
@@ -57,194 +58,26 @@ export const ACH = [
   { id: 'twelveGates', vis: 'ultra', icon: '\u{1F511}', name: 'Twelve Gates',          desc: 'Clean arpeggios of one quality on all 12 roots in one session', hint: 'Twelve doors, one key.' },
 ];
 
-const byId = Object.fromEntries(ACH.map(a => [a.id, a]));
-
-let store = { unlocked: {}, counters: {} };
-
-function load() {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (raw) store = { unlocked: {}, counters: {}, ...JSON.parse(raw) };
-  } catch { /* ignore */ }
-}
-
-function save() {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(store)); } catch { /* ignore */ }
-}
-
-// ---- Toasts (queued so a multi-unlock moment shows each one) ----
-
-let toastEl = null;
-const toastQueue = [];
-let toastBusy = false;
-
-function pumpToasts() {
-  if (toastBusy || !toastEl || !toastQueue.length) return;
-  const a = toastQueue.shift();
-  toastBusy = true;
-  const tier = a.vis === 'ultra' ? 'Ultra-rare unlocked' : a.vis === 'secret' ? 'Secret unlocked' : 'Achievement unlocked';
-  toastEl.innerHTML = `
-    <div class="ach-toast-icon">${a.icon}</div>
-    <div class="ach-toast-text">
-      <div class="ach-toast-tier">${tier}</div>
-      <div class="ach-toast-name">${escapeHtml(a.name)}</div>
-      <div class="ach-toast-desc">${escapeHtml(a.desc)}</div>
-    </div>`;
-  toastEl.classList.toggle('is-rare', a.vis !== 'visible');
-  toastEl.classList.add('visible');
-  setTimeout(() => {
-    toastEl.classList.remove('visible');
-    setTimeout(() => { toastBusy = false; pumpToasts(); }, 400);
-  }, 3600);
-}
-
-let onUnlock = () => {};
-export function setUnlockListener(fn) { onUnlock = fn; }
-
-function unlock(a) {
-  if (store.unlocked[a.id]) return false;
-  store.unlocked[a.id] = Date.now();
-  toastQueue.push(a);
-  pumpToasts();
-  onUnlock(a);
-  return true;
-}
-
-function checkCounters() {
-  let any = false;
-  for (const a of ACH) {
-    if (!a.metric || store.unlocked[a.id]) continue;
-    if ((store.counters[a.metric] || 0) >= a.target) any = unlock(a) || any;
-  }
-  return any;
-}
-
-// ---- Public API ----
-
-export function grant(id) {
-  const a = byId[id];
-  if (!a || store.unlocked[id]) return;
-  unlock(a);
-  save();
-  refreshBadge();
-}
-
-export function bump(metric, delta = 1) {
-  store.counters[metric] = (store.counters[metric] || 0) + delta;
-  checkCounters();
-  save();
-  refreshBadge();
-}
-
-export function setMax(metric, value) {
-  if ((store.counters[metric] || 0) >= value) return;
-  store.counters[metric] = value;
-  checkCounters();
-  save();
-  refreshBadge();
-}
-
-export function setValue(metric, value) {
-  store.counters[metric] = value;
-  checkCounters();
-  save();
-  refreshBadge();
-}
-
-export function isUnlocked(id) { return !!store.unlocked[id]; }
-
-// ---- Modal ----
-
-let modalEl, gridEl, countEl, badgeEl, resetBtnEl;
-
-function refreshBadge() {
-  if (badgeEl) badgeEl.textContent = Object.keys(store.unlocked).filter(id => byId[id]).length || '';
-}
-
-function tile(a) {
-  if (store.unlocked[a.id]) {
-    const when = new Date(store.unlocked[a.id]).toLocaleDateString();
-    return `<div class="ach-tile ach-tile-unlocked" title="Unlocked ${escapeHtml(when)}">
-      <div class="ach-tile-icon">${a.icon}</div>
-      <div class="ach-tile-body"><div class="ach-tile-name">${escapeHtml(a.name)}</div><div class="ach-tile-desc">${escapeHtml(a.desc)}</div></div>
-    </div>`;
-  }
-  if (a.vis === 'secret') {
-    return `<div class="ach-tile ach-tile-locked ach-tile-secret">
-      <div class="ach-tile-icon">?</div>
-      <div class="ach-tile-body"><div class="ach-tile-name">???</div><div class="ach-tile-desc">${escapeHtml(a.hint)}</div></div>
-    </div>`;
-  }
-  if (a.vis === 'ultra') {
-    return `<div class="ach-tile ach-tile-locked ach-tile-ultra">
-      <div class="ach-tile-icon">\u{1F512}</div>
-      <div class="ach-tile-body"><div class="ach-tile-tag">Ultra-rare</div><div class="ach-tile-name">—</div><div class="ach-tile-desc">${escapeHtml(a.hint)}</div></div>
-      <div class="ach-tile-shimmer" aria-hidden="true"></div>
-    </div>`;
-  }
-  const value = Math.min(store.counters[a.metric] || 0, a.target);
-  const pct = Math.round((value / a.target) * 100);
-  return `<div class="ach-tile ach-tile-locked">
-    <div class="ach-tile-icon">${a.icon}</div>
-    <div class="ach-tile-body">
-      <div class="ach-tile-name">${escapeHtml(a.name)}</div><div class="ach-tile-desc">${escapeHtml(a.desc)}</div>
-      <div class="ach-tile-progress"><div class="ach-tile-bar"><div class="ach-tile-fill" style="width:${pct}%"></div></div><div class="ach-tile-progress-text">${value} / ${a.target}</div></div>
-    </div>
-  </div>`;
-}
-
-const SECTIONS = [
+export const SECTIONS = [
   { vis: 'visible', label: 'Common',     blurb: 'Milestones along the path.' },
   { vis: 'secret',  label: 'Rare',       blurb: 'Touch, timing, curiosity. Some melodies hide in the keys.' },
   { vis: 'ultra',   label: 'Ultra-rare', blurb: 'For the obsessive, the patient and the lucky.' },
 ];
 
-function render() {
-  gridEl.innerHTML = SECTIONS.map(sec => {
-    const items = ACH.filter(a => a.vis === sec.vis);
-    const done = items.filter(a => store.unlocked[a.id]).length;
-    return `<div class="ach-section ach-section-${sec.vis}">
-      <div class="ach-section-header"><span class="ach-section-label">${sec.label}</span><span class="ach-section-count">${done} / ${items.length}</span></div>
-      <div class="ach-section-blurb">${sec.blurb}</div>
-      <div class="ach-grid">${items.map(tile).join('')}</div>
-    </div>`;
-  }).join('');
-  countEl.textContent = `${ACH.filter(a => store.unlocked[a.id]).length} / ${ACH.length}`;
-  resetArmed = false;
-  resetBtnEl.textContent = 'Reset arpeggio achievements';
-  resetBtnEl.classList.remove('armed');
-}
+// The store, toasts and case come from the kit; the rules (what to grant,
+// what to count) live in main.js and eggs.js.
+const kit = createAchievements({
+  list: ACH,
+  key: KEY,
+  sections: SECTIONS,
+  resetLabel: 'Reset arpeggio achievements',
+});
 
-let resetArmed = false;
-function handleReset() {
-  if (!resetArmed) {
-    resetArmed = true;
-    resetBtnEl.textContent = 'Click again to confirm. This cannot be undone.';
-    resetBtnEl.classList.add('armed');
-    return;
-  }
-  store = { unlocked: {}, counters: {} };
-  save();
-  render();
-  refreshBadge();
-}
-
-export function openAchievements() {
-  render();
-  modalEl.hidden = false;
-}
-
-export function initAchievements() {
-  load();
-  modalEl = document.getElementById('achModal');
-  gridEl = document.getElementById('achGrid');
-  countEl = document.getElementById('achCount');
-  badgeEl = document.getElementById('achBadge');
-  toastEl = document.getElementById('achToast');
-  resetBtnEl = document.getElementById('achResetBtn');
-  document.getElementById('achBtn').addEventListener('click', openAchievements);
-  document.getElementById('achClose').addEventListener('click', () => { modalEl.hidden = true; });
-  modalEl.addEventListener('click', e => { if (e.target === modalEl) modalEl.hidden = true; });
-  resetBtnEl.addEventListener('click', handleReset);
-  refreshBadge();
-}
+export const grant = (id) => kit.grant(id);
+export const bump = (metric, delta = 1) => kit.bump(metric, delta);
+export const setMax = (metric, value) => kit.setMax(metric, value);
+export const setValue = (metric, value) => kit.setValue(metric, value);
+export const isUnlocked = (id) => kit.isUnlocked(id);
+export function setUnlockListener(fn) { kit.onUnlock = fn; }
+export const openAchievements = () => kit.open();
+export const initAchievements = () => kit.init();
