@@ -11,11 +11,8 @@ import { createPlayer } from './player.js';
 import { rgbaToGray } from './raster/image.js';
 import { toOriginal } from './raster/scan.js';
 import { attachTempoPicker } from '../../js/music-ui/tempo.js';
+import { ensurePdfJs } from '../../js/core/pdfjs.js';
 
-// Same pdf.js build as the Score Trainer, so the browser cache is shared.
-const PDFJS_VER = '4.8.69';
-const PDFJS_URL = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VER}/build/pdf.min.mjs`;
-const WORKER_URL = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VER}/build/pdf.worker.min.mjs`;
 const MAX_PREVIEW_PAGES = 40;
 // Scans are rendered at 3× (216 dpi) — enough detail, the recogniser then
 // normalises the scale itself — but capped in pixels for phones.
@@ -24,14 +21,6 @@ const MAX_SCAN_PIXELS = 14e6;
 
 const $ = id => document.getElementById(id);
 const tempoPicker = attachTempoPicker($('tempoInput'));
-
-let pdfjsLib = null;
-async function ensurePdfJs() {
-  if (pdfjsLib) return pdfjsLib;
-  pdfjsLib = await import(/* webpackIgnore: true */ PDFJS_URL);
-  pdfjsLib.GlobalWorkerOptions.workerSrc = WORKER_URL;
-  return pdfjsLib;
-}
 
 const state = { score: null, pdf: null, images: null, fileName: '', tempo: 120, markers: [], mode: 'vector', unskew: [] };
 const player = createPlayer();
