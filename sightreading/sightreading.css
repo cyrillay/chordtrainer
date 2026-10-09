@@ -719,7 +719,7 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
 
 .tempo-ctl, .check-ctl { display: inline-flex; align-items: center; gap: 0.6rem; cursor: pointer; }
 .tempo-ctl { flex-wrap: wrap; cursor: default; max-width: 100%; }
-.tempo-ctl .tp { flex: 1 1 18rem; margin-top: 0; }
+.tempo-ctl .tp { flex: 1 1 18rem; margin-top: 0; order: 2; }
 
 /* The piano remote: its legend once a keyboard is connected. */
 .remote-legend { margin: 0 0 1.2rem; }
