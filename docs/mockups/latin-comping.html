@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ghost Jam · Comping on the clave (prototype)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Monoton&family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../jam/jam.css">
+<link rel="stylesheet" href="latin-comping.css">
+</head>
+<body class="jam">
+<main class="lc">
+  <h1 class="lc-title">Comping <span>on the clave</span></h1>
+  <p class="lc-sub">Prototype · the chord on a rhythm, not just on the one</p>
+
+  <div class="lc-styles" id="styles"></div>
+  <div class="lc-comps" id="comps"></div>
+
+  <section class="lc-stage" id="stage">
+    <div class="lc-now">
+      <div class="lc-chord" id="chord">·</div>
+      <div class="lc-next" id="next"></div>
+    </div>
+    <div class="lc-grid" id="grid"></div>
+    <div class="lc-shout" id="shout" aria-live="polite"></div>
+    <div class="lc-strip" id="strip"></div>
+  </section>
+
+  <div class="lc-controls">
+    <button type="button" class="arcade-btn small" id="playBtn">Play</button>
+    <label class="lc-knob">Tempo <b id="tempoVal"></b> bpm <input type="range" id="tempo" min="80" max="200"></label>
+    <label class="arcade-toggle"><input type="checkbox" id="guide"><span>Piano guide</span></label>
+    <button type="button" class="arcade-btn small ghosty" id="midiBtn">Connect MIDI</button>
+  </div>
+  <p class="lc-help">Play the chord on every circle. A circle before the bar line already belongs to the next chord.
+    No piano? Hold <b>Space</b> to strike the chord, or A W S E D F… with <code>?keys</code>.</p>
+</main>
+<script type="module" src="latin-comping.js"></script>
+</body>
+</html>

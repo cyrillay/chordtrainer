@@ -1,0 +1,115 @@
+/* Prototype: comping on the clave. Rides on jam/jam.css (palette, buttons,
+   style cards); only the grid and the comp picker are new. */
+
+.lc { max-width: 900px; margin: 0 auto; padding: 1.2rem 16px 3rem; position: relative; z-index: 1; }
+.lc-title { font-family: var(--font-neon); font-weight: 400; font-size: clamp(1.6rem, 5vw, 2.6rem); color: var(--pink); text-shadow: var(--glow-pink); line-height: 1.1; }
+.lc-title span { color: var(--cyan); text-shadow: var(--glow-cyan); }
+.lc-sub { color: var(--ivory-dim); font-size: 1.1rem; margin: 0.2rem 0 1rem; }
+
+.lc-styles { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+
+/* Each comp is its own little two bar grid. */
+.lc-comps { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.6rem; margin: 0.8rem 0 1rem; }
+.lc-comp {
+  display: grid; gap: 0.3rem; text-align: left; cursor: pointer;
+  background: rgba(23, 13, 38, 0.85); color: var(--ivory); border: 2px solid var(--line); border-radius: 10px;
+  padding: 0.6rem 0.7rem; font: inherit;
+}
+.lc-comp:hover { border-color: var(--cyan); }
+.lc-comp.is-on { border-color: var(--lime); box-shadow: 0 0 14px rgba(182, 255, 59, 0.35); }
+.lc-comp-name { font-family: var(--font-display); font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.lc-comp.is-on .lc-comp-name { color: var(--lime); }
+.lc-comp-blurb { font-size: 1rem; line-height: 1.1; color: var(--ivory-dim); }
+.mini { display: grid; grid-template-columns: repeat(32, 1fr); gap: 1px; height: 14px; }
+.mini i { background: rgba(255, 255, 255, 0.05); border-radius: 2px; }
+.mini i.beat { background: rgba(255, 255, 255, 0.13); }
+.mini i.bar { box-shadow: -2px 0 0 var(--ivory-dim); }
+.mini i.on { background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.mini i.on.bar { box-shadow: -2px 0 0 var(--ivory-dim), 0 0 6px var(--cyan); }
+.mini i.pushed { background: var(--pink); box-shadow: 0 0 6px var(--pink); }
+
+/* ---- Stage ---- */
+.lc-stage {
+  position: relative; border: 2px solid var(--line); border-radius: 14px; padding: 1rem 0.8rem 0.8rem;
+  background: radial-gradient(ellipse at 50% 0%, rgba(155, 92, 255, 0.18), transparent 70%), rgba(11, 6, 20, 0.85);
+}
+.lc-now { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 0.6rem; }
+.lc-chord { font-family: var(--font-display); font-size: clamp(1.4rem, 6vw, 2.4rem); color: var(--ivory); text-shadow: var(--glow-pink); min-height: 1.3em; }
+.lc-chord .accent { color: var(--pink); }
+.lc-count { color: var(--amber); }
+.lc-next { font-family: var(--font-display); font-size: 0.7rem; color: var(--ivory-dim); }
+.lc-next span { font-size: 0.5rem; margin-right: 0.4rem; color: var(--cyan); }
+
+.lc-grid {
+  --lbl: 3.6rem;
+  position: relative; display: grid;
+  grid-template-columns: var(--lbl) repeat(var(--cols), 1fr);
+  grid-template-rows: 1.8rem 1.2rem 2rem 2.6rem;
+  align-items: center;
+}
+.g-name { grid-row: 1; font-family: var(--font-display); font-size: 0.6rem; padding-left: 4px; border-left: 2px solid var(--ivory-dim); white-space: nowrap; overflow: hidden; }
+.g-name.s0 { color: var(--cyan); }
+.g-name.s1 { color: var(--pink); }
+.g-name.dim { color: var(--ivory-dim); opacity: 0.5; border-left: 0; text-align: right; padding-right: 4px; }
+.g-count { grid-row: 2; text-align: center; font-size: 0.95rem; color: var(--ivory-dim); align-self: stretch; line-height: 1.2rem; }
+.g-count.on { color: var(--ivory); }
+.g-count.pick { opacity: 0.5; }
+.g-count.bar { box-shadow: inset 2px 0 0 var(--ivory-dim); }
+.g-row-lbl { grid-column: 1; font-family: var(--font-display); font-size: 0.42rem; color: var(--ivory-dim); text-transform: uppercase; }
+.g-clave { justify-self: center; width: 9px; height: 9px; border-radius: 2px; background: var(--amber); box-shadow: 0 0 8px var(--amber); transform: rotate(45deg); }
+.g-stab {
+  justify-self: center; width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid var(--cyan); box-shadow: 0 0 8px rgba(24, 240, 255, 0.5); position: relative;
+}
+.g-stab.s1 { border-color: var(--pink); box-shadow: 0 0 8px rgba(255, 46, 136, 0.5); }
+/* A pushed stab belongs to the next chord: a tie to its bar line. */
+.g-stab.pushed::after {
+  content: ''; position: absolute; left: 100%; top: 50%; width: 14px; height: 8px;
+  border: 2px solid currentColor; border-top: 0; border-radius: 0 0 10px 10px; color: var(--cyan);
+}
+.g-stab.s1.pushed::after { color: var(--pink); }
+.g-stab.perfect { background: var(--lime); border-color: var(--lime); box-shadow: 0 0 14px var(--lime); }
+.g-stab.early, .g-stab.late { background: var(--cyan); border-color: var(--cyan); }
+.g-stab.late { background: var(--orange); border-color: var(--orange); }
+.g-stab.missed { border-color: var(--crimson); box-shadow: none; opacity: 0.8; }
+.g-stab.missed::before { content: '×'; position: absolute; inset: -6px 0 0; text-align: center; color: var(--crimson); font-size: 1.5rem; }
+.g-stray { justify-self: center; color: var(--ivory-dim); font-size: 1.2rem; align-self: end; }
+.g-head {
+  position: absolute; top: 1.8rem; bottom: 0; width: 2px; margin-left: -1px;
+  background: var(--ivory); box-shadow: 0 0 8px #fff, 0 0 16px var(--cyan); pointer-events: none;
+}
+
+.lc-shout { font-family: var(--font-display); font-size: 0.8rem; min-height: 1.6rem; margin-top: 0.7rem; text-align: center; }
+.lc-shout small { font-size: 0.55rem; color: var(--ivory-dim); margin-left: 0.4rem; }
+.lc-shout.g-perfect { color: var(--lime); text-shadow: 0 0 10px var(--lime); }
+.lc-shout.g-good { color: var(--cyan); text-shadow: 0 0 10px var(--cyan); }
+.lc-shout.g-late { color: var(--orange); }
+.lc-shout.g-miss { color: var(--crimson); }
+.lc-shout.pop { animation: lc-pop 0.3s ease-out; }
+@keyframes lc-pop { from { transform: scale(1.3); } to { transform: none; } }
+
+.lc-strip { display: flex; flex-wrap: wrap; gap: 0.35rem; justify-content: center; min-height: 1.7rem; }
+.lc-chip { font-family: var(--font-display); font-size: 0.5rem; padding: 0.3rem 0.45rem; border-radius: 6px; border: 1px solid currentColor; }
+.lc-chip i { font-style: normal; margin-left: 0.35rem; opacity: 0.7; }
+.lc-chip.g-perfect { color: var(--lime); }
+.lc-chip.g-good { color: var(--cyan); }
+.lc-chip.g-late { color: var(--orange); }
+.lc-chip.g-miss { color: var(--crimson); }
+
+.lc-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem 1.2rem; margin-top: 1rem; }
+.lc-controls .arcade-toggle { margin-top: 0; }
+.lc-knob { display: flex; align-items: center; gap: 0.5rem; color: var(--ivory-dim); }
+.lc-knob b { color: var(--ivory); }
+.lc-help { margin-top: 0.8rem; color: var(--ivory-dim); font-size: 1.05rem; }
+.lc-help b { color: var(--ivory); }
+
+@media (max-width: 600px) {
+  .lc-grid { --lbl: 2.2rem; grid-template-rows: 1.6rem 1.1rem 1.6rem 2.2rem; }
+  .g-stab { width: 12px; height: 12px; }
+  .g-stab.pushed::after { width: 6px; height: 5px; }
+  .g-count { font-size: 0.7rem; }
+  .g-count.e { visibility: hidden; }
+  .g-row-lbl { font-size: 0.32rem; }
+  .g-name { font-size: 0.45rem; }
+  .g-clave { width: 6px; height: 6px; }
+}
