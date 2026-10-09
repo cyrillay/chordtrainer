@@ -3,6 +3,8 @@
 // voices a moment before they sound, so long scores don't allocate thousands
 // of nodes up front.
 
+import { getAudioContext } from '../../js/audio/context.js';
+
 const LOOKAHEAD_S = 0.6;
 const TICK_MS = 100;
 
@@ -73,8 +75,7 @@ export function createPlayer() {
     get playing() { return timer !== null; },
     play(score, tempo, { frame: f, end } = {}) {
       stop();
-      ctx = ctx || new (window.AudioContext || window.webkitAudioContext)();
-      if (ctx.state === 'suspended') ctx.resume();
+      ctx = getAudioContext();
       master = ctx.createGain();
       master.gain.value = 0.8;
       master.connect(ctx.destination);

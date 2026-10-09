@@ -1,11 +1,13 @@
-// Ghost Jam: audio sync. The browser says how late its speakers are, and
-// the game already plays and judges against that. Some outputs report less
+// Audio sync, measured in Ghost Jam and used site-wide. The browser says
+// how late its speakers are, and the apps already play and judge against
+// that. Some outputs report less
 // than the truth (a digital piano used as a Bluetooth speaker), and a
 // Bluetooth MIDI keyboard adds its own delay. A short tap test measures
 // what is left: you tap on clicks you hear, and the median gap between
 // your taps and the clicks is added to the latency.
 //
-// Pure functions, no audio: main.js plays the clicks and collects the taps.
+// Pure functions, no audio: Ghost Jam plays the clicks and collects the
+// taps, js/audio/context.js applies the saved offset everywhere.
 
 export const SYNC = {
   clicks: 16,       // clicks in one test

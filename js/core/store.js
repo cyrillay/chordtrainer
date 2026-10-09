@@ -46,8 +46,11 @@ export const KEYS = {
     SCORES: 'ghostJam.scores',
     GUESTS: 'ghostJam.guestsMet',
     FAVOURITES: 'ghostJam.favourites',
-    SYNC: 'ghostJam.sync',
     ACHIEVEMENTS: 'ghostJam.achievements',
+  },
+  audio: {
+    // Audio sync offsets measured by Ghost Jam's tap test, per output.
+    SYNC: 'etude.audioSync',
   },
   midi: {
     // Set once the browser has granted MIDI, so the next visit can

@@ -529,7 +529,7 @@ test('achievements: inversions (contortionist, upside down, Bill Evans)', () => 
 
 // ---- Audio sync ----
 
-import { SYNC, measureOffset, offsetFor, storeOffset, forgetOffset } from '../jam/js/sync.js';
+import { SYNC, measureOffset, offsetFor, storeOffset, forgetOffset } from '../js/audio/sync.js';
 
 const clicksAt = (t0 = 1) => Array.from({ length: SYNC.clicks }, (_, i) => t0 + i * SYNC.interval);
 

@@ -15,7 +15,8 @@ import { FAMILIES, tuneFamily, fitsStyle, tunesFor } from './tunes.js';
 import { voicingTags, voicingBonus, voicingWords, bassRole } from './voicing.js';
 import { SlotJudge, Scorer, chordTargets, hintVoicing, toneDegree, DEGREES, multiplier, timingZone, WINDOW, ghostFill } from './judge.js';
 import { Band } from './band.js';
-import { SYNC, measureOffset, offsetFor, storeOffset, forgetOffset } from './sync.js';
+import { SYNC, measureOffset, offsetFor, storeOffset, forgetOffset } from '../../js/audio/sync.js';
+import { loadSyncOffsets, saveSyncOffsets } from '../../js/audio/context.js';
 import { sprite, MAPS } from './sprites.js';
 import { track, logRun } from '../../js/stats/log.js';
 import { KEYS, read, write } from '../../js/core/store.js';
@@ -31,7 +32,7 @@ const params = new URLSearchParams(location.search);
 // ---- Settings + high scores ----
 
 const K = KEYS.jam;
-const LS = { settings: K.SETTINGS, scores: K.SCORES, guests: K.GUESTS, favs: K.FAVOURITES, sync: K.SYNC };
+const LS = { settings: K.SETTINGS, scores: K.SCORES, guests: K.GUESTS, favs: K.FAVOURITES };
 
 const settings = Object.assign({
   style: 'swing', tune: 'Autumnal', key: 'random', tempo: null, bars: 1, length: 4, showTones: true,
@@ -520,9 +521,10 @@ function onNoteOff(midi) {
 
 // ---- Audio sync ----
 // A quiet tap test on the setup screen: you tap along to clicks and the
-// median lag is added to the latency the browser reports (see sync.js).
+// median lag is added to the latency the browser reports (see
+// js/audio/sync.js). Sight-reading's tempo mode uses the same offsets.
 
-let syncSaved = read(LS.sync, []);
+let syncSaved = loadSyncOffsets();
 let sync = null;   // the running test: { clicks, taps, count, out, timer }
 
 const syncOffset = () => (band.ctx ? offsetFor(syncSaved, band.reportedLatency) : 0);
@@ -611,7 +613,7 @@ function endSync() {
   else if (r.error === 'uneven') msg = 'The taps were too uneven to trust. Try again, relaxed.';
   else {
     syncSaved = storeOffset(syncSaved, band.reportedLatency, r.offset);
-    write(LS.sync, syncSaved);
+    saveSyncOffsets(syncSaved);
     applySync();
     msg = Math.abs(r.offset) < 0.01
       ? 'Already in sync. Nothing to change.'
@@ -625,7 +627,7 @@ function endSync() {
 
 function resetSync() {
   syncSaved = forgetOffset(syncSaved, band.reportedLatency);
-  write(LS.sync, syncSaved);
+  saveSyncOffsets(syncSaved);
   applySync();
   $('syncMsg').textContent = 'Back to the latency the browser reports.';
   renderSync();

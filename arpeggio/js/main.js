@@ -12,6 +12,7 @@ import { renderStage, clearStage, currentCard } from './stage.js';
 import { paintMidiStatus } from '../../js/midi/midiHelp.js';
 import { bindInfoTips } from '../../js/ux/infoTip.js';
 import { createMidiInput } from '../../js/midi/input.js';
+import { getAudioContext } from '../../js/audio/context.js';
 import { attachComputerKeyboard } from '../../js/midi/computerKeyboard.js';
 import { loadSettings, saveSettings, loadProgress, saveProgress, loadWeak, saveWeak, clearWeak } from './storage.js';
 import { initAchievements, grant, bump, setMax, setValue } from './achievements.js';
@@ -85,7 +86,7 @@ let ctx = null;
 function chime(freqs, { gain = 0.08, dur = 0.5, type = 'sine', spread = 0.06 } = {}) {
   if (!settings.sound) return;
   try {
-    ctx ||= new (window.AudioContext || window.webkitAudioContext)();
+    ctx ||= getAudioContext();
     const t0 = ctx.currentTime;
     freqs.forEach((f, i) => {
       const osc = ctx.createOscillator();
