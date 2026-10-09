@@ -41,7 +41,7 @@ Current versions (keep this table in sync):
 | Repertoire | Op. 5 No 12 |
 | Ghost Jam | Op. 7 No 17 |
 | PDF to MIDI | Anh. 1 No 10 |
-| Statistics | Anh. 2 No 2 |
+| Statistics | Anh. 2 No 3 |
 
 ## Shared pieces
 

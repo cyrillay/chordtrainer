@@ -442,8 +442,8 @@ button {
 /* ---- backup ---- */
 
 .backup {
-  margin-top: 3rem;
-  padding: 1.4rem 1.6rem;
+  margin-bottom: 2.2rem;
+  padding: 1.1rem 1.4rem;
   border: 1px solid var(--line);
   background: var(--card);
   display: flex;
@@ -453,8 +453,8 @@ button {
   justify-content: space-between;
 }
 .backup-text { flex: 1 1 420px; min-width: 0; }
-.backup-title { font-family: var(--font-display); font-weight: 500; font-size: 1.35rem; margin-bottom: 0.4rem; }
-.backup-text p { color: var(--ivory-dim); line-height: 1.5; font-size: 1.05rem; }
+.backup-title { font-family: var(--font-display); font-weight: 500; font-size: 1.2rem; margin-bottom: 0.4rem; }
+.backup-text p { color: var(--ivory-dim); line-height: 1.45; font-size: 1rem; }
 .backup-msg { margin-top: 0.6rem; color: var(--gold) !important; }
 .backup-msg.is-error { color: var(--crimson) !important; }
 .backup-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; }

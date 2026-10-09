@@ -34,7 +34,7 @@
     <div class="hd-top">
       <a href="../" class="hd-brand" aria-label="Étude, home">
         <span class="hd-name">Étude</span>
-        <span class="hd-opus">Anh. 2 No 2</span>
+        <span class="hd-opus">Anh. 2 No 3</span>
       </a>
       <div class="hd-actions">
       </div>
@@ -52,8 +52,21 @@
   <main>
     <div class="hero">
       <h1 class="hero-title">Your practice, <em>in numbers.</em></h1>
-      <p class="hero-sub" id="heroSub">Everything the trainers remember about you. It stays in this browser.</p>
+      <p class="hero-sub" id="heroSub">Everything the trainers remember about you.</p>
     </div>
+
+    <section class="backup" aria-labelledby="backupTitle">
+      <div class="backup-text">
+        <h2 class="backup-title" id="backupTitle">Keep a copy of your progress</h2>
+        <p>One file holds every trainer: stars, achievements, high scores, settings and this history. They live only in this browser, and Safari can clear them after a few weeks away. Save a copy now and then, and restore it on any device.</p>
+        <p class="backup-msg" id="backupMsg" role="status" hidden></p>
+      </div>
+      <div class="backup-actions">
+        <button type="button" class="ghost-btn" id="backupSaveBtn">Save a backup</button>
+        <button type="button" class="ghost-btn" id="backupLoadBtn">Restore a backup</button>
+        <input type="file" id="backupFile" accept="application/json,.json" hidden>
+      </div>
+    </section>
 
     <div class="tabs" role="tablist" id="tabs">
       <button type="button" role="tab" class="tab is-on" data-tab="all" aria-selected="true">Overview</button>
@@ -66,19 +79,6 @@
     </div>
 
     <div id="panel" class="panel-body" role="tabpanel"></div>
-
-    <section class="backup" aria-labelledby="backupTitle">
-      <div class="backup-text">
-        <h2 class="backup-title" id="backupTitle">Keep a copy of your progress</h2>
-        <p>Stars, achievements, high scores, settings and this history live only in this browser. Safari can clear them after a few weeks away from the site. Save a backup file now and then, and restore it here on any device.</p>
-        <p class="backup-msg" id="backupMsg" role="status" hidden></p>
-      </div>
-      <div class="backup-actions">
-        <button type="button" class="ghost-btn" id="backupSaveBtn">Save a backup</button>
-        <button type="button" class="ghost-btn" id="backupLoadBtn">Restore a backup</button>
-        <input type="file" id="backupFile" accept="application/json,.json" hidden>
-      </div>
-    </section>
   </main>
 
   <footer class="page-footer">
