@@ -43,8 +43,8 @@ object AudioEngine {
         fun frameOf(ms: Double): Long = startFrame + (ms * sr / 1000.0).roundToLong()
         fun msAt(nanos: Long): Double = (speakerFrameAt(nanos) - startFrame) * 1000.0 / sr
         fun nowMs(): Double = msAt(System.nanoTime())
-        fun play(s: Sound) {
-            nativeSchedule(frameOf(s.atMs), s.patch.ordinal, s.midi, s.vel.toFloat(), (s.durMs * sr / 1000.0).roundToLong())
+        fun play(s: Sound, gain: Double = 1.0) {
+            nativeSchedule(frameOf(s.atMs), s.patch.ordinal, s.midi, (s.vel * gain).toFloat(), (s.durMs * sr / 1000.0).roundToLong())
         }
     }
 
@@ -53,6 +53,12 @@ object AudioEngine {
         clear()
         val now = speakerFrameAt(System.nanoTime())
         return Song((now + leadMs * sampleRate / 1000.0).roundToLong())
+    }
+
+    // A sound right now, for the rooms' effects and taps.
+    fun playNow(patch: Patch, midi: Int = 0, vel: Double = 0.8, durMs: Double = 1000.0, delayMs: Double = 0.0) {
+        val sr = sampleRate.toDouble()
+        nativeSchedule(nativeFramesRendered() + ((delayMs + 5) * sr / 1000).roundToLong(), patch.ordinal, midi, vel.toFloat(), (durMs * sr / 1000).roundToLong())
     }
 
     fun click(song: Song, atMs: Double, accent: Boolean) =

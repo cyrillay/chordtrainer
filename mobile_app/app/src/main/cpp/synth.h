@@ -7,10 +7,12 @@
 #include <cstdint>
 
 enum Patch : int {
-    STICKS, KICK, SNARE, HAT, RIDE, RIM, BRUSH,
+    STICKS, KICK, SNARE, HAT, RIDE, RIM, BRUSH, CRASH,
     UPRIGHT, ROUND, SUB, SLAP,
     EPIANO, NYLON, DUSTY, PAD, CLAV, ORGAN,
     SAX, TRUMPET, VIBES, STRINGS, HORNS, MELODICA,
+    // Sound effects for the rooms: one-shots like the drums.
+    THUNDER, STATIC, DING, RATTLE, SQUEAK, CHIME, POP, COIN, WHOOSH, STAMP, TICK, SNORE,
     PATCH_COUNT
 };
 
@@ -27,6 +29,8 @@ struct Voice {
     float lp = 0, hp = 0;     // filter state
     uint32_t seed = 22222;
 };
+
+inline bool isOneShot(int p) { return p <= CRASH || p >= THUNDER; }
 
 class Synth {
 public:

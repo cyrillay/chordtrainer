@@ -116,6 +116,75 @@ float Synth::sample(Voice &v) {
             v.phase += f * dt; v.phase -= std::floor(v.phase);
             return sine(v.phase) * std::exp(-t * 90.f) * v.vel * 0.45f;
         }
+        case CRASH: {
+            float n = noise(v.seed);
+            float h = n - v.lp; v.lp += 0.45f * (n - v.lp);
+            v.phase += 4170.f * dt; v.phase -= std::floor(v.phase);
+            v.phase2 += 5830.f * dt; v.phase2 -= std::floor(v.phase2);
+            return (h * 0.7f + (sq(v.phase) + sq(v.phase2)) * 0.08f) * std::exp(-t * 2.6f) * v.vel * 0.22f;
+        }
+        case THUNDER: {
+            float n = noise(v.seed);
+            v.lp += 0.015f * (n - v.lp);
+            v.hp += 0.004f * (v.lp - v.hp);
+            float env = std::fmin(1.f, t * 12.f) * std::exp(-t * 1.1f) * (0.7f + 0.3f * std::sin(t * 9.f));
+            return (v.lp * 5.f + v.hp * 6.f) * env * v.vel;
+        }
+        case STATIC: {
+            float n = noise(v.seed);
+            float h = n - v.lp; v.lp += 0.3f * (n - v.lp);
+            float gate = (noise(v.seed) > 0.6f) ? 1.f : 0.35f;
+            return h * gate * std::exp(-t * 4.f) * v.vel * 0.3f;
+        }
+        case DING: case CHIME: {
+            float f = v.freq > 0 ? v.freq : 1318.5f;
+            v.phase += f * dt; v.phase -= std::floor(v.phase);
+            v.phase2 += f * 2.76f * dt; v.phase2 -= std::floor(v.phase2);
+            float decay = v.patch == DING ? 1.8f : 3.f;
+            return (sine(v.phase) + 0.25f * sine(v.phase2) * std::exp(-t * 8.f)) * std::exp(-t * decay) * v.vel * 0.35f;
+        }
+        case RATTLE: {
+            float n = noise(v.seed);
+            float gate = std::sin(kTwoPi * 28.f * t) > 0.3f ? 1.f : 0.f;
+            v.phase += 220.f * dt; v.phase -= std::floor(v.phase);
+            return (n * 0.5f + sq(v.phase) * 0.2f) * gate * std::exp(-t * 5.f) * v.vel * 0.35f;
+        }
+        case SQUEAK: {
+            float f = 2600.f + 1800.f * std::sin(kTwoPi * 9.f * t);
+            v.phase += f * dt; v.phase -= std::floor(v.phase);
+            return sine(v.phase) * (t < 0.18f ? 1.f : std::exp(-(t - 0.18f) * 40.f)) * v.vel * 0.18f;
+        }
+        case POP: {
+            float n = noise(v.seed);
+            return n * std::exp(-t * 120.f) * v.vel * 0.6f;
+        }
+        case COIN: {
+            float f = t < 0.07f ? 987.8f : 1318.5f;
+            v.phase += f * dt; v.phase -= std::floor(v.phase);
+            return sq(v.phase) * std::exp(-t * 6.f) * v.vel * 0.16f;
+        }
+        case WHOOSH: {
+            float n = noise(v.seed);
+            float cut = 0.02f + 0.25f * std::sin(std::fmin(1.f, t * 2.f) * 3.14159f);
+            v.lp += cut * (n - v.lp);
+            return v.lp * std::sin(std::fmin(1.f, t * 2.f) * 3.14159f) * v.vel * 0.6f;
+        }
+        case STAMP: {
+            float f = 40.f + 90.f * std::exp(-t * 30.f);
+            v.phase += f * dt; v.phase -= std::floor(v.phase);
+            float n = noise(v.seed); v.lp += 0.2f * (n - v.lp);
+            return (sine(v.phase) * 0.9f + v.lp * std::exp(-t * 25.f)) * std::exp(-t * 9.f) * v.vel;
+        }
+        case TICK: {
+            v.phase += 3200.f * dt; v.phase -= std::floor(v.phase);
+            return sq(v.phase) * std::exp(-t * 300.f) * v.vel * 0.3f;
+        }
+        case SNORE: {
+            float n = noise(v.seed); v.lp += 0.03f * (n - v.lp);
+            v.phase += 70.f * dt; v.phase -= std::floor(v.phase);
+            float env = std::sin(std::fmin(1.f, t / 1.4f) * 3.14159f);
+            return (v.lp * 3.f + saw(v.phase) * 0.15f) * env * v.vel * 0.6f;
+        }
         case BRUSH: {
             float n = noise(v.seed);
             v.lp += 0.2f * (n - v.lp);
@@ -177,7 +246,7 @@ void Synth::render(float *out, int frames) {
             if (v.delay > 0) { v.delay--; continue; }
             out[i] += sample(v);
             v.age++;
-            if (v.patch <= BRUSH && v.age > static_cast<int64_t>(sampleRate_ * 1.5f)) v.active = false;
+            if (isOneShot(v.patch) && v.age > static_cast<int64_t>(sampleRate_ * (v.patch == THUNDER ? 4.f : 2.f))) v.active = false;
         }
     }
 }

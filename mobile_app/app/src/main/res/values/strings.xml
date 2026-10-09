@@ -1,25 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Game copy: very little text, short, no dashes between clauses. -->
+<!-- The game's words live in core (scene/Text.kt), drawn in the pixel font. -->
 <resources>
     <string name="app_name" translatable="false">Ghost Jam Hotel</string>
-    <string name="room">Room 7</string>
-    <string name="midi_none">No keyboard. Plug it in, or pair it.</string>
-    <string name="midi_bluetooth">Bluetooth</string>
-    <string name="midi_scanning">Looking…</string>
-    <string name="jam">Jam</string>
-    <string name="calibrate">Tune in</string>
-    <string name="shuffle">Shuffle</string>
-    <string name="stop">Stop</string>
-    <string name="again">Again</string>
-    <string name="back">Back</string>
-    <string name="score">Score</string>
-    <string name="combo">Combo</string>
-    <string name="perfect">Perfect!</string>
-    <string name="good">Good</string>
-    <string name="late">Late</string>
-    <string name="miss">Miss</string>
-    <string name="calib_hint">Hit any key on the click.</string>
-    <string name="calib_done">Offset %1$d ms. Saved.</string>
-    <string name="calib_bt_warning">Bluetooth headphones lag. Wired is better.</string>
-    <string name="bpm">%1$d bpm</string>
 </resources>

@@ -83,6 +83,7 @@ class SlotJudge(val chord: Chord, val start: Double, val end: Double, val beatMs
     var wrong = 0; private set
     var notes = 0; private set
     private val colours = mutableSetOf<Int>()
+    val colourPcs: Set<Int> get() = colours
     var done = false; private set
 
     val windowStart get() = start - Window.ANTIC * beatMs

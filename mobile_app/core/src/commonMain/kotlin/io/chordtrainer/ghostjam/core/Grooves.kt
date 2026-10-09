@@ -18,7 +18,9 @@ private fun <T> pick(items: List<T>, rng: Rng): T = items[(rng() * items.size).t
 enum class StyleId { SWING, BOSSA, LOFI, BALLAD, FUNK, REGGAE }
 
 // Instruments the engine knows. The ids are shared with the C++ synth.
-enum class Patch { STICKS, KICK, SNARE, HAT, RIDE, RIM, BRUSH, UPRIGHT, ROUND, SUB, SLAP, EPIANO, NYLON, DUSTY, PAD, CLAV, ORGAN, SAX, TRUMPET, VIBES, STRINGS, HORNS, MELODICA }
+enum class Patch { STICKS, KICK, SNARE, HAT, RIDE, RIM, BRUSH, CRASH, UPRIGHT, ROUND, SUB, SLAP, EPIANO, NYLON, DUSTY, PAD, CLAV, ORGAN, SAX, TRUMPET, VIBES, STRINGS, HORNS, MELODICA,
+    // Sound effects for the rooms.
+    THUNDER, STATIC, DING, RATTLE, SQUEAK, CHIME, POP, COIN, WHOOSH, STAMP, TICK, SNORE }
 
 data class Tempo(val min: Int, val max: Int, val def: Int)
 

@@ -24,9 +24,11 @@ class GigTest {
         val gig = Gig(StyleId.LOFI, 120, listOf(cMaj, g7), choruses = 1)
         for (m in listOf(64, 67)) gig.noteOn(m, 2010.0)
         gig.noteOff(64); gig.noteOff(67)
-        for (m in listOf(65, 71)) gig.noteOn(m, 3990.0)
+        val landing = listOf(65, 71).map { gig.noteOn(it, 3990.0, 90) }.last().landed
+        assertEquals(1, landing?.slot)
         val graded = gig.update(10_000.0)
         assertEquals(listOf(Grade.PERFECT, Grade.PERFECT), graded.map { it.result.grade })
+        assertEquals(listOf(65, 71), graded[1].play.voicing)
         assertTrue(gig.over)
         assertEquals("S", gig.scorer.rank)
     }

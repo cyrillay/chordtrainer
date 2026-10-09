@@ -10,25 +10,31 @@ story).
 It is a separate project from the static site: nothing here is loaded by the
 web pages, and the web Ghost Jam keeps its own code.
 
-## Status: M0, the technical spike
+## Status
 
-- [x] `core`: the web Ghost Jam's rules ported to Kotlin (judge, scoring,
-      the six grooves, the guests, the 104 tunes of the Chords trainer) with
-      the web tests ported alongside, plus the set timeline (`Gig`).
-- [x] Audio: C++ engine on Oboe (AAudio, low latency, exclusive), notes
-      scheduled by audio frame, the band synthesized like on the web.
-- [x] MIDI: USB and Bluetooth LE keyboards through `android.media.midi`,
-      keys judged with their MIDI timestamps.
-- [x] Clock: audio frames, `System.nanoTime()` and song time tied together
-      with the stream's presentation timestamp.
-- [x] Tune in: the latency calibration (tap on the click, median offset).
-- [x] Three screens to try it: Room 7, Jam, Tune in. French and English.
-- [ ] Tried on a real phone with a real keyboard. Not done yet: the
-      container that built it has no device. Target: under 20 ms perceived
-      latency over USB.
+**M0, the technical spike: done and tried on a phone.** Rules ported with
+their tests, Oboe audio, USB and Bluetooth MIDI, latency calibration.
 
-Not in M0 (see the milestones in the design document): the floors, the
-story, the twelve ghosts, the new mechanics, achievements, ectoplasm.
+**M1, Room 7: the art and the attic.**
+
+- The whole game is pixel art drawn in pure Kotlin (`core/.../pix`): a
+  software framebuffer of about 360×180, a hand-made 5×7 font (accents and
+  ♭ ♯ ° ø included), the twelve ghosts with their props and memory levels.
+  The phone scales it up by a whole number, no smoothing.
+- Room 7 (`scene/Room.kt`) is the hub: piano (set list), alarm clock stuck
+  on 23:59 (tune in), Kev and the MIDI cable (Bluetooth), the radio (the
+  band plays lo-fi quietly), the out-of-order elevator, the poster, the
+  Polaroids, the jar of ectoplasm, the storm outside.
+- Secrets in the room, played or touched, and the keyboard is listened to
+  outside a set (`Ears.kt`). Not listed anywhere on purpose.
+- The set (`scene/Stage.kt`): the band on stage with their instruments,
+  ghosts joining as the energy rises, a crowd, the neon sign, the timing
+  gauge, shouts, the drums answering every chord you land, Polaroids for
+  achievements, a results chalkboard with the ectoplasm dripping in.
+- The 28 achievements of the web, ported with their tests. Grooves unlock
+  by playing (or with ectoplasm). Ghosts get their colour back as you play.
+- Scenes render to PNG in the JVM tests (`core/build/snapshots/`), so the
+  art can be checked without a phone.
 
 ## Build
 
@@ -38,7 +44,7 @@ Needs JDK 17+, the Android SDK (platform 36, build tools) and NDK
 ```sh
 cd mobile_app
 echo "sdk.dir=/path/to/android-sdk" > local.properties
-./gradlew :core:jvmTest          # the ported rules and their tests
+./gradlew :core:jvmTest          # rules, tests, and PNG snapshots of every scene
 ./gradlew :app:assembleDebug     # app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :app:lintDebug
 ```
@@ -56,11 +62,17 @@ plug in a USB keyboard (USB-C OTG) or press Bluetooth on Room 7.
 | `core/.../Grooves.kt` | The six grooves, guests and tiers, as `jam/js/styles.js`. |
 | `core/.../Gig.kt` | One set: slots, what sounds when, judging in song time. |
 | `core/.../Tunes.kt` | Generated. Do not edit. |
+| `core/.../JamRun.kt` | One set as the game sees it: gig, achievements, results, ectoplasm. |
+| `core/.../Achievements.kt` | The 28 achievements, as `jam/js/achievements.js`. |
+| `core/.../Ears.kt` | Easter eggs heard at the piano. |
+| `core/.../Progress.kt` | The save: ectoplasm, sets, secrets, records, unlocks. |
+| `core/.../pix/` | Framebuffer, pixel font, sprites, the twelve ghosts. |
+| `core/.../scene/` | Room 7, the set list, the stage, results, tune in, Polaroids. |
 | `app/src/main/cpp/` | Oboe engine (`engine.cpp`), synth (`synth.cpp`), JNI. |
 | `app/.../audio/AudioEngine.kt` | Schedules sounds, converts between the clocks. |
 | `app/.../midi/MidiInput.kt` | USB and Bluetooth LE keyboards. |
-| `app/.../game/` | `JamController` (runs a set), `Calibration`, `Prefs`. |
-| `app/.../ui/` | Compose screens and the pixel ghost. |
+| `app/.../game/Game.kt` | The frame loop: keys, scheduling, scenes, effects. |
+| `app/.../ui/GameView.kt` | Shows the pixmap, scaled by a whole number; taps. |
 
 ## Keeping in step with the web
 
@@ -76,5 +88,6 @@ Rule changes are made by hand in both places, with the tests in
 
 ## Copy
 
-English and French (`res/values`, `res/values-fr`). Very little text, short
-sentences, no dashes between clauses, like the site.
+English and French, in `core/.../scene/Text.kt`, drawn in the pixel font.
+Very little text, short sentences, no dashes between clauses, like the site.
+The ghosts' one-liners stay in English: they died in English bars.

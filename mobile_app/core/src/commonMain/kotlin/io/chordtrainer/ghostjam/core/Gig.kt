@@ -11,7 +11,12 @@ import kotlin.math.floor
 // A sound for the engine: when it starts and how long it rings, in song ms.
 data class Sound(val atMs: Double, val durMs: Double, val patch: Patch, val midi: Int, val vel: Double)
 
-data class Graded(val slot: Int, val chord: Chord, val result: SlotResult, val gained: Int)
+data class Graded(val slot: Int, val chord: Chord, val result: SlotResult, val gained: Int, val play: ChordPlay)
+
+// A chord just landed: when, against which downbeat.
+data class Landed(val slot: Int, val atMs: Double, val targetMs: Double, val offsetBeats: Double)
+
+data class KeyResult(val role: Role, val landed: Landed?)
 
 class Gig(
     val style: StyleId,
@@ -30,6 +35,9 @@ class Gig(
 
     private val judges = mutableMapOf<Int, SlotJudge>()
     private val held = mutableSetOf<Int>()
+    private val velocity = mutableMapOf<Int, Int>()
+    // What was held when each slot's chord landed: for the achievements.
+    private val hits = mutableMapOf<Int, Pair<List<Int>, List<Int>>>()
     var finalized = 0; private set
 
     // Slot k starts after the count-in bar. The chord is meant on the
@@ -53,20 +61,30 @@ class Gig(
         return judges.getOrPut(k) { SlotJudge(chordOf(k), target(k), slotEnd(k) + anchorMs, beatMs) }
     }
 
-    // A key went down at song time t. Returns its role for the key colour.
-    fun noteOn(midi: Int, t: Double): Role {
+    // A key went down at song time t. Returns its role for the key colour,
+    // and the landing if this key completed the chord.
+    fun noteOn(midi: Int, t: Double, vel: Int = 80): KeyResult {
         held += midi
+        velocity[midi] = vel
         val k = slotAt(t)
         val j = judgeFor(k)
         val pcs = held.map { it % 12 }.toSet()
         return when {
-            j != null && !j.done -> j.noteOn(midi % 12, t, pcs)
-            k >= 0 -> toneRole(chordTargets(chordOf(k)), midi % 12)
-            else -> Role.TONE
+            j != null && !j.done -> {
+                val before = j.hitAt
+                val role = j.noteOn(midi % 12, t, pcs)
+                if (before == null && j.hitAt != null) {
+                    val voicing = held.sorted()
+                    hits[k] = voicing to voicing.map { velocity[it] ?: 80 }
+                    KeyResult(role, Landed(k, t, j.start, j.offsetBeats!!))
+                } else KeyResult(role, null)
+            }
+            k >= 0 -> KeyResult(toneRole(chordTargets(chordOf(k)), midi % 12), null)
+            else -> KeyResult(Role.TONE, null)
         }
     }
 
-    fun noteOff(midi: Int) { held -= midi }
+    fun noteOff(midi: Int) { held -= midi; velocity -= midi }
 
     // Grade every slot whose window has closed by song time t.
     fun update(t: Double): List<Graded> {
@@ -74,9 +92,17 @@ class Gig(
         while (inSet(finalized)) {
             val k = finalized
             if (t < slotEnd(k) + anchorMs - Window.ANTIC * beatMs) break
-            val res = judgeFor(k)!!.result()
+            val j = judgeFor(k)!!
+            val res = j.result()
             judges.remove(k)
-            out += Graded(k, chordOf(k), res, scorer.add(res))
+            val hit = hits.remove(k)
+            val root = j.targets.root
+            val play = ChordPlay(
+                res.grade, res.offsetBeats, res.offsetBeats?.let { it * beatMs }, res.colours,
+                hit?.first, hit?.second, res.wrong,
+                j.colourPcs.map { (it - root + 12) % 12 }, j.chord.quality,
+            )
+            out += Graded(k, chordOf(k), res, scorer.add(res), play)
             finalized++
         }
         return out
@@ -104,13 +130,15 @@ class Gig(
         ev.keys.forEach { e -> e.notes.forEach { out += Sound(at(e.step), e.dur * stepMs, groove.keys, it, 0.6) } }
         val guest = GUESTS.getValue(style).patch
         ev.guest.forEach { e -> e.notes.forEach { out += Sound(at(e.step), e.dur * stepMs, guest, it, 0.6) } }
+        // A crash on the top of each chorus once the band is cooking.
+        if (energy >= 2 && (bar - 1) % barsPerChord == 0 && k % chords.size == 0 && k > 0) out += Sound(t0, 400.0, Patch.CRASH, 0, 0.7)
         return out
     }
 
     // The band lands on the top of the form and lets it ring.
     private fun finale(t0: Double): List<Sound> {
         val home = chords[0]
-        return listOf(Sound(t0, barMs, Patch.KICK, 0, 1.0), Sound(t0, barMs * 0.8, groove.bass, bassRoot(home), 0.9)) +
+        return listOf(Sound(t0, barMs, Patch.KICK, 0, 1.0), Sound(t0, barMs, Patch.CRASH, 0, 1.0), Sound(t0, barMs * 0.8, groove.bass, bassRoot(home), 0.9)) +
             keysVoicing(home).map { Sound(t0, barMs, groove.keys, it, 0.6) }
     }
 
