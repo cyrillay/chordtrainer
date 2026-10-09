@@ -13,32 +13,43 @@
   the last beat.
 
   Every chord you play leaves its marks on its section of the ring, for
-  one lap:
-    a note head on the beat track, where you landed (lime on the beat,
-    cyan a bit late, pink late), a red cross for a miss;
-    the colours you added, in orange superscript on the chord symbol (9, 13);
-    an inversion as a slash chord under the name (/E♭);
-    smooth voice leading as a slur from the chord before;
-    rootless, shell, quartal… as a small word on the rim.
-  A copy of each mark then glides down into the ghosts and lights them up.
+  one lap: a note head where you landed, the colours you added in
+  superscript, an inversion as a slash bass, a slur for smooth voice
+  leading, the voicing's name on the rim.
 
-  ?n=4 for a four chord loop, ?t=<seconds> to freeze the animation.
-  The hits are made up (a fixed pattern), only to show the marks.
+  The arcade layer, in three takes (?fx=):
+    coins  A · the game's shouts rising over the clock, the chord flashing,
+           and the marks bursting into pixel coins that home into the ghosts.
+    laser  B · the shouts pop out of the chord's own section, and a neon
+           laser zaps the points into the ghosts.
+    comet  C · a combo counter in the hub, and each chord's marks fly to the
+           ghosts as one comet with a pixel tail, exploding on impact.
+  All three: the section flashes and sends a shockwave on a hit, a perfect
+  flashes the stage green, a miss shakes it red.
+
+  ?tune=autumnal for the real Autumnal in C (the side by side with the
+  current screen), ?n=4 for a four chord loop, ?t=<seconds> to freeze.
+  The hits are made up (a fixed pattern), only to show the effects.
 -->
 <style>
   .mock-wrap { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 0.8rem; }
+  .mock-tabs { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+  .mock-tabs a { font-family: var(--font-display); font-size: 0.55rem; padding: 0.5rem 0.8rem; border: 2px solid var(--line); border-radius: 8px; color: var(--ivory-dim); text-decoration: none; }
+  .mock-tabs a.on { border-color: var(--pink); color: #fff; box-shadow: 0 0 12px rgba(255, 46, 136, 0.5); }
   .mock-title { font-family: var(--font-display); font-size: 0.7rem; color: var(--lime); text-transform: uppercase; letter-spacing: 0.1em; }
   .mock-sub { color: var(--ivory-dim); font-size: 1.1rem; }
   .rec { position: relative; display: flex; flex-direction: column; gap: 0.8rem; padding-bottom: 0.4rem; }
-  .stage.mock { min-height: 0; padding: 0.8rem; }
+  .stage.mock { min-height: 0; padding: 0.8rem; animation: none; }
   .wheel { width: min(440px, 100%); display: block; overflow: visible; }
-  .fx { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+  .fx { position: absolute; inset: 0; pointer-events: none; z-index: 5; overflow: visible; }
+  .fx svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
   .ghost-band .ghost-lit { transition: none; }
-  .ghost-band .ghost.got .ghost-lit .sprite { filter: brightness(1.6) drop-shadow(0 0 16px currentColor); }
+  .ghost-band .ghost { transform-origin: 50% 90%; }
 
   .seg { fill: #1d1030; stroke: #4d2f72; stroke-width: 1.5; }
   .seg-next { fill: rgba(24, 240, 255, 0.14); stroke: var(--cyan); stroke-width: 2; filter: drop-shadow(0 0 6px var(--cyan)); }
   .seg-now { fill: rgba(255, 46, 136, 0.3); stroke: var(--pink); stroke-width: 2.5; filter: drop-shadow(0 0 8px var(--pink)); }
+  .seg-flash { stroke-width: 3; }
   .lbl { font-family: var(--font-body); font-size: 28px; text-anchor: middle; dominant-baseline: central; paint-order: stroke; stroke: #0b0614; stroke-width: 5px; stroke-linejoin: round; }
   .lbl .ext { fill: var(--orange); font-size: 18px; stroke-width: 3px; }
   .slash { font-family: var(--font-body); font-size: 19px; text-anchor: middle; dominant-baseline: central; fill: var(--violet); filter: drop-shadow(0 0 3px var(--violet)); }
@@ -50,14 +61,16 @@
   .note { stroke-width: 1.6; }
   .note-perfect { fill: var(--lime); stroke: var(--lime); filter: drop-shadow(0 0 4px var(--lime)); }
   .note-good { fill: var(--cyan); stroke: var(--cyan); filter: drop-shadow(0 0 4px var(--cyan)); }
-  .note-late { fill: var(--pink); stroke: var(--pink); filter: drop-shadow(0 0 4px var(--pink)); }
+  .note-late { fill: var(--orange); stroke: var(--orange); filter: drop-shadow(0 0 4px var(--orange)); }
   .miss-x { stroke: var(--crimson); stroke-width: 3; stroke-linecap: round; filter: drop-shadow(0 0 4px var(--crimson)); }
-  .center-chord { font-family: var(--font-body); font-size: 92px; fill: #fff; text-anchor: middle; dominant-baseline: central; filter: drop-shadow(0 0 6px var(--pink)) drop-shadow(0 0 14px var(--pink)); }
+  .wave { fill: none; stroke-width: 3; }
+  .center-chord { font-family: var(--font-body); font-size: 92px; fill: #fff; text-anchor: middle; dominant-baseline: central; }
   .center-count { fill: var(--orange); filter: drop-shadow(0 0 8px var(--orange)); }
   .center-tones { font-family: var(--font-body); font-size: 26px; text-anchor: middle; }
   .center-tones tspan { fill: var(--deg); opacity: 0.6; }
   .center-tones tspan.req { opacity: 1; filter: drop-shadow(0 0 4px var(--deg)); }
   .center-small { font-family: 'Press Start 2P', monospace; font-size: 9px; fill: var(--lime); text-anchor: middle; letter-spacing: 1px; }
+  .combo { font-family: 'Press Start 2P', monospace; text-anchor: middle; fill: var(--pink); }
 
   .hand { stroke: #fff; stroke-width: 3; stroke-linecap: round; filter: drop-shadow(0 0 6px var(--cyan)); }
   .hand-tip { fill: #fff; }
@@ -65,23 +78,19 @@
   .hand-tip.down { fill: var(--pink); }
   .hub { fill: #0b0614; stroke: var(--violet); stroke-width: 2; }
 
-  /* Marks on their way to the ghosts. */
-  .flyer { position: absolute; left: 0; top: 0; font-family: var(--font-body); font-size: 30px; line-height: 1; white-space: nowrap; transform-origin: 0 0; }
-  .flyer.perfect { color: var(--lime); text-shadow: 0 0 8px var(--lime); }
-  .flyer.good { color: var(--cyan); text-shadow: 0 0 8px var(--cyan); }
-  .flyer.late { color: var(--pink); text-shadow: 0 0 8px var(--pink); }
-  .flyer.miss { color: var(--crimson); text-shadow: 0 0 8px var(--crimson); }
-  .flyer.ext { color: var(--orange); text-shadow: 0 0 8px var(--orange); }
-  .flyer.inv { color: var(--violet); text-shadow: 0 0 8px var(--violet); }
-  .flyer.tag { color: var(--lime); text-shadow: 0 0 8px var(--lime); font-size: 20px; }
+  /* The game's shouts, placed by the mockup. */
+  .fx .shout { animation: none; top: 0; left: 0; }
+  .px { position: absolute; left: 0; top: 0; width: 8px; height: 8px; margin: -4px 0 0 -4px; }
+  .pop { position: absolute; left: 0; top: 0; font-family: var(--font-display); font-size: 0.6rem; white-space: nowrap; text-shadow: 2px 2px 0 #000, 0 0 10px currentColor; }
 </style>
 </head>
 <body>
 <div class="smoke"><span></span><span></span><span></span></div>
 <div class="app">
   <div class="mock-wrap">
-    <div class="mock-title">The clock</div>
-    <div class="mock-sub">Each chord leaves its marks on the ring for one lap: a note where you landed, the colours you added, the inversion, a slur for smooth voice leading. Then they glide into the ghosts.</div>
+    <div class="mock-tabs" id="tabs"></div>
+    <div class="mock-title" id="mockTitle"></div>
+    <div class="mock-sub" id="mockSub"></div>
     <div class="tune-bar">
       <div class="tune-info">
         <span id="tuneTitle">Autumnal</span>
@@ -90,7 +99,7 @@
       </div>
     </div>
     <div class="rec" id="rec">
-      <div class="stage mock"><svg class="wheel" id="wheel" viewBox="-10 0 440 460"></svg></div>
+      <div class="stage mock" id="stage"><svg class="wheel" id="wheel" viewBox="-10 0 440 460"></svg></div>
       <div class="bandstand"><div class="ghost-band" id="ghostBand"></div></div>
       <div class="fx" id="fx"></div>
     </div>
@@ -101,6 +110,18 @@
 import { sprite } from '../../jam/js/sprites.js';
 
 const q = new URLSearchParams(location.search);
+const FX = ['coins', 'laser', 'comet'].includes(q.get('fx')) ? q.get('fx') : 'coins';
+const TAKES = {
+  coins: ['A · Coins', 'The shouts rise over the clock like in the game and the chord flashes. The marks burst into pixel coins that home into the ghosts.'],
+  laser: ['B · Laser', 'The shouts pop out of the chord\'s own section. A neon laser zaps the points into the ghosts.'],
+  comet: ['C · Comet', 'A combo counter in the hub. Each chord flies to the ghosts as one comet with a pixel tail and explodes on impact.'],
+};
+const keep = [...q].filter(([k]) => k !== 'fx' && k !== 't').map(([k, v]) => `&${k}=${v}`).join('');
+document.getElementById('tabs').innerHTML = Object.entries(TAKES)
+  .map(([id, [name]]) => `<a href="?fx=${id}${keep}"${id === FX ? ' class="on"' : ''}>${name}</a>`).join('');
+document.getElementById('mockTitle').textContent = TAKES[FX][0];
+document.getElementById('mockSub').textContent = TAKES[FX][1];
+
 const FOUR = q.get('n') === '4';
 // ?tune=autumnal plays the real Autumnal in C, as the game does, for the
 // side by side with the current screen.
@@ -108,7 +129,7 @@ const AUTUMNAL = q.get('tune') === 'autumnal';
 const CHORDS = AUTUMNAL ? ['Dm', 'G7', 'Bø', 'E7', 'AmM7']
   : FOUR ? ['Gm7', 'E♭maj7', 'Cm7', 'D7'] : ['Cm7', 'F7', 'B♭maj7', 'E♭maj7', 'Aø7', 'D7', 'Gm', 'Gm'];
 if (AUTUMNAL) document.querySelector('.tune-meta').textContent = 'Swing · C major · 132 bpm';
-// Chord tones, root first, for the slash bass of an inversion.
+// Chord tones, root first, for the slash bass and the notes in the centre.
 const TONES = {
   Cm7: ['C', 'E♭', 'G', 'B♭'], F7: ['F', 'A', 'C', 'E♭'], 'B♭maj7': ['B♭', 'D', 'F', 'A'], 'E♭maj7': ['E♭', 'G', 'B♭', 'D'],
   'Aø7': ['A', 'C', 'E♭', 'G'], D7: ['D', 'F♯', 'A', 'C'], Gm: ['G', 'B♭', 'D'], Gm7: ['G', 'B♭', 'D', 'F'],
@@ -137,7 +158,17 @@ const PLAY = [
 ];
 // How much each kind of mark lights the ghosts (a ghost is 1).
 const VALUE = { perfect: 0.24, good: 0.17, late: 0.07, miss: -0.5, ext: 0.1, inv: 0.1, tag: 0.1 };
-const START_HEAT = 0.4;
+const START_HEAT = 2.5;   // like the game: three ghosts on stage at the count-in
+// The game's own words and points.
+const SHOUTS = {
+  perfect: ['In the pocket!', 'Perfect!', 'Tasty!', 'Far out!', 'Righteous!'],
+  good: ['Groovy!', 'Nice!', 'Solid!', 'Cool cat!'],
+  late: ['Late but legal', 'Dragging…', 'Catch up!'],
+  miss: ['Clam!', 'Trainwreck!', 'Who ordered that?', 'Ghosted!'],
+};
+const POINTS = { perfect: 300, good: 150, late: 50, miss: 0 };
+const GRADE_RGB = { perfect: '182,255,59', good: '24,240,255', late: '255,159,28', miss: '255,59,59' };
+const KIND_RGB = { ...GRADE_RGB, ext: '255,159,28', inv: '155,92,255', tag: '182,255,59' };
 
 const svgNS = 'http://www.w3.org/2000/svg';
 const svg = document.getElementById('wheel');
@@ -160,7 +191,12 @@ const GAP = 0.025;
 const R0 = 128, R1 = 186, RB = 114, RLBL = 152;
 // Where beat b (may be fractional) of chord i sits on the beat track.
 const beatAngle = (i, b) => i * SPAN + GAP + (b / 4) * (SPAN - 2 * GAP) + 0.02;
-const smooth = (x) => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
+const smooth = (x) => { x = clamp01(x); return x * x * (3 - 2 * x); };
+const easeOut = (x) => 1 - (1 - clamp01(x)) ** 3;
+const easeIn = (x) => clamp01(x) ** 2.2;
+// A repeatable "random" number in 0..1 for a seed.
+const rnd = (a, b = 0) => { const x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return x - Math.floor(x); };
 const IDLE = [185, 163, 212], CYAN = [24, 240, 255], WHITE = [255, 255, 255];
 const mixColour = (wn, wc) => {
   const wi = Math.max(0, 1 - wn - wc);
@@ -171,21 +207,31 @@ const mixColour = (wn, wc) => {
 const slotStart = (s) => COUNT_IN + s * SLOT;
 const play = (s) => PLAY[s % PLAY.length];
 const hitTime = (s) => { const p = play(s); return slotStart(s) + (p.grade === 'miss' ? SLOT * 0.5 : p.off * BEAT); };
-const DETACH = 0.35, FLIGHT = 1.1, STAGGER = 0.12;
+const noteAt = (s) => { const p = play(s); return pt(RB, beatAngle(s % N, p.grade === 'miss' ? 0 : Math.max(-0.3, p.off))); };
 
-// The marks of chord s, each with where it sits on the ring (svg coords).
+// The marks of chord s, by kind.
 function marksOf(s) {
-  const i = s % N, p = play(s), out = [];
-  if (p.grade === 'miss') {
-    out.push({ kind: 'miss', text: '✕', at: pt(RB, beatAngle(i, 0)) });
-    return out;
+  const p = play(s);
+  if (p.grade === 'miss') return ['miss'];
+  return [p.grade, ...(p.ext || []).map(() => 'ext'), ...(p.inv ? ['inv'] : []), ...(p.smooth ? ['tag'] : []), ...(p.tag ? ['tag'] : [])];
+}
+const pointsOf = (s) => { const p = play(s); return POINTS[p.grade] + (p.ext || []).length * 25 + (p.inv ? 25 : 0) + (p.smooth ? 50 : 0) + (p.tag ? 50 : 0); };
+const comboAt = (s) => { let c = 0; for (let x = 0; x <= s; x++) { const g = play(x).grade; c = g === 'miss' ? 0 : g === 'late' ? c : c + 1; } return c; };
+
+// What each chord sends to the ghosts: pieces, each with its colour, its
+// value, when it leaves the ring and when it lands. The takes differ.
+function deliveries(s) {
+  const kinds = marksOf(s), h = hitTime(s), out = [];
+  const total = kinds.reduce((a, k) => a + VALUE[k], 0);
+  if (FX === 'coins') {
+    // Two or three pixel coins per mark.
+    let j = 0;
+    kinds.forEach((k) => { for (let c = 0; c < (k === 'miss' ? 4 : 3); c++, j++) out.push({ kind: k, j, leave: h + 0.18 + j * 0.035, land: h + 0.18 + j * 0.035 + 1.0, value: VALUE[k] / (k === 'miss' ? 4 : 3) }); });
+  } else if (FX === 'laser') {
+    out.push({ kind: kinds[0], j: 0, leave: h + 0.25, land: h + 0.4, value: total });
+  } else {
+    out.push({ kind: kinds[0], j: 0, leave: h + 0.3, land: h + 1.15, value: total, size: kinds.length });
   }
-  out.push({ kind: p.grade, text: '♪', at: pt(RB, beatAngle(i, Math.max(-0.3, p.off))) });
-  const mid = (i + 0.5) * SPAN;
-  for (const e of p.ext || []) out.push({ kind: 'ext', text: e, at: pt(RLBL - 6, mid + 0.12) });
-  if (p.inv) { const [x, y] = pt(RLBL, mid); out.push({ kind: 'inv', text: '/' + TONES[CHORDS[i]][p.inv], at: [x, y + 15] }); }
-  if (p.smooth) out.push({ kind: 'tag', text: '⌒', at: pt(R1 + 8, i * SPAN) });
-  if (p.tag) out.push({ kind: 'tag', text: p.tag, at: pt(R1 + 12, mid) });
   return out;
 }
 
@@ -194,7 +240,11 @@ const segs = [], ticks = [], lbls = [], marks = [];
 for (let i = 0; i < N; i++) {
   const d = arc(R0, R1, i * SPAN + GAP, (i + 1) * SPAN - GAP);
   el('path', { d, class: 'seg' });
-  segs.push({ next: el('path', { d, class: 'seg-next', opacity: 0 }), now: el('path', { d, class: 'seg-now', opacity: 0 }) });
+  segs.push({
+    next: el('path', { d, class: 'seg-next', opacity: 0 }),
+    now: el('path', { d, class: 'seg-now', opacity: 0 }),
+    flash: el('path', { d, class: 'seg-flash', opacity: 0 }),
+  });
   const [x, y] = pt(RLBL, (i + 0.5) * SPAN);
   lbls.push(el('text', { x, y, class: 'lbl' }));
   for (let b = 0; b < 4; b++) {
@@ -203,6 +253,7 @@ for (let i = 0; i < N; i++) {
   }
   marks.push(el('g', {}));
 }
+const waves = el('g', {});
 const hand = el('line', { x1: CX, y1: CY, x2: CX, y2: CY - 196, class: 'hand' });
 // The names stay readable over the hand.
 const names = el('g', {});
@@ -212,12 +263,13 @@ const handTip = el('circle', { cx: CX, cy: CY - 196, r: 7, class: 'hand-tip' });
 const centerSmall = el('text', { x: CX, y: CY - 52, class: 'center-small' });
 const centerChord = el('text', { x: CX, y: CY, class: 'center-chord' });
 const centerTones = el('text', { x: CX, y: CY + 62, class: 'center-tones' });
+const combo = el('text', { x: CX, y: CY - 74, class: 'combo' });
 // The notes of a chord, coloured by degree as on the keys, the ones you
 // must play brighter (as in the game).
 function degrees(name) {
-  const q = name.replace(/^[A-G][♭♯]?/, '');
-  const third = /^(m|ø)/.test(q) && !/^maj/.test(q) ? 'm3' : 'M3';
-  const sev = /maj7|M7/.test(q) ? 'M7' : /7|ø/.test(q) ? 'm7' : null;
+  const qq = name.replace(/^[A-G][♭♯]?/, '');
+  const third = /^(m|ø)/.test(qq) && !/^maj/.test(qq) ? 'm3' : 'M3';
+  const sev = /maj7|M7/.test(qq) ? 'M7' : /7|ø/.test(qq) ? 'm7' : null;
   return sev ? ['root', third, 'P5', sev] : ['root', third, 'P5'];
 }
 function tonesHtml(name) {
@@ -232,13 +284,14 @@ const band = document.getElementById('ghostBand');
 band.innerHTML = BAND.map(([id, c]) => `<div class="ghost ghost-${c}" data-part="${id}"><span class="ghost-dark">${sprite(`ghost-${id}`, { px: PX })}</span><span class="ghost-lit">${sprite(`ghost-${id}`, { px: PX })}</span></div>`).join('');
 const ghosts = [...band.children];
 const fx = document.getElementById('fx');
+const stage = document.getElementById('stage');
 
 // Draw the marks of chord s on its section, at opacity o.
 function drawMarks(g, s, o) {
   const i = s % N, p = play(s);
   let h = '';
   if (p.grade === 'miss') {
-    const [x, y] = pt(RB, beatAngle(i, 0));
+    const [x, y] = noteAt(s);
     h += `<path class="miss-x" d="M${x - 5} ${y - 5}L${x + 5} ${y + 5}M${x + 5} ${y - 5}L${x - 5} ${y + 5}"/>`;
   } else {
     // A note head on the beat track, its stem pointing out.
@@ -267,24 +320,44 @@ function drawMarks(g, s, o) {
 
 // Which chords have been played by time t (slot numbers).
 const slotsBefore = (t) => { const out = []; for (let s = 0; slotStart(s) <= t; s++) out.push(s); return out; };
+const lastHit = (t) => { let s = -1; for (const x of slotsBefore(t)) if (hitTime(x) <= t) s = x; return s; };
 
-// Heat at time t: every mark adds its value as it lands in the ghosts.
+// Heat at time t: every piece adds its value as it lands in the ghosts.
 function heatAt(t) {
   let h = START_HEAT;
-  for (const s of slotsBefore(t)) {
-    marksOf(s).forEach((m, j) => {
-      const land = hitTime(s) + DETACH + j * STAGGER + FLIGHT;
-      h = Math.max(0, Math.min(4, h + VALUE[m.kind] * smooth((t - land) / 0.25)));
-    });
-  }
+  for (const s of slotsBefore(t)) for (const d of deliveries(s)) h = Math.max(0, Math.min(4, h + d.value * smooth((t - d.land) / 0.2)));
   return h;
 }
 
 // Where the light edge of the ghosts is, for heat h (in .rec coords).
 function edgeAt(h, box) {
-  const gi = Math.min(3, Math.floor(h));
+  const gi = Math.min(3, Math.floor(Math.max(0, h)));
   const r = ghosts[gi].getBoundingClientRect();
-  return [r.left - box.left + r.width * Math.min(1, h - gi), r.top - box.top + r.height * 0.45];
+  return [r.left - box.left + r.width * Math.min(1, Math.max(0.15, h - gi)), r.top - box.top + r.height * 0.5, gi];
+}
+
+// The game's shout keyframes, as a function of age (s).
+function shoutStyle(age) {
+  const p = age / 1.2;
+  if (p < 0 || p > 1) return null;
+  let y, sc, op;
+  if (p < 0.15) { const u = p / 0.15; y = 20 * (1 - u); sc = 0.6 + 0.55 * u; op = u; }
+  else { const u = (p - 0.15) / 0.85; y = -50 * u; sc = 1.15 - 0.15 * u; op = p < 0.7 ? 1 : 1 - (p - 0.7) / 0.3; }
+  return { y, sc, op };
+}
+function shoutHtml(s, x, y, rot, age, extraScale = 1) {
+  const st = shoutStyle(age);
+  if (!st) return '';
+  const p = play(s), g = p.grade;
+  const word = SHOUTS[g][s % SHOUTS[g].length];
+  const pts = pointsOf(s);
+  const voicing = [p.inv ? ['', '1st inv.', '2nd inv.', '3rd inv.'][p.inv] : '', p.smooth ? 'Smooth' : '', p.tag ? p.tag[0].toUpperCase() + p.tag.slice(1) : ''].filter(Boolean).join(' · ');
+  return `<div class="shout g-${g}" style="transform:translate(${x}px,${y + st.y}px) translate(-50%,0) rotate(${rot}deg) scale(${(st.sc * extraScale).toFixed(3)});opacity:${st.op.toFixed(3)}">`
+    + `<span class="shout-word">${word}</span>`
+    + (g !== 'miss' ? `<span class="shout-pts">+${pts}</span>` : '')
+    + (p.ext && g !== 'miss' ? `<span class="shout-spicy">Spicy ×${p.ext.length}</span>` : '')
+    + (voicing && g !== 'miss' ? `<span class="shout-voicing">${voicing}</span>` : '')
+    + '</div>';
 }
 
 // ---------- animate ----------
@@ -300,6 +373,11 @@ function frame(now) {
   const chorus = Math.floor(Math.max(slot, 0) / N) % 4 + 1;
   const next = (k + 1) % N, after = (k + 2) % N;
   const f = smooth((phase - 0.75) / 0.25);
+  const box = document.getElementById('rec').getBoundingClientRect();
+  const m = svg.getScreenCTM();
+  const toBox = ([x, y]) => [m.a * x + m.c * y + m.e - box.left, m.b * x + m.d * y + m.f - box.top];
+  const scale = m.a;
+  let html = '', svgFx = '';
 
   for (let i = 0; i < N; i++) {
     let wNow = 0, wNext = 0;
@@ -320,18 +398,58 @@ function frame(now) {
     const p = shown >= 0 ? play(shown) : null;
     const ext = p && p.ext && o > 0.5 ? `<tspan class="ext" dy="-9">${p.ext.join('·')}</tspan>` : '';
     lbls[i].innerHTML = CHORDS[i] + ext;
-    // Room for the slash bass under the name.
     const [lx, ly] = pt(RLBL, (i + 0.5) * SPAN);
     lbls[i].setAttribute('y', p && p.inv ? ly - 7 : ly);
     lbls[i].style.fill = mixColour(wNow, wNext);
+
+    // A hit: the section flashes in the grade's colour.
+    const age = s >= 0 ? t - hitTime(s) : -1;
+    if (s >= 0 && age >= 0 && age < 0.5) {
+      const rgb = GRADE_RGB[play(s).grade], e = 1 - age / 0.5;
+      segs[i].flash.setAttribute('opacity', (e * e).toFixed(3));
+      segs[i].flash.setAttribute('style', `fill:rgba(${rgb},0.55);stroke:#fff;filter:drop-shadow(0 0 ${8 + 14 * e}px rgb(${rgb}))`);
+    } else segs[i].flash.setAttribute('opacity', 0);
   }
   ticks.forEach((d, j) => d.classList.toggle('lit', !counting && Math.floor(j / 4) === k && j % 4 <= beat));
 
+  // Shockwaves from the note heads.
+  let w = '';
+  for (const s of slotsBefore(t)) {
+    const age = t - hitTime(s);
+    if (age < 0 || age > 0.6) continue;
+    const [x, y] = noteAt(s), rgb = GRADE_RGB[play(s).grade], u = age / 0.6;
+    w += `<circle class="wave" cx="${x}" cy="${y}" r="${(6 + 54 * easeOut(u)).toFixed(1)}" style="stroke:rgb(${rgb});opacity:${(1 - u).toFixed(3)};stroke-width:${(4 * (1 - u) + 1).toFixed(2)};filter:drop-shadow(0 0 6px rgb(${rgb}))"/>`;
+    if (play(s).grade === 'perfect') w += `<circle class="wave" cx="${x}" cy="${y}" r="${(4 + 30 * easeOut(u * 1.3)).toFixed(1)}" style="stroke:#fff;opacity:${clamp01(1 - u * 1.3).toFixed(3)};stroke-width:2"/>`;
+  }
+  waves.innerHTML = w;
+
+  // The centre: the chord, its notes, and the hit flash from the game.
+  const hs = lastHit(t), hAge = hs >= 0 ? t - hitTime(hs) : 9;
+  const cur = counting ? -1 : slot;
   centerChord.innerHTML = counting ? `<tspan class="center-count">${beat + 1}</tspan>` : CHORDS[k];
-  centerChord.style.fontSize = counting ? '' : `${Math.min(92, 330 / CHORDS[k].length)}px`;
+  let size = counting ? 92 : Math.min(92, 330 / CHORDS[k].length);
+  let glow = '255,46,136', colour = '#fff';
+  if (hs === cur && hAge < 0.45 && play(hs).grade !== 'miss') {
+    const g = play(hs).grade, e = 1 - hAge / 0.45;
+    size *= 1 + (g === 'perfect' ? 0.14 : 0.07) * e;
+    glow = g === 'perfect' ? '182,255,59' : '24,240,255';
+    colour = e > 0.25 ? `rgb(${glow})` : '#fff';
+  }
+  centerChord.style.fontSize = `${size.toFixed(1)}px`;
+  centerChord.style.fill = colour;
+  centerChord.style.filter = `drop-shadow(0 0 6px rgb(${glow})) drop-shadow(0 0 16px rgb(${glow}))`;
   centerTones.innerHTML = counting ? '' : tonesHtml(CHORDS[k]);
   centerSmall.textContent = counting ? 'COUNT-IN' : `CHORUS ${chorus}/4`;
   document.getElementById('tuneChorus').textContent = counting ? 'Count-in' : `Chorus ${chorus}/4`;
+
+  // C: a combo counter over the chord.
+  if (FX === 'comet' && hs >= 0) {
+    const c = comboAt(hs), pop = clamp01(1 - hAge / 0.3);
+    combo.textContent = c >= 2 ? `${c} COMBO` : '';
+    combo.setAttribute('font-size', (10 + 5 * pop).toFixed(1));
+    combo.style.filter = `drop-shadow(0 0 ${4 + 8 * pop}px var(--pink))`;
+    centerSmall.textContent = c >= 2 ? '' : centerSmall.textContent;
+  } else combo.textContent = '';
 
   const a = counting ? 0 : (k + phase) * SPAN;
   const [hx, hy] = pt(196, a);
@@ -342,38 +460,119 @@ function frame(now) {
   handTip.setAttribute('r', fresh ? 10 : 7);
   document.body.classList.toggle('beat-odd', beat % 2 === 1);
 
-  // The ghosts light up as the marks land.
+  // The stage: green flash on a perfect, red flash and a shake on a miss.
+  if (hs >= 0 && hAge < 0.5 && ['perfect', 'miss'].includes(play(hs).grade)) {
+    const miss = play(hs).grade === 'miss', e = 1 - hAge / 0.5, rgb = miss ? '255,59,59' : '182,255,59';
+    stage.style.boxShadow = `0 0 ${60 * e}px rgba(${rgb},${0.8 * e}), inset 0 0 ${60 * e}px rgba(${rgb},${0.3 * e})`;
+    stage.style.transform = miss ? `translateX(${(Math.sin(hAge * 60) * 7 * e).toFixed(1)}px)` : '';
+  } else { stage.style.boxShadow = ''; stage.style.transform = ''; }
+
+  // The shouts.
+  for (const s of slotsBefore(t)) {
+    const age = t - hitTime(s);
+    if (age < 0 || age > 1.2) continue;
+    if (FX === 'laser') {
+      // Out of the chord's own section, tilted with the ring.
+      const mid = (s % N + 0.5) * SPAN, [x, y] = toBox(pt(R1 + 30, mid));
+      const rot = Math.max(-18, Math.min(18, Math.sin(mid) * 14));
+      html += shoutHtml(s, x, y - 20, rot, age, 0.9);
+    } else {
+      const [x, y] = toBox([CX, 28]);
+      html += shoutHtml(s, x, y, -6, age, FX === 'comet' ? 1.25 : 1);
+    }
+  }
+
+  // The pieces on their way to the ghosts.
+  const landed = [0, 0, 0, 0];
+  for (const s of slotsBefore(t)) {
+    const [ox, oy] = toBox(noteAt(s));
+    for (const d of deliveries(s)) {
+      const target = edgeAt(heatAt(d.land - 0.01) + (d.value > 0 ? d.value * 0.5 : 0), box);
+      const [tx, ty, gi] = target;
+      const since = t - d.land;
+      if (since >= 0 && since < 0.35) landed[gi] = Math.max(landed[gi], 1 - since / 0.35);
+      const rgb = KIND_RGB[d.kind];
+      if (FX === 'coins') {
+        const u = (t - d.leave) / (d.land - d.leave);
+        if (u < 0 || u > 1) continue;
+        // Burst out from the note, then get pulled into the ghost.
+        const ang = rnd(s, d.j) * Math.PI * 2, sp = (50 + 60 * rnd(d.j, s)) * scale;
+        const bx = ox + Math.cos(ang) * sp, by = oy + Math.sin(ang) * sp - 30 * scale;
+        const pos = (uu) => {
+          if (uu < 0.3) { const e = easeOut(uu / 0.3); return [ox + (bx - ox) * e, oy + (by - oy) * e]; }
+          const e = easeIn((uu - 0.3) / 0.7);
+          const cx = bx + (bx < tx ? -40 : 40), cy = by + 40;
+          return [(1 - e) ** 2 * bx + 2 * (1 - e) * e * cx + e * e * tx, (1 - e) ** 2 * by + 2 * (1 - e) * e * cy + e * e * ty];
+        };
+        for (let tr = 3; tr >= 0; tr--) {
+          const [x, y] = pos(Math.max(0, u - tr * 0.035));
+          const sz = (tr === 0 ? 1 : 0.75 - tr * 0.15) * (u < 0.3 ? 1 : 1 - 0.3 * (u - 0.3));
+          const spin = (u * 540 + d.j * 40) % 360;
+          html += `<i class="px" style="transform:translate(${x.toFixed(1)}px,${y.toFixed(1)}px) rotate(${tr === 0 ? spin : 0}deg) scale(${sz.toFixed(2)});background:${tr === 0 ? '#fff' : `rgb(${rgb})`};box-shadow:0 0 0 2px rgb(${rgb}),0 0 12px rgb(${rgb});opacity:${(tr === 0 ? 1 : 0.6 - tr * 0.15).toFixed(2)}"></i>`;
+        }
+      } else if (FX === 'laser') {
+        const u = (t - d.leave) / 0.6;
+        if (u < 0 || u > 1) continue;
+        // A jagged neon bolt, growing to the ghost then fading.
+        const grow = easeOut(u / 0.25), fade = u < 0.5 ? 1 : 1 - (u - 0.5) / 0.5;
+        const seg = 9, jitter = Math.floor(t * 30);
+        let path = `M${ox} ${oy}`;
+        for (let n = 1; n <= seg; n++) {
+          const e = (n / seg) * grow;
+          const x = ox + (tx - ox) * e, y = oy + (ty - oy) * e;
+          const off = n === seg ? 0 : (rnd(jitter, n) - 0.5) * 22 * scale;
+          path += ` L${(x + off).toFixed(1)} ${(y + off * 0.4).toFixed(1)}`;
+        }
+        svgFx += `<path d="${path}" fill="none" stroke="rgb(${rgb})" stroke-width="${7 * fade}" stroke-linejoin="round" opacity="${(0.5 * fade).toFixed(2)}" style="filter:blur(3px)"/>`
+          + `<path d="${path}" fill="none" stroke="#fff" stroke-width="${2.5 * fade}" stroke-linejoin="round" opacity="${fade.toFixed(2)}" style="filter:drop-shadow(0 0 6px rgb(${rgb})) drop-shadow(0 0 14px rgb(${rgb}))"/>`;
+        // A spark running down the bolt.
+        if (u < 0.3) {
+          const e = easeOut(u / 0.3);
+          html += `<i class="px" style="transform:translate(${(ox + (tx - ox) * e).toFixed(1)}px,${(oy + (ty - oy) * e).toFixed(1)}px) scale(1.4);background:#fff;box-shadow:0 0 14px rgb(${rgb}),0 0 30px rgb(${rgb})"></i>`;
+        }
+      } else {
+        const u = (t - d.leave) / (d.land - d.leave);
+        if (u < 0 || u > 1) continue;
+        // Up and over, then dive into the ghost, a pixel tail behind.
+        const pos = (uu) => {
+          const e = smooth(uu);
+          const cx = ox + (tx - ox) * 0.2 + (ox < box.width / 2 ? -80 : 80) * scale, cy = Math.min(oy, ty) - 120 * scale;
+          return [(1 - e) ** 2 * ox + 2 * (1 - e) * e * cx + e * e * tx, (1 - e) ** 2 * oy + 2 * (1 - e) * e * cy + e * e * ty];
+        };
+        const big = 1 + 0.25 * (d.size || 1);
+        for (let tr = 10; tr >= 1; tr--) {
+          const [x, y] = pos(Math.max(0, u - tr * 0.02));
+          html += `<i class="px" style="transform:translate(${x.toFixed(1)}px,${y.toFixed(1)}px) scale(${(big * (1 - tr / 11)).toFixed(2)});background:rgb(${tr % 3 === 0 ? '255,159,28' : rgb});opacity:${(1 - tr / 11).toFixed(2)}"></i>`;
+        }
+        const [x, y] = pos(u);
+        html += `<i class="px" style="transform:translate(${x.toFixed(1)}px,${y.toFixed(1)}px) scale(${(1.6 * big).toFixed(2)});border-radius:2px;background:#fff;box-shadow:0 0 0 3px rgb(${rgb}),0 0 18px rgb(${rgb}),0 0 36px rgb(${rgb})"></i>`;
+      }
+      // Impact: pixels blow out of the ghost, and a +points pops up.
+      const ia = t - d.land;
+      if (ia >= 0 && ia < 0.5 && (FX !== 'coins' || d.j === 0)) {
+        const n = FX === 'comet' ? 14 : 8;
+        for (let c = 0; c < n; c++) {
+          const ang = (c / n) * Math.PI * 2 + rnd(s, c), r = (20 + 50 * rnd(c, s)) * easeOut(ia / 0.5) * scale;
+          html += `<i class="px" style="transform:translate(${(tx + Math.cos(ang) * r).toFixed(1)}px,${(ty + Math.sin(ang) * r - 20 * ia).toFixed(1)}px) scale(${(1 - ia / 0.5).toFixed(2)});background:rgb(${c % 2 ? rgb : '255,255,255'});box-shadow:0 0 8px rgb(${rgb})"></i>`;
+        }
+        if (d.value > 0) {
+          html += `<span class="pop" style="transform:translate(${tx}px,${(ty - 40 - 50 * easeOut(ia / 0.5)).toFixed(1)}px) translate(-50%,0);color:rgb(${rgb});opacity:${(1 - ia / 0.5).toFixed(2)}">+${pointsOf(s)}</span>`;
+        }
+      }
+    }
+  }
+  fx.innerHTML = html + (svgFx ? `<svg>${svgFx}</svg>` : '');
+
+  // The ghosts light up as the pieces land, and jump when hit.
   const heat = heatAt(t);
   ghosts.forEach((g, gi) => {
     g.style.setProperty('--fill', Math.max(0, Math.min(1, heat - gi)).toFixed(3));
     g.classList.toggle('is-off', heat - gi < 1);
+    const e = landed[gi];
+    g.style.transform = e ? `translateY(${(-10 * e).toFixed(1)}px) scale(${(1 + 0.18 * e).toFixed(3)})` : '';
+    g.style.filter = e ? `brightness(${(1 + e).toFixed(2)})` : '';
   });
   document.body.dataset.energy = String(Math.min(3, Math.floor(heat)));
-
-  // Marks in flight: a copy leaves the ring and glides into the ghosts.
-  const box = document.getElementById('rec').getBoundingClientRect();
-  const m = svg.getScreenCTM();
-  const toBox = ([x, y]) => [m.a * x + m.c * y + m.e - box.left, m.b * x + m.d * y + m.f - box.top];
-  let html = '';
-  const landing = new Set();
-  for (const s of slotsBefore(t)) {
-    marksOf(s).forEach((mk, j) => {
-      const t0 = hitTime(s) + DETACH + j * STAGGER;
-      const u = (t - t0) / FLIGHT;
-      if (u < 0 || u > 1) { if (u > 1 && u < 1 + 0.3 / FLIGHT) landing.add(Math.min(3, Math.floor(heatAt(t0 + FLIGHT)))); return; }
-      const e = smooth(u);
-      const [x0, y0] = toBox(mk.at);
-      const [x1, y1] = edgeAt(heatAt(t0 + FLIGHT - 0.01), box);
-      // Out and round, like it slides off the ring.
-      const cx = x0 + (x0 < box.width / 2 ? -60 : 60), cy = (y0 + y1) / 2;
-      const x = (1 - e) ** 2 * x0 + 2 * (1 - e) * e * cx + e * e * x1;
-      const y = (1 - e) ** 2 * y0 + 2 * (1 - e) * e * cy + e * e * y1;
-      const sc = 1 - 0.45 * e, op = u < 0.85 ? 1 : 1 - (u - 0.85) / 0.15;
-      html += `<span class="flyer ${mk.kind}" style="transform:translate(${x.toFixed(1)}px,${y.toFixed(1)}px) translate(-50%,-50%) scale(${sc.toFixed(2)});opacity:${op.toFixed(2)}">${mk.text}</span>`;
-    });
-  }
-  fx.innerHTML = html;
-  ghosts.forEach((g, gi) => g.classList.toggle('got', landing.has(gi)));
 
   if (FROZEN === null) requestAnimationFrame(frame);
 }
