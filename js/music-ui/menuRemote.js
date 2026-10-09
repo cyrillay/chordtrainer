@@ -6,6 +6,7 @@
 //   const menu = createMenuRemote({
 //     items: () => [...buttons] | null,  // what the piano can reach now, or null
 //     holdSelect: 0,                      // ms the fifth must be held (0: a tap)
+//     enabled: true,                      // off: no cursor, no commands
 //   });
 //   menu.noteOn(midi) / menu.noteOff(midi)  feed it every note; it returns
 //                                           true while it owns the keys
@@ -13,10 +14,10 @@
 
 import { PianoRemote, MenuNav, gestureOf } from './pianoRemote.js';
 
-export function createMenuRemote({ items, holdSelect = 0, focusClass = 'remote-focus' }) {
+export function createMenuRemote({ items, holdSelect = 0, focusClass = 'remote-focus', enabled: startEnabled = true }) {
   let nav = null;
   let list = [];
-  let enabled = true;
+  let enabled = startEnabled;
 
   const current = () => {
     const els = (items() || []).filter((el) => el && !el.disabled && el.getAttribute('aria-disabled') !== 'true' && el.offsetParent !== null);

@@ -25,8 +25,10 @@ import { initTrophyCase, grant, bump, setMax, setFinished } from './trophyCase.j
 import { isFavourite, toggleFavourite, removeFavourite, cleanFavourites } from './favourites.js';
 import { PianoRemote, MenuNav, gestureOf, step, renderRemoteLegend } from '../../js/music-ui/pianoRemote.js';
 import { KeyWheel, keyLabel } from '../../js/music-ui/keyWheel.js';
+import { attachTempoPicker } from '../../js/music-ui/tempo.js';
 
 const $ = (id) => document.getElementById(id);
+const tempoPicker = attachTempoPicker($('tempoRange'));
 const params = new URLSearchParams(location.search);
 
 // ---- Settings + high scores ----
@@ -107,7 +109,7 @@ function renderSetup() {
   range.min = st.tempo.min;
   range.max = st.tempo.max;
   range.value = Math.max(st.tempo.min, Math.min(st.tempo.max, tempo));
-  $('tempoVal').textContent = range.value;
+  tempoPicker.refresh();
   $('barsSelect').value = String(settings.bars);
   $('lengthSelect').value = String(settings.length);
   $('showTonesCb').checked = settings.showTones;
@@ -245,7 +247,7 @@ $('randomTuneBtn').addEventListener('click', () => {
   renderSetup();
 });
 $('keyBtn').addEventListener('click', openKeyWheel);
-$('tempoRange').addEventListener('input', (e) => { settings.tempo = Number(e.target.value); $('tempoVal').textContent = e.target.value; save(); });
+$('tempoRange').addEventListener('input', (e) => { settings.tempo = Number(e.target.value); save(); });
 $('barsSelect').addEventListener('change', (e) => { settings.bars = Number(e.target.value); save(); });
 $('lengthSelect').addEventListener('change', (e) => { settings.length = Number(e.target.value); save(); });
 $('showTonesCb').addEventListener('change', (e) => { settings.showTones = e.target.checked; save(); });
@@ -491,6 +493,8 @@ function heldPcs() {
 function onNoteOn(midi, velocity = 80, tPerf = performance.now()) {
   keyWheel.playNote(midi);
   if (sync) syncTap(toAudioTime(tPerf));
+  // While the Tap button is lit, every key is a beat.
+  if (!game && tempoPicker.noteOn(tPerf)) return;
   remote.noteOn(midi, remoteScreen() !== null);
   held.set(midi, null);
   velocities.set(midi, velocity);

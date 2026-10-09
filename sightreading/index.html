@@ -19,6 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="../favico.png">
+<link rel="stylesheet" href="../js/music-ui/music-ui.css">
 <link rel="stylesheet" href="sightreading.css">
 <link rel="stylesheet" href="../midi-help.css">
 <link rel="stylesheet" href="../themes.css">
@@ -93,6 +94,10 @@
         </div>
         <button type="button" class="primary-btn" id="gateConnectBtn">Connect MIDI</button>
       </div>
+      <div class="remote-legend" id="remoteLegend">
+        <div class="remote-keys" id="remoteKeys"></div>
+        <p>Pick from the piano. Play <b>A</b> or <b>E</b> on its own to move, and <b>G</b> to open.</p>
+      </div>
       <ol class="level-grid" id="levelGrid"></ol>
     </section>
 
@@ -113,12 +118,11 @@
           <button type="button" class="mode-btn active" data-mode="wait" role="tab">Wait</button>
           <button type="button" class="mode-btn" data-mode="tempo" role="tab">Tempo</button>
         </div>
-        <label class="tempo-ctl" id="tempoCtl" hidden>
+        <div class="tempo-ctl" id="tempoCtl" hidden>
           <span class="ctl-label">Tempo</span>
-          <input type="range" min="30" max="180" step="2" value="72" id="tempoSlider" class="slider">
-          <output class="slider-val"><span id="tempoVal">72</span> <span class="bpm-unit" id="tempoUnit">♩/min</span></output>
+          <input type="range" min="30" max="180" step="2" value="72" id="tempoSlider" class="slider" aria-label="Tempo">
           <span class="tempo-target" id="tempoTarget"></span>
-        </label>
+        </div>
         <label class="check-ctl" title="Notes vanish as you reach them, so you have to read ahead">
           <input type="checkbox" id="readAhead">
           <span>Read ahead</span>
@@ -143,6 +147,7 @@
               <button type="button" class="ghost-btn" id="nextExBtn">New exercise</button>
               <button type="button" class="primary-btn" id="nextLevelBtn">Next level →</button>
             </div>
+            <div class="results-remote">On the piano: <b>A</b> and <b>E</b> move, <b>G</b> presses.</div>
           </div>
         </div>
       </div>

@@ -18,6 +18,9 @@ import {
 import { initAchievements, checkAchievements } from './achievements.js';
 import { restartFloor, restartHint, isRestartNote, isRestartChord } from './keyCommands.js';
 import { track, logRun } from '../../js/stats/log.js';
+import { createMenuRemote } from '../../js/music-ui/menuRemote.js';
+import { renderRemoteLegend } from '../../js/music-ui/pianoRemote.js';
+import { attachTempoPicker } from '../../js/music-ui/tempo.js';
 
 const $ = (id) => document.getElementById(id);
 const DEBUG = new URLSearchParams(location.search).has('debug');
@@ -57,6 +60,7 @@ function showView(name) {
     el.classList.remove('is-entering');
   }
   requestAnimationFrame(() => $(name === 'levels' ? 'viewLevels' : 'viewPlay').classList.add('is-entering'));
+  menu.paint();
 }
 
 const starsHtml = (n, max = 3) =>
@@ -147,10 +151,10 @@ function prepare() {
 
   // Tempo control defaults to the target tempo of this level / piece.
   const { beatUnit } = timeSignature(ex.time);
-  $('tempoUnit').textContent = beatUnit === 1.5 ? '♩./min' : beatUnit === 0.5 ? '♪/min' : '♩/min';
+  tempo.setUnit(beatUnit === 1.5 ? '♩.' : beatUnit === 0.5 ? '♪' : '♩');
   const bpm = getSetting(tempoKey(), targetTempo());
   $('tempoSlider').value = bpm;
-  $('tempoVal').textContent = bpm;
+  tempo.refresh();
   $('tempoTarget').textContent = `★★★ at ${targetTempo()}`;
 
   S.marks = new Map();
@@ -272,6 +276,7 @@ function armRun() {
   stopRun();
   S.finished = false;
   $('results').hidden = true;
+  menu.paint();
   for (const [k] of S.marks) S.layout.noteEl(k)?.classList.remove('is-current', 'is-hit', 'is-good', 'is-miss', 'is-hidden');
   S.marks = new Map();
   $('cursor').dataset.system = '';
@@ -376,9 +381,13 @@ function startTempo() {
 function onNoteOn(midi, velocity, t) {
   S.held.add(midi);
   renderHeard();
-  if ($('viewPlay').hidden || !S.exercise) return;
+  if ($('viewPlay').hidden || !S.exercise) { menu.noteOn(midi); return; }
+  // Tapping the tempo: the piano is the tap button.
+  if (!S.running && tempo.noteOn(t)) return;
+  // On the results, the piano presses their buttons (a chord is music, so
+  // the restart triad still retries).
+  if (S.finished) { menu.noteOn(midi); pianoCommand(midi); return; }
   if (pianoCommand(midi)) return;
-  if (S.finished) return;
 
   if (S.mode === 'wait' && S.run instanceof WaitRun) {
     const g = S.run.current;
@@ -417,8 +426,8 @@ function pianoCommand(midi) {
     return true;
   }
   // Leave a moment after the end so the last notes don't skip the results.
-  if (S.mode === 'tempo' && !S.running && now - S.finishedAt > 1500) {
-    if (S.finished) retry(); else startTempo();
+  if (S.mode === 'tempo' && !S.running && !S.finished) {
+    startTempo();
     return true;
   }
   // Notes of a chord being formed up there are never mistakes.
@@ -434,7 +443,21 @@ function restart() {
 function onNoteOff(midi) {
   S.held.delete(midi);
   renderHeard();
+  menu.noteOff(midi);
 }
+
+// ---- The piano remote ---------------------------------------------------------
+
+// The level cards, or the results' buttons once their last notes have rung.
+const menu = createMenuRemote({
+  enabled: false,
+  items: () => {
+    if ($('viewPlay').hidden) return [...document.querySelectorAll('#levelGrid .level-card')];
+    if (S.finished && performance.now() - S.finishedAt > 800) return [$('nextLevelBtn'), $('nextExBtn'), $('retryBtn'), $('backBtn')];
+    return null;
+  },
+});
+renderRemoteLegend($('remoteKeys'));
 
 function renderHeard() {
   const notes = [...S.held].sort((a, b) => a - b).map(midiName);
@@ -512,6 +535,7 @@ function showResults(r, rec, before) {
   $('nextLevelBtn').hidden = !(next < LEVELS.length && isUnlocked(next));
   $('playStars').innerHTML = starsHtml(levelStars(level().id));
   $('results').hidden = false;
+  setTimeout(() => menu.paint(), 850);
   $('startBtn').textContent = 'Retry';
   setStatus('Space to retry · N for a new exercise');
 }
@@ -545,8 +569,8 @@ function setMode(mode) {
 }
 document.querySelectorAll('.mode-btn').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
 
+const tempo = attachTempoPicker($('tempoSlider'));
 $('tempoSlider').addEventListener('input', (e) => {
-  $('tempoVal').textContent = e.target.value;
   setSetting(tempoKey(), Number(e.target.value));
 });
 
@@ -581,6 +605,7 @@ window.addEventListener('resize', () => {
 function midiStatus({ state, names }) {
   S.midi = state;
   paintMidiStatus({ state, names });
+  queueMicrotask(() => { menu.enabled = state === 'connected'; });
   if (S.exercise && !S.running && !S.finished) armRun();
 }
 

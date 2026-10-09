@@ -448,11 +448,18 @@ body.beat-odd .ghost-band .ghost.is-off .sprite { transform: none; }
 .fav-x { padding: 0 0.5rem; font-size: 1.2rem; color: var(--ivory-dim); }
 .fav-x:hover { color: var(--crimson); }
 
-.knobs { display: grid; grid-template-columns: 1fr 2fr 1fr 1fr; gap: 0.9rem; align-items: end; }
+.knobs { display: grid; grid-template-columns: 1fr 2fr 1fr 1fr; gap: 0.9rem; align-items: start; }
 @media (max-width: 700px) { .knobs { grid-template-columns: 1fr 1fr; } .knob-wide { grid-column: 1 / -1; } }
 .knob { display: flex; flex-direction: column; gap: 0.35rem; }
 .knob-label { font-size: 1.05rem; color: var(--ivory-dim); }
 .knob-label b { color: var(--orange); font-weight: 400; }
+/* The shared tempo picker (js/music-ui/tempo.js), arcade style. */
+.knob .tp { margin-top: 0.2rem; }
+.tp-value { font-size: 0.85rem; color: var(--orange); text-shadow: 0 0 8px rgba(255, 159, 28, 0.5); }
+.tp-term { font-style: normal; font-size: 1.15rem; color: var(--cyan); }
+.tp-term-btn, .tp-tap { font-style: normal; font-size: 1.05rem; border-radius: 3px; border-color: var(--violet); }
+.tp-term-btn.is-on { border-color: var(--cyan); color: #fff; background: rgba(24, 240, 255, 0.14); }
+.tp-tap.is-on { background: var(--pink); border-color: #fff; color: #fff; }
 
 /* ---------- hall of fame + rules ---------- */
 

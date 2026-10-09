@@ -21,6 +21,7 @@
 <link rel="icon" type="image/png" href="../favico.png">
 <link rel="stylesheet" href="../header.css">
 <link rel="stylesheet" href="../midi-help.css">
+<link rel="stylesheet" href="../js/music-ui/music-ui.css">
 <link rel="stylesheet" href="jam.css">
 </head>
 <body class="jam">
@@ -112,10 +113,10 @@
             <span class="knob-label" id="keyLabel">Key</span>
             <button type="button" class="arcade-select key-btn" id="keyBtn" aria-haspopup="dialog" aria-labelledby="keyLabel keyBtn"></button>
           </div>
-          <label class="knob knob-wide">
-            <span class="knob-label">Tempo <b id="tempoVal">120</b> bpm</span>
-            <input type="range" id="tempoRange" min="50" max="200" step="1" value="120">
-          </label>
+          <div class="knob knob-wide">
+            <span class="knob-label" id="tempoLabel">Tempo</span>
+            <input type="range" id="tempoRange" min="50" max="200" step="1" value="120" aria-labelledby="tempoLabel">
+          </div>
           <label class="knob">
             <span class="knob-label">Bars per chord</span>
             <select id="barsSelect" class="arcade-select"><option value="1">1</option><option value="2">2</option></select>

@@ -18,6 +18,9 @@ import { loadSettings, saveSettings, loadProgress, saveProgress, loadWeak, saveW
 import { initAchievements, grant, bump, setMax, setValue } from './achievements.js';
 import * as eggs from './eggs.js';
 import { track, logRun } from '../../js/stats/log.js';
+import { createMenuRemote } from '../../js/music-ui/menuRemote.js';
+import { renderRemoteLegend } from '../../js/music-ui/pianoRemote.js';
+import { createNoteKeyboard } from '../../js/music-ui/noteKeyboard.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -67,6 +70,8 @@ const midi = createMidiInput({
 function renderMidiStatus({ state, names }) {
   midiState = state;
   paintMidiStatus({ state, names });
+  // The remote's cursor shows once a piano can drive it.
+  queueMicrotask(() => { menu.enabled = state === 'connected'; });
 }
 
 $('midiBtn').addEventListener('click', () => { if (midiState !== 'connected') midi.connect(); });
@@ -185,6 +190,7 @@ function startSession(kind, level = null) {
   requestAnimationFrame(() => keyboard.reveal(60));
   fillQueue();
   nextTask();
+  menu.paint();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -345,7 +351,14 @@ function handleNoteOn(midiNote, velocity, t) {
   keyboard.reveal(midiNote);
   checkEggs();
 
-  if (!session || session.transitioning || !session.matcher) return;
+  // Off the stage, the piano picks: the roots keyboard when it has focus,
+  // else the menu remote (a held G starts, so the hidden tunes don't).
+  if (!session) {
+    if (!rootKeys.noteOn(midiNote)) menu.noteOn(midiNote);
+    return;
+  }
+  if (!$('resultModal').hidden) { menu.noteOn(midiNote); return; }
+  if (session.transitioning || !session.matcher) return;
   const silence = t - session.lastNoteAt;
   session.lastNoteAt = t;
   if (silence >= 273000) grant('cage');
@@ -376,7 +389,23 @@ function handleNoteOn(midiNote, velocity, t) {
 function handleNoteOff(midiNote) {
   held.delete(midiNote);
   keyboard.setDown(midiNote, false);
+  menu.noteOff(midiNote);
 }
+
+// ---- The piano remote ----
+
+// What the piano can reach: the result's buttons, else the path and the
+// two practice cards. Nothing while an arpeggio is on the stage.
+const menu = createMenuRemote({
+  holdSelect: 600,
+  enabled: false,
+  items: () => {
+    if (!$('resultModal').hidden) return [$('resultNextBtn'), $('resultRetryBtn'), $('resultMapBtn')];
+    if (session) return null;
+    return [...document.querySelectorAll('#levelPath .level-btn'), $('freeCard'), $('weakCard')];
+  },
+});
+renderRemoteLegend($('remoteKeys'), { select: 'hold' });
 
 // Called continuously: idle-silence check for 4′33″ while on the play view.
 setInterval(() => {
@@ -568,6 +597,7 @@ function showResult(s, { accuracy, avgGapMs, stars, note }) {
   nextBtn.hidden = !(next && isUnlocked(next));
   $('resultRetryBtn').textContent = s.kind === 'weak' ? 'Again' : 'Retry';
   $('resultModal').hidden = false;
+  menu.paint();
   if (stars) chime([523.25, 659.25, 783.99, 1046.5].slice(0, stars + 1), { gain: 0.06, dur: 0.9, spread: 0.18 });
 }
 
@@ -620,6 +650,7 @@ function renderMap() {
     </li>`;
   }).join('');
   renderWeak();
+  menu.paint();
 }
 
 $('levelPath').addEventListener('click', (e) => {
@@ -669,6 +700,12 @@ $('unlockAllBtn').addEventListener('click', () => {
 
 // ---- Settings ----
 
+const rootKeys = createNoteKeyboard($('rootKeys'), {
+  value: settings.roots,
+  label: 'Roots',
+  onChange: (roots) => { settings.roots = roots; saveSettings(settings); renderSettings(); },
+});
+
 function chip(group, value, label, on) {
   return `<label class="chip"><input type="checkbox" data-group="${group}" value="${value}" ${on ? 'checked' : ''}><span>${label}</span></label>`;
 }
@@ -676,7 +713,7 @@ function chip(group, value, label, on) {
 function renderSettings() {
   $('qualityChips').innerHTML = QUALITY_ORDER.map(q =>
     `<label class="checkbox-item"><input type="checkbox" data-group="qualities" value="${q}" ${settings.qualities.includes(q) ? 'checked' : ''}>${QUALITY_LABELS[q]}</label>`).join('');
-  $('rootChips').innerHTML = NOTE_NAMES.map(r => chip('roots', r, NOTE_DISPLAY[r], settings.roots.includes(r))).join('');
+  rootKeys.set(settings.roots);
   $('freeDirChips').innerHTML = Object.entries(DIR_LABELS).map(([d, l]) => chip('freeDirections', d, `${ARROWS[d]} ${l}`, settings.freeDirections.includes(d))).join('');
   $('freeStartChips').innerHTML = Object.entries(START_LABELS).map(([st, l]) => chip('freeStarts', st, `from ${l}`, settings.freeStarts.includes(st))).join('');
   $('showNamesCb').checked = settings.showNames;

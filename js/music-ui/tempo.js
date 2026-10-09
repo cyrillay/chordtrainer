@@ -126,6 +126,7 @@ export function attachTempoPicker(range, { unit = '♩', onTapState } = {}) {
   document.addEventListener('keydown', (e) => {
     if (!tapping || e.code !== 'Space' || e.repeat) return;
     e.preventDefault();
+    e.stopImmediatePropagation();
     tap(e.timeStamp || performance.now());
   }, true);
   termsEl.addEventListener('click', (e) => {

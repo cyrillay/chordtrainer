@@ -102,3 +102,7 @@
 @media (max-width: 600px) {
   .verify-head { margin-top: 2rem; }
 }
+
+/* The shared tempo picker under the slider. */
+.config-control:has(.tp) { flex-wrap: wrap; }
+.config-control .tp { flex: 1 1 100%; }
