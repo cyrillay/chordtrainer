@@ -39,7 +39,7 @@ Current versions (keep this table in sync):
 | Sight-reading | Op. 6 No 8 |
 | Arpeggios | Op. 2 No 8 |
 | Repertoire | Op. 5 No 11 |
-| Ghost Jam | Op. 7 No 16 |
+| Ghost Jam | Op. 7 No 17 |
 | PDF to MIDI | Anh. 1 No 9 |
 | Statistics | Anh. 2 No 1 |
 
@@ -90,6 +90,10 @@ controls:
 - Spell and name things as a musician would (D♭ major, C♯ minor, key
   signatures, degrees), and keep the screens ergonomic: big targets, one
   tap or one note per choice.
+- Small touches of life are welcome, the kind a player notices on the
+  third game: the ghosts roll their eyes to the sky when they leave the
+  stage, look right at the music when they play, and the pianist looks
+  down at the keys.
 
 ## Copy
 

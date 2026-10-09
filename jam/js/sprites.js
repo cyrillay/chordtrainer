@@ -23,8 +23,8 @@ export const MAPS = {
     '.############.',
     '.##WW####WW##.',
     '##WWWW##WWWW##',
-    '##WWPP##WWPP##',
-    '##WWPP##WWPP##',
+    '##WWWW##WWWW##',
+    '##WWWW##WWWW##',
     '###WW####WW###',
     '##############',
     '##############',
@@ -95,12 +95,8 @@ const GEAR = {
     '.DDDDD.............',
     '..DDD..............',
   ]]],
-  // The pianist looks down at the keys.
-  keys: [[6, 9, [
-    'WWWW..WWWW',
-    'WPPW..WPPW',
-    '.PP....PP.',
-  ]], [2, 14, [
+  // The pianist looks down at the keys (see EYES).
+  keys: [[2, 14, [
     'KKKKKKKKKKKKKKKKKK',
     'WPWPWWPWPWPWWPWPWW',
     'WWWWWWWWWWWWWWWWWW',
@@ -167,6 +163,12 @@ GEAR.locked = [[9, 11, [
   'AAAAA',
 ]]];
 
+// The ghosts' pupils are drawn apart from the body, so CSS can roll their
+// eyes: each entry is the top left of a 2 x 2 pupil, looking right (see
+// .pupils in jam.css: up to the sky off stage, down at the keys for the
+// pianist).
+export const EYES = { ghost: [[4, 5], [10, 5]] };
+
 for (const [id, pieces] of Object.entries(GEAR)) {
   const grid = Array.from({ length: 18 }, () => Array(22).fill('.'));
   MAPS.ghost.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') grid[y + 4][x + 4] = ch; }));
@@ -174,6 +176,7 @@ for (const [id, pieces] of Object.entries(GEAR)) {
     rows.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') grid[y + py][x + px] = ch; }));
   }
   MAPS[`ghost-${id}`] = grid.map((r) => r.join(''));
+  EYES[`ghost-${id}`] = EYES.ghost.map(([x, y]) => [x + 4, y + 4]);
 }
 
 export function sprite(name, { px = 4, className = '', title = '' } = {}) {
@@ -189,6 +192,9 @@ export function sprite(name, { px = 4, className = '', title = '' } = {}) {
       rects += `<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${fill}"/>`;
     }
   });
+  if (EYES[name]) {
+    rects += '<g class="pupils">' + EYES[name].map(([x, y]) => `<rect x="${x}" y="${y}" width="2.02" height="2.02" fill="${PALETTE.P}"/>`).join('') + '</g>';
+  }
   const label = title ? `<title>${title}</title>` : '';
   return `<svg class="sprite ${className}" viewBox="0 0 ${w} ${h}" width="${w * px}" height="${h * px}" shape-rendering="crispEdges" ${title ? 'role="img"' : 'aria-hidden="true"'}>${label}${rects}</svg>`;
 }
