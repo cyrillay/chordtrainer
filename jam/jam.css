@@ -353,6 +353,11 @@ body.beat-odd .ghost-band .ghost:nth-child(even) .sprite { transform: translateY
 }
 .ghost-band .ghost.is-off .ghost-lit .sprite { opacity: 0.6; filter: none; }
 body.beat-odd .ghost-band .ghost.is-off .sprite { transform: none; }
+/* Eyes: a ghost on stage looks right, at the music coming; off stage it
+   rolls its eyes to the sky, and the pianist looks down at the keys. */
+.ghost .pupils { transition: transform 0.35s ease-out; }
+.ghost[data-part="keys"] .pupils { transform: translate(-1px, 1px); }
+.ghost-band .ghost.is-off .pupils { transform: translate(-1px, -2px); }
 .ghost.joins { animation: ghostJoins 0.7s cubic-bezier(.2, .9, .3, 1.4); }
 @keyframes ghostJoins { from { transform: translateY(24px) scale(0.4); opacity: 0; } 60% { transform: translateY(-6px) scale(1.25); opacity: 1; } }
 .ghost.is-wild .sprite { animation: wild 0.5s ease-in-out infinite alternate; }
