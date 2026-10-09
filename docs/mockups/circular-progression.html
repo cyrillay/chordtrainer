@@ -39,8 +39,8 @@
   .seg { fill: #1d1030; stroke: #4d2f72; stroke-width: 1.5; }
   .seg-next { fill: rgba(24, 240, 255, 0.14); stroke: var(--cyan); stroke-width: 2; filter: drop-shadow(0 0 6px var(--cyan)); }
   .seg-now { fill: rgba(255, 46, 136, 0.3); stroke: var(--pink); stroke-width: 2.5; filter: drop-shadow(0 0 8px var(--pink)); }
-  .lbl { font-family: var(--font-body); font-size: 28px; text-anchor: middle; dominant-baseline: central; }
-  .lbl .ext { fill: var(--orange); font-size: 18px; filter: drop-shadow(0 0 3px var(--orange)); }
+  .lbl { font-family: var(--font-body); font-size: 28px; text-anchor: middle; dominant-baseline: central; paint-order: stroke; stroke: #0b0614; stroke-width: 5px; stroke-linejoin: round; }
+  .lbl .ext { fill: var(--orange); font-size: 18px; stroke-width: 3px; }
   .slash { font-family: var(--font-body); font-size: 19px; text-anchor: middle; dominant-baseline: central; fill: var(--violet); filter: drop-shadow(0 0 3px var(--violet)); }
   .tag { font-family: var(--font-body); font-size: 15px; text-anchor: middle; dominant-baseline: central; fill: var(--lime); letter-spacing: 0.5px; }
   .slur { fill: none; stroke: var(--lime); stroke-width: 2.2; stroke-linecap: round; filter: drop-shadow(0 0 3px var(--lime)); }
@@ -54,7 +54,9 @@
   .miss-x { stroke: var(--crimson); stroke-width: 3; stroke-linecap: round; filter: drop-shadow(0 0 4px var(--crimson)); }
   .center-chord { font-family: var(--font-body); font-size: 92px; fill: #fff; text-anchor: middle; dominant-baseline: central; filter: drop-shadow(0 0 6px var(--pink)) drop-shadow(0 0 14px var(--pink)); }
   .center-count { fill: var(--orange); filter: drop-shadow(0 0 8px var(--orange)); }
-  .center-next { font-family: var(--font-body); font-size: 26px; fill: var(--cyan); text-anchor: middle; }
+  .center-tones { font-family: var(--font-body); font-size: 26px; text-anchor: middle; }
+  .center-tones tspan { fill: var(--deg); opacity: 0.6; }
+  .center-tones tspan.req { opacity: 1; filter: drop-shadow(0 0 4px var(--deg)); }
   .center-small { font-family: 'Press Start 2P', monospace; font-size: 9px; fill: var(--lime); text-anchor: middle; letter-spacing: 1px; }
 
   .hand { stroke: #fff; stroke-width: 3; stroke-linecap: round; filter: drop-shadow(0 0 6px var(--cyan)); }
@@ -100,11 +102,17 @@ import { sprite } from '../../jam/js/sprites.js';
 
 const q = new URLSearchParams(location.search);
 const FOUR = q.get('n') === '4';
-const CHORDS = FOUR ? ['Gm7', 'E♭maj7', 'Cm7', 'D7'] : ['Cm7', 'F7', 'B♭maj7', 'E♭maj7', 'Aø7', 'D7', 'Gm', 'Gm'];
+// ?tune=autumnal plays the real Autumnal in C, as the game does, for the
+// side by side with the current screen.
+const AUTUMNAL = q.get('tune') === 'autumnal';
+const CHORDS = AUTUMNAL ? ['Dm', 'G7', 'Bø', 'E7', 'AmM7']
+  : FOUR ? ['Gm7', 'E♭maj7', 'Cm7', 'D7'] : ['Cm7', 'F7', 'B♭maj7', 'E♭maj7', 'Aø7', 'D7', 'Gm', 'Gm'];
+if (AUTUMNAL) document.querySelector('.tune-meta').textContent = 'Swing · C major · 132 bpm';
 // Chord tones, root first, for the slash bass of an inversion.
 const TONES = {
   Cm7: ['C', 'E♭', 'G', 'B♭'], F7: ['F', 'A', 'C', 'E♭'], 'B♭maj7': ['B♭', 'D', 'F', 'A'], 'E♭maj7': ['E♭', 'G', 'B♭', 'D'],
   'Aø7': ['A', 'C', 'E♭', 'G'], D7: ['D', 'F♯', 'A', 'C'], Gm: ['G', 'B♭', 'D'], Gm7: ['G', 'B♭', 'D', 'F'],
+  Dm: ['D', 'F', 'A'], G7: ['G', 'B', 'D', 'F'], 'Bø': ['B', 'D', 'F', 'A'], E7: ['E', 'G♯', 'B', 'D'], AmM7: ['A', 'C', 'E', 'G♯'],
 };
 const N = CHORDS.length;
 const BEAT = 60 / 132;
@@ -128,7 +136,7 @@ const PLAY = [
   { grade: 'perfect', off: -0.02, smooth: true, ext: ['13'] },
 ];
 // How much each kind of mark lights the ghosts (a ghost is 1).
-const VALUE = { perfect: 0.14, good: 0.1, late: 0.04, miss: -0.45, ext: 0.06, inv: 0.06, tag: 0.06 };
+const VALUE = { perfect: 0.24, good: 0.17, late: 0.07, miss: -0.5, ext: 0.1, inv: 0.1, tag: 0.1 };
 const START_HEAT = 0.4;
 
 const svgNS = 'http://www.w3.org/2000/svg';
@@ -196,11 +204,27 @@ for (let i = 0; i < N; i++) {
   marks.push(el('g', {}));
 }
 const hand = el('line', { x1: CX, y1: CY, x2: CX, y2: CY - 196, class: 'hand' });
+// The names stay readable over the hand.
+const names = el('g', {});
+lbls.forEach((t) => names.appendChild(t));
 el('circle', { cx: CX, cy: CY, r: 98, class: 'hub' });
 const handTip = el('circle', { cx: CX, cy: CY - 196, r: 7, class: 'hand-tip' });
 const centerSmall = el('text', { x: CX, y: CY - 52, class: 'center-small' });
 const centerChord = el('text', { x: CX, y: CY, class: 'center-chord' });
-const centerNext = el('text', { x: CX, y: CY + 62, class: 'center-next' });
+const centerTones = el('text', { x: CX, y: CY + 62, class: 'center-tones' });
+// The notes of a chord, coloured by degree as on the keys, the ones you
+// must play brighter (as in the game).
+function degrees(name) {
+  const q = name.replace(/^[A-G][♭♯]?/, '');
+  const third = /^(m|ø)/.test(q) && !/^maj/.test(q) ? 'm3' : 'M3';
+  const sev = /maj7|M7/.test(q) ? 'M7' : /7|ø/.test(q) ? 'm7' : null;
+  return sev ? ['root', third, 'P5', sev] : ['root', third, 'P5'];
+}
+function tonesHtml(name) {
+  const deg = degrees(name);
+  const req = (j) => j === 1 || j === deg.length - 1 || (j === 2 && name.includes('ø'));
+  return TONES[name].map((n, j) => `<tspan class="deg-${deg[j]}${req(j) ? ' req' : ''}">${n}</tspan>`).join(' ');
+}
 
 const PX = innerWidth < 500 ? 3 : 5;
 const BAND = [['drums', 'cyan'], ['bass', 'pink'], ['keys', 'orange'], ['sax', 'lime']];
@@ -305,7 +329,7 @@ function frame(now) {
 
   centerChord.innerHTML = counting ? `<tspan class="center-count">${beat + 1}</tspan>` : CHORDS[k];
   centerChord.style.fontSize = counting ? '' : `${Math.min(92, 330 / CHORDS[k].length)}px`;
-  centerNext.textContent = counting ? `${CHORDS[0]} first` : `then ${CHORDS[next]}`;
+  centerTones.innerHTML = counting ? '' : tonesHtml(CHORDS[k]);
   centerSmall.textContent = counting ? 'COUNT-IN' : `CHORUS ${chorus}/4`;
   document.getElementById('tuneChorus').textContent = counting ? 'Count-in' : `Chorus ${chorus}/4`;
 
