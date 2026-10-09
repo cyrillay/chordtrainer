@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FIFTHS, tonicName, keyLabel, keySignature, signatureText, wheelSlots } from '../jam/js/keyWheel.js';
+import { FIFTHS, tonicName, keyLabel, keySignature, signatureText, wheelSlots } from '../js/music-ui/keyWheel.js';
 
 test('the circle goes up in fifths from C', () => {
   assert.deepEqual(FIFTHS, [0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5]);

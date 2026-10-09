@@ -253,6 +253,11 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
   margin-bottom: 2rem;
 }
 @media (max-width: 600px) { .side-modes { grid-template-columns: 1fr; } }
+
+/* The piano remote's legend, once a keyboard is connected. */
+.remote-legend { margin: 0 0 1.2rem; }
+body:not(.midi-ready) .remote-legend { display: none; }
+.setting-hint { margin: 0; font-size: 0.95rem; color: var(--ivory-dim); }
 .mode-card {
   display: flex; align-items: center; gap: 1rem; text-align: left;
   padding: 1rem 1.1rem;

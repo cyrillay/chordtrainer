@@ -718,6 +718,14 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
 .mode-btn.active { background: rgba(var(--gold-bright-rgb), 0.14); color: var(--gold); box-shadow: inset 0 -2px 0 var(--gold); }
 
 .tempo-ctl, .check-ctl { display: inline-flex; align-items: center; gap: 0.6rem; cursor: pointer; }
+.tempo-ctl { flex-wrap: wrap; cursor: default; max-width: 100%; }
+.tempo-ctl .tp { flex: 1 1 18rem; margin-top: 0; order: 2; }
+
+/* The piano remote: its legend once a keyboard is connected. */
+.remote-legend { margin: 0 0 1.2rem; }
+body:not(.midi-ready) .remote-legend, body:not(.midi-ready) .results-remote { display: none; }
+.results-remote { margin-top: 0.8rem; font-size: 0.95rem; color: var(--ivory-dim); text-align: center; }
+.results-remote b { color: var(--ivory); }
 .ctl-label { font-family: var(--font-display); font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ivory-dim); }
 .tempo-target { font-family: var(--font-mono); font-size: 0.72rem; color: var(--gold); opacity: 0.8; }
 .bpm-unit { font-size: 0.8em; color: var(--ivory-dim); }
@@ -743,6 +751,8 @@ button:disabled:hover { background: transparent; color: var(--ivory); }
 /* ---------- score ---------- */
 
 .score-stage { position: relative; margin-bottom: 1rem; }
+/* Room for the whole results card, so the bottom bar never hides its buttons. */
+.score-stage:has(> .results:not([hidden])) { min-height: 32rem; }
 .score-paper {
   position: relative;
   background: var(--ink-paper);

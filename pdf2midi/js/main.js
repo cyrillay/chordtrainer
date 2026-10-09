@@ -10,11 +10,9 @@ import { writeMidi } from './midiWriter.js';
 import { createPlayer } from './player.js';
 import { rgbaToGray } from './raster/image.js';
 import { toOriginal } from './raster/scan.js';
+import { attachTempoPicker } from '../../js/music-ui/tempo.js';
+import { ensurePdfJs } from '../../js/core/pdfjs.js';
 
-// Same pdf.js build as the Score Trainer, so the browser cache is shared.
-const PDFJS_VER = '4.8.69';
-const PDFJS_URL = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VER}/build/pdf.min.mjs`;
-const WORKER_URL = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VER}/build/pdf.worker.min.mjs`;
 const MAX_PREVIEW_PAGES = 40;
 // Scans are rendered at 3× (216 dpi) — enough detail, the recogniser then
 // normalises the scale itself — but capped in pixels for phones.
@@ -22,14 +20,7 @@ const SCAN_SCALE = 3;
 const MAX_SCAN_PIXELS = 14e6;
 
 const $ = id => document.getElementById(id);
-
-let pdfjsLib = null;
-async function ensurePdfJs() {
-  if (pdfjsLib) return pdfjsLib;
-  pdfjsLib = await import(/* webpackIgnore: true */ PDFJS_URL);
-  pdfjsLib.GlobalWorkerOptions.workerSrc = WORKER_URL;
-  return pdfjsLib;
-}
+const tempoPicker = attachTempoPicker($('tempoInput'));
 
 const state = { score: null, pdf: null, images: null, fileName: '', tempo: 120, markers: [], mode: 'vector', unskew: [] };
 const player = createPlayer();
@@ -218,7 +209,7 @@ function renderResult() {
 
   const tempo = $('tempoInput');
   tempo.value = String(state.tempo);
-  $('tempoVal').textContent = String(state.tempo);
+  tempoPicker.refresh();
   $('tempoHint').textContent = s.tempoFound
     ? 'Read from the metronome mark on the score. Quarter notes per minute.'
     : 'No metronome mark found. Set it here, in quarter notes per minute.';
@@ -368,7 +359,6 @@ dz.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
 
 $('tempoInput').addEventListener('input', e => {
   state.tempo = +e.target.value;
-  $('tempoVal').textContent = e.target.value;
   if (player.playing) { player.stop(); $('playBtn').textContent = '▶ Listen'; }
 });
 $('downloadBtn').addEventListener('click', download);

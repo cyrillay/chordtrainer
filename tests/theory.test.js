@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   NOTE_NAMES, CHORD_FORMULAS, buildChord, spellChordTones, spellRootForKey,
   tonicSpellingFor, tonicDisplay, formatChordHtml, getFingering, pickInversion,
-  randomEnharmonicDisplay
+  chordRootDisplay, tonicName, qualityMode
 } from '../js/core/theory.js';
 
 const LETTER_PCS = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
@@ -53,7 +53,7 @@ test('spellChordTones spells every chord tone to its real pitch class', () => {
       const n = CHORD_FORMULAS[q].intervals.length;
       for (let inv = 0; inv < n; inv++) {
         const chord = buildChord(root, q, inv);
-        for (const rootDisplay of [undefined, randomEnharmonicDisplay(root)]) {
+        for (const rootDisplay of [undefined, chordRootDisplay(root, q, () => 0), chordRootDisplay(root, q, () => 0.9)]) {
           chord.rootDisplay = rootDisplay;
           const tones = spellChordTones(chord);
           assert.equal(tones.length, n);
@@ -137,4 +137,19 @@ test('pickInversion respects its switches and bounds', () => {
     const inv = pickInversion(4, true, 100);
     assert.ok(inv >= 1 && inv <= 3, `inversion ${inv} out of range`);
   }
+});
+
+test('chord roots on their own are spelled as keys a musician meets', () => {
+  const names = (root, q) => new Set([chordRootDisplay(root, q, () => 0), chordRootDisplay(root, q, () => 0.9)]);
+  assert.deepEqual(names('D#', 'maj'), new Set(['E\u266D']));
+  assert.deepEqual(names('G#', 'dom7'), new Set(['A\u266D']));
+  assert.deepEqual(names('A#', 'maj7'), new Set(['B\u266D']));
+  assert.deepEqual(names('G#', 'min'), new Set(['G\u266F']));
+  assert.deepEqual(names('C#', 'min7'), new Set(['C\u266F']));
+  assert.deepEqual(names('D#', 'm7b5'), new Set(['E\u266D']));
+  assert.deepEqual(names('C#', 'maj'), new Set(['D\u266D', 'C\u266F']));
+  assert.deepEqual(names('F#', 'aug'), new Set(['G\u266D', 'F\u266F']));
+  assert.deepEqual(names('E', 'maj'), new Set(['E']));
+  assert.equal(qualityMode('dim'), 'minor');
+  assert.equal(tonicName('G#', 'major'), 'A\u266D');
 });

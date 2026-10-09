@@ -3,8 +3,9 @@
 // Everything lives in localStorage — no account.
 
 import { LEVELS } from './levels.js';
+import { KEYS, read, write } from '../../js/core/store.js';
 
-const KEY = 'readTrainer.progress';
+const KEY = KEYS.sightreading.PROGRESS;
 
 const fresh = () => ({
   levels: {},        // id → { stars, bestWait, bestTempo, plays }
@@ -17,15 +18,13 @@ const fresh = () => ({
 let data = fresh();
 
 export function loadProgress() {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) data = { ...fresh(), ...JSON.parse(raw) };
-  } catch { data = fresh(); }
+  const saved = read(KEY, null);
+  data = saved && typeof saved === 'object' ? { ...fresh(), ...saved } : fresh();
   return data;
 }
 
 function save() {
-  try { localStorage.setItem(KEY, JSON.stringify(data)); } catch { /* private mode */ }
+  write(KEY, data);
 }
 
 export function resetProgress() {

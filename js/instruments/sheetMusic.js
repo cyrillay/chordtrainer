@@ -10,20 +10,21 @@
 import { state } from '../core/state.js';
 import { spellChordTones } from '../core/theory.js';
 import { LS } from '../core/constants.js';
+import { readRaw, writeRaw } from '../core/store.js';
 
 // Mode persisted in LS:
 //   'off'    — keep the existing letter chips
 //   'treble' — always render in treble clef
 //   'bass'   — always render in bass clef
 //   'alt'    — randomly pick one of the two at every new chord
-let mode = localStorage.getItem(LS.SHEET_MUSIC) || 'alt';
+let mode = readRaw(LS.SHEET_MUSIC) || 'alt';
 
 export function getSheetMode() { return mode; }
 export function isSheetActive() { return mode !== 'off'; }
 
 export function setSheetMode(next) {
   mode = next;
-  try { localStorage.setItem(LS.SHEET_MUSIC, mode); } catch { /* ignore */ }
+  writeRaw(LS.SHEET_MUSIC, mode);
 }
 
 // Voice the chord starting at `bassOctave`, then stack each subsequent note

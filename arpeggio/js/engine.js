@@ -6,7 +6,7 @@
 // each next chord tone may be played in any octave as long as it moves the
 // right way from the previous correct note.
 
-import { CHORD_FORMULAS, buildChord, spellChordTones, randomEnharmonicDisplay } from '../../js/core/theory.js';
+import { CHORD_FORMULAS, buildChord, spellChordTones, chordRootDisplay } from '../../js/core/theory.js';
 
 export const DIRECTIONS = ['up', 'down', 'updown'];
 export const STARTS = ['root', 'third', 'fifth', 'seventh'];
@@ -51,7 +51,7 @@ function stepDirection(direction, size, k) {
 
 export function buildTask({ root, quality, direction, start, rootDisplay }) {
   const chord = buildChord(root, quality, 0);
-  chord.rootDisplay = rootDisplay || randomEnharmonicDisplay(root);
+  chord.rootDisplay = rootDisplay || chordRootDisplay(root, quality);
   const size = chord.orderedNotes.length;
   const startIdx = startIndex(start, size);
   const spelled = spellChordTones(chord);

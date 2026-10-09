@@ -1,17 +1,10 @@
-// Shared AudioContext for short tones (success chime, metronome tick).
-// Kept independent of the mic analyser so output playback never touches the FFT
-// input chain. Lazy-created on first use to respect browser autoplay policies.
+// Short tones for Chords (success chime, metronome tick), on the page's
+// shared output context. The mic analyser keeps its own context, so output
+// playback never touches the FFT input chain.
 
-let ctx = null;
+import { getAudioContext } from './context.js';
 
-export function getToneCtx() {
-  if (!ctx) {
-    const Ctor = window.AudioContext || window.webkitAudioContext;
-    ctx = new Ctor();
-  }
-  if (ctx.state === 'suspended') ctx.resume();
-  return ctx;
-}
+export const getToneCtx = getAudioContext;
 
 // Quick envelope-shaped sine burst. Used by the metronome.
 export function playClick({ freq = 1000, peak = 0.2, length = 0.06 } = {}) {

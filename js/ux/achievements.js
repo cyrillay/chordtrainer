@@ -1,11 +1,10 @@
-// Achievements: pun-driven badges that unlock as you play.
-// Persisted entirely to localStorage — no login required.
+// Achievements: pun-driven badges that unlock as you play. The rules live
+// here; the store, toasts and case come from js/ux/achievementKit.js.
 //
 // Visibility tiers:
 //   visible — shown greyed with progress bar while locked
 //   secret  — shown as "???" while locked; name/desc revealed on unlock
-//   ultra   — completely hidden until unlocked; only a "X mysteries remain"
-//             hint at the bottom of the modal acknowledges they exist
+//   ultra   — a locked riddle until unlocked
 //
 // Metric formats (used by simple counter-style achievements):
 //   'quality.<q>'  — counter, +1 each successful chord of quality q
@@ -21,9 +20,9 @@
 import { state } from '../core/state.js';
 import { onSuccess } from './feedback.js';
 import { LS } from '../core/constants.js';
-import { escapeHtml } from '../core/dom.js';
+import { createAchievements } from './achievementKit.js';
 
-const ACH = [
+export const ACH = [
   // ---- Beginner journey ----
   { id: 'firstTimer5', vis: 'visible', icon: '\u{1F476}', name: 'Hello, World',          desc: 'Validate 5 chords in First Timer',         target: 5,  metric: 'preset.firstTimer' },
   { id: 'beginner10',  vis: 'visible', icon: '\u{1F6B6}', name: 'Walking Bass',          desc: 'Validate 10 chords in Beginner',           target: 10, metric: 'preset.beginner' },
@@ -126,88 +125,51 @@ const DEFAULT_STORE = () => ({
   lastSuccessAt: 0,
 });
 
-let store = DEFAULT_STORE();
-
-function load() {
-  try {
-    const raw = localStorage.getItem(LS.ACHIEVEMENTS);
-    if (raw) Object.assign(store, JSON.parse(raw));
-  } catch { /* ignore */ }
-  store.unlocked    ||= {};
-  store.counters    ||= {};
-  store.rootSets    ||= {};
-  store.windowTimes ||= {};
-}
-
-function save() {
-  localStorage.setItem(LS.ACHIEVEMENTS, JSON.stringify(store));
-  paintBadge();
-}
-
-// Unlocked count next to the header trophy (empty until the first one).
-function paintBadge() {
-  const el = document.getElementById('achBadge');
-  if (el) el.textContent = Object.keys(store.unlocked).length || '';
-}
-
 // ---- Metric reads ----
 
-function metricValue(metric) {
+function metricValue(metric, store) {
   if (metric.startsWith('rootSet.')) {
     const q = metric.slice('rootSet.'.length);
-    return (store.rootSets[q] || []).length;
+    return (store.rootSets?.[q] || []).length;
   }
   return store.counters[metric] || 0;
 }
 
-// ---- DOM refs ----
+export const SECTIONS = [
+  { vis: 'visible', label: 'Common',     blurb: 'Earned through steady practice.' },
+  { vis: 'secret',  label: 'Rare',       blurb: 'Trigger conditions are hidden. Some things you stumble on.' },
+  { vis: 'ultra',   label: 'Ultra-rare', blurb: 'Reserved for those who go truly far. Even their existence is a clue.' },
+];
 
-let modalEl, gridEl, countEl, mysteryEl, toastEl, resetBtnEl;
+export { metricValue as chordsMetricValue };
 
-// ---- Toast ----
+const kit = createAchievements({
+  list: ACH,
+  key: LS.ACHIEVEMENTS,
+  sections: SECTIONS,
+  fresh: DEFAULT_STORE,
+  metricValue,
+  ids: { modal: 'achModalOverlay', close: 'achModalClose' },
+  resetLabel: 'Reset all achievements',
+});
 
-let toastTimeout = null;
-function showToast(ach) {
-  if (!toastEl) return;
-  toastEl.innerHTML = `
-    <div class="ach-toast-icon">${ach.icon}</div>
-    <div class="ach-toast-text">
-      <div class="ach-toast-tier">Achievement unlocked</div>
-      <div class="ach-toast-name">${escapeHtml(ach.name)}</div>
-    </div>
-  `;
-  toastEl.classList.add('visible');
-  clearTimeout(toastTimeout);
-  toastTimeout = setTimeout(() => toastEl.classList.remove('visible'), 4000);
-}
-
-// ---- Unlock check ----
-
-function checkUnlocks() {
-  let unlockedAny = false;
-  for (const a of ACH) {
-    if (store.unlocked[a.id]) continue;
-    if (metricValue(a.metric) >= a.target) {
-      store.unlocked[a.id] = Date.now();
-      unlockedAny = true;
-      // Stagger toasts so multi-unlock events don't stomp on each other
-      setTimeout(() => showToast(a), 0);
-    }
-  }
-  if (unlockedAny) {
-    save();
-    if (modalEl && modalEl.style.display === 'flex') renderModal();
-  }
+// The kit's store, with the fields older saves may lack.
+function ensureStore() {
+  const s = kit.store;
+  s.rootSets    ||= {};
+  s.windowTimes ||= {};
+  return s;
 }
 
 // ---- Counter / set helpers ----
 
 function bump(metric, delta = 1) {
-  store.counters[metric] = (store.counters[metric] || 0) + delta;
+  const s = ensureStore();
+  s.counters[metric] = (s.counters[metric] || 0) + delta;
 }
 
 function addRoot(quality, root) {
-  const arr = store.rootSets[quality] ||= [];
+  const arr = ensureStore().rootSets[quality] ||= [];
   if (!arr.includes(root)) arr.push(root);
 }
 
@@ -227,6 +189,7 @@ function seriesHasDensity(series, count, ms, now) {
 }
 
 function pruneWindows(now) {
+  const store = ensureStore();
   for (const key of Object.keys(store.windowTimes)) {
     const max = MAX_WINDOW_MS[key] ?? 0;
     const arr = store.windowTimes[key];
@@ -240,6 +203,7 @@ function pruneWindows(now) {
 function handleSuccess() {
   const chord = state.currentChord;
   if (!chord) return;
+  const store = ensureStore();
   const now = Date.now();
 
   // Per-quality counter + per-quality root-set
@@ -282,180 +246,31 @@ function handleSuccess() {
     }
   }
 
-  save();
-  checkUnlocks();
-}
-
-// ---- Modal rendering ----
-
-function renderTile(a) {
-  const unlocked = !!store.unlocked[a.id];
-  const value = metricValue(a.metric);
-  const pct = Math.min(100, Math.round((value / a.target) * 100));
-
-  if (unlocked) {
-    return `
-      <div class="ach-tile ach-tile-unlocked">
-        <div class="ach-tile-icon">${a.icon}</div>
-        <div class="ach-tile-body">
-          <div class="ach-tile-name">${escapeHtml(a.name)}</div>
-          <div class="ach-tile-desc">${escapeHtml(a.desc)}</div>
-        </div>
-      </div>`;
-  }
-
-  if (a.vis === 'secret') {
-    return `
-      <div class="ach-tile ach-tile-locked ach-tile-secret">
-        <div class="ach-tile-icon">?</div>
-        <div class="ach-tile-body">
-          <div class="ach-tile-name">???</div>
-          <div class="ach-tile-desc">${escapeHtml(a.hint)}</div>
-        </div>
-      </div>`;
-  }
-
-  if (a.vis === 'ultra') {
-    // Locked ultra: opaque, alluring placeholder with a per-achievement
-    // riddle. The riddle hints at the unlock condition without naming it.
-    return `
-      <div class="ach-tile ach-tile-locked ach-tile-ultra">
-        <div class="ach-tile-icon">\u{1F512}</div>
-        <div class="ach-tile-body">
-          <div class="ach-tile-tag">Ultra-rare</div>
-          <div class="ach-tile-name">\u2014</div>
-          <div class="ach-tile-desc">${escapeHtml(a.hint)}</div>
-        </div>
-        <div class="ach-tile-shimmer" aria-hidden="true"></div>
-      </div>`;
-  }
-
-  // visible locked: show name/desc greyed + progress bar
-  return `
-    <div class="ach-tile ach-tile-locked">
-      <div class="ach-tile-icon">${a.icon}</div>
-      <div class="ach-tile-body">
-        <div class="ach-tile-name">${escapeHtml(a.name)}</div>
-        <div class="ach-tile-desc">${escapeHtml(a.desc)}</div>
-        <div class="ach-tile-progress">
-          <div class="ach-tile-bar"><div class="ach-tile-fill" style="width:${pct}%"></div></div>
-          <div class="ach-tile-progress-text">${value} / ${a.target}</div>
-        </div>
-      </div>
-    </div>`;
-}
-
-const SECTIONS = [
-  { vis: 'visible', label: 'Common',     blurb: 'Earned through steady practice.' },
-  { vis: 'secret',  label: 'Rare',       blurb: 'Trigger conditions are hidden \u2014 some things you stumble on.' },
-  { vis: 'ultra',   label: 'Ultra-rare', blurb: 'Reserved for those who go truly far. Even their existence is a clue.' },
-];
-
-function renderSection(sec) {
-  const items = ACH.filter(a => a.vis === sec.vis);
-  const unlocked = items.filter(a => store.unlocked[a.id]).length;
-  const tilesHtml = items.map(renderTile).join('');
-  return `
-    <div class="ach-section ach-section-${sec.vis}">
-      <div class="ach-section-header">
-        <span class="ach-section-label">${sec.label}</span>
-        <span class="ach-section-count">${unlocked} / ${items.length}</span>
-      </div>
-      <div class="ach-section-blurb">${sec.blurb}</div>
-      <div class="ach-grid">${tilesHtml}</div>
-    </div>`;
-}
-
-function renderModal() {
-  if (!gridEl) return;
-
-  gridEl.innerHTML = SECTIONS.map(renderSection).join('');
-
-  const totalUnlocked = Object.keys(store.unlocked).length;
-  countEl.textContent = `${totalUnlocked} / ${ACH.length}`;
-
-  // The footer mystery hint is now redundant with the per-section counts.
-  if (mysteryEl) mysteryEl.style.display = 'none';
-
-  resetResetButton();
-}
-
-function openModal() {
-  renderModal();
-  modalEl.style.display = 'flex';
-}
-
-function closeModal() {
-  modalEl.style.display = 'none';
-  resetResetButton();
-}
-
-// ---- Reset (two-step confirm: click → "Are you sure?" → click → wipe) ----
-
-let resetArmed = false;
-let resetArmTimeout = null;
-
-function resetResetButton() {
-  resetArmed = false;
-  clearTimeout(resetArmTimeout);
-  if (!resetBtnEl) return;
-  resetBtnEl.textContent = 'Reset all achievements';
-  resetBtnEl.classList.remove('armed');
-}
-
-function handleResetClick() {
-  if (!resetArmed) {
-    resetArmed = true;
-    resetBtnEl.textContent = 'Click again to confirm. This cannot be undone.';
-    resetBtnEl.classList.add('armed');
-    clearTimeout(resetArmTimeout);
-    resetArmTimeout = setTimeout(resetResetButton, 5000);
-    return;
-  }
-  store = DEFAULT_STORE();
-  save();
-  renderModal();
+  kit.commit();
 }
 
 // ---- Public API for non-success events ----
+
 // Generic "the user did X" hook for things like changing theme, opening Expert,
 // or starting the metronome. Increments a counter and re-checks unlocks.
 export function recordAction(actionId) {
   if (!actionId) return;
   bump(`action.${actionId}`);
-  save();
-  checkUnlocks();
+  kit.commit();
 }
 
 // Streak high-water mark, fed by rewards.js so streak achievements unlock
 // without each module duplicating the streak counter.
 export function recordStreak(value) {
-  const prev = store.counters['streak.best'] || 0;
-  if (value <= prev) return;
-  store.counters['streak.best'] = value;
-  save();
-  checkUnlocks();
+  kit.setMax('streak.best', value);
 }
 
 // ---- Init ----
 
 export function initAchievements() {
-  load();
-  paintBadge();
-
-  modalEl    = document.getElementById('achModalOverlay');
-  gridEl     = document.getElementById('achGrid');
-  countEl    = document.getElementById('achCount');
-  mysteryEl  = document.getElementById('achMystery');
-  toastEl    = document.getElementById('achToast');
-  resetBtnEl = document.getElementById('achResetBtn');
-
-  document.getElementById('achBtn')?.addEventListener('click', openModal);
-  document.getElementById('achModalClose')?.addEventListener('click', closeModal);
-  modalEl?.addEventListener('click', e => {
-    if (e.target === modalEl) closeModal();
-  });
-  resetBtnEl?.addEventListener('click', handleResetClick);
+  const mystery = document.getElementById('achMystery');
+  if (mystery) mystery.style.display = 'none';
+  kit.init();
 
   // Allow non-module callers (e.g. the inline theme switcher in index.html)
   // to record an action without needing an import.
@@ -465,8 +280,4 @@ export function initAchievements() {
   });
 
   onSuccess(handleSuccess);
-
-  // Re-check on init in case the user already met some target before this
-  // module existed (e.g. counters seeded from a future migration).
-  checkUnlocks();
 }

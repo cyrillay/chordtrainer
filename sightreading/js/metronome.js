@@ -2,26 +2,18 @@
 // even when the main thread is busy. Times passed in are performance.now()
 // milliseconds; they are converted to the audio clock once at start.
 
-let ctx = null;
+import { getAudioContext, unlockAudio, outputLatency } from '../../js/audio/context.js';
 
-function audio() {
-  if (!ctx) {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return null;
-    ctx = new AC();
-  }
-  if (ctx.state === 'suspended') ctx.resume();
-  return ctx;
-}
+const audio = getAudioContext;
 
 // Call from a user gesture so browsers allow sound.
-export function unlockAudio() { audio(); }
+export { unlockAudio };
 
-// Estimated delay between scheduling a sound and hearing it.
+// Estimated delay between scheduling a sound and hearing it: what the
+// browser reports plus what Ghost Jam's audio sync test measured.
 export function outputLatencyMs() {
-  const c = audio();
-  if (!c) return 0;
-  return ((c.outputLatency || 0) + (c.baseLatency || 0)) * 1000;
+  if (!audio()) return 0;
+  return outputLatency() * 1000;
 }
 
 function click(c, when, accent) {

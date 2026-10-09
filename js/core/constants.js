@@ -1,3 +1,5 @@
+import { KEYS } from './store.js';
+
 // Shared constants. Grouped so tuning the app happens here, not in scattered magic numbers.
 
 // ---- Audio / pitch detection ----
@@ -37,16 +39,5 @@ export const SUCCESS_DEDUP_MS = 1500;
 export const REGENERATE_DEBOUNCE_MS = 80;
 
 // ---- LocalStorage keys ----
-export const LS = {
-  SENSITIVITY: 'chordTrainer.sensitivity',
-  INSTRUMENT: 'chordTrainer.instrument',
-  REWARDS: 'chordTrainer.rewards',
-  REWARDS_ENABLED: 'chordTrainer.rewardsEnabled',
-  DISABLED_PROGS: 'chordTrainer.disabledProgressions',
-  CUSTOM_PROGS: 'chordTrainer.customProgressions',
-  ONBOARDED: 'chordTrainer.onboarded',
-  INVERSION_FREQ: 'chordTrainer.inversionFrequency',
-  ACHIEVEMENTS: 'chordTrainer.achievements',
-  DAILY_GOAL: 'chordTrainer.dailyGoal',
-  SHEET_MUSIC: 'chordTrainer.sheetMusic',
-};
+// The registry of every key lives in store.js; these are the Chords ones.
+export const LS = KEYS.chords;

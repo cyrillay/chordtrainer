@@ -448,11 +448,19 @@ body.beat-odd .ghost-band .ghost.is-off .sprite { transform: none; }
 .fav-x { padding: 0 0.5rem; font-size: 1.2rem; color: var(--ivory-dim); }
 .fav-x:hover { color: var(--crimson); }
 
-.knobs { display: grid; grid-template-columns: 1fr 2fr 1fr 1fr; gap: 0.9rem; align-items: end; }
+.knobs { display: grid; grid-template-columns: 1fr 2fr 1fr 1fr; gap: 0.9rem; align-items: start; }
 @media (max-width: 700px) { .knobs { grid-template-columns: 1fr 1fr; } .knob-wide { grid-column: 1 / -1; } }
 .knob { display: flex; flex-direction: column; gap: 0.35rem; }
 .knob-label { font-size: 1.05rem; color: var(--ivory-dim); }
 .knob-label b { color: var(--orange); font-weight: 400; }
+/* The shared tempo picker (js/music-ui/tempo.js), arcade style. */
+.knob .tp { margin-top: 0.2rem; }
+.tp-value { font-size: 0.85rem; color: var(--orange); text-shadow: 0 0 8px rgba(255, 159, 28, 0.5); }
+.tp-value .tp-note { width: 1.1em; height: 1.5em; }
+.tp-term { font-style: normal; font-size: 1.15rem; color: var(--cyan); }
+.tp-term-btn, .tp-tap { font-style: normal; font-size: 1.05rem; border-radius: 3px; border-color: var(--violet); }
+.tp-term-btn.is-on { border-color: var(--cyan); color: #fff; background: rgba(24, 240, 255, 0.14); }
+.tp-tap.is-on { background: var(--pink); border-color: #fff; color: #fff; }
 
 /* ---------- hall of fame + rules ---------- */
 
@@ -798,6 +806,8 @@ body[data-energy="3"] .beat-glow { --glow: 0.55; }
 .ach-tile.is-secret .ach-tile-icon, .ach-tile.is-ultra .ach-tile-icon { filter: none; opacity: 1; font-family: var(--font-display); font-size: 1rem; color: var(--violet); }
 .ach-tile.is-ultra { border-color: var(--violet); animation: ultraGlow 3s ease-in-out infinite; }
 @keyframes ultraGlow { 50% { box-shadow: 0 0 16px rgba(155, 92, 255, 0.55); } }
+.ach-tile-tag { font-family: var(--font-display); font-size: 0.45rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--violet); margin-bottom: 0.2rem; }
+.ach-tile-shimmer { display: none; }
 .ach-tile-progress { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.35rem; font-size: 0.9rem; color: var(--ivory-dim); }
 .ach-tile-bar { flex: 1; height: 5px; border-radius: 3px; background: var(--line); overflow: hidden; }
 .ach-tile-fill { height: 100%; background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }

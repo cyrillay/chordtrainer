@@ -19,6 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="icon" type="image/png" href="../favico.png">
+<link rel="stylesheet" href="../js/music-ui/music-ui.css">
 <link rel="stylesheet" href="arpeggio.css">
 <link rel="stylesheet" href="../midi-help.css">
 <link rel="stylesheet" href="../themes.css">
@@ -42,7 +43,7 @@
     <div class="hd-top">
       <a href="../" class="hd-brand" aria-label="Étude, home">
         <span class="hd-name">Étude</span>
-        <span class="hd-opus">Op. 2 No 8</span>
+        <span class="hd-opus">Op. 2 No 9</span>
       </a>
       <div class="hd-actions">
         <button type="button" id="midiBtn" class="hd-btn">
@@ -89,6 +90,11 @@
         <button type="button" class="primary-btn" id="gateConnectBtn">Connect MIDI</button>
       </div>
 
+      <div class="remote-legend" id="remoteLegend">
+        <div class="remote-keys" id="remoteKeys"></div>
+        <p>Pick from the piano. Play <b>A</b> or <b>E</b> on its own to move, and hold <b>G</b> to start.</p>
+      </div>
+
       <div class="section-label">The path</div>
       <ol class="level-path" id="levelPath"></ol>
 
@@ -124,7 +130,8 @@
           </div>
           <div class="setting-row">
             <div class="setting-label">Roots</div>
-            <div class="chip-row" id="rootChips"></div>
+            <div id="rootKeys"></div>
+            <p class="setting-hint">Tap a key to take it or leave it. With the keyboard selected, play the notes on your piano.</p>
             <div class="quick-row">
               <button type="button" class="quick-btn" data-rpreset="naturals">White keys</button>
               <span class="quick-label">Key signatures up to</span>

@@ -52,12 +52,41 @@ export function renderMidiHint(el, label, { open = false, html = noDeviceHelpHtm
   if (open) el.querySelector('.midi-help').classList.add('open');
 }
 
+// The header's MIDI button, the status line under it and the "connect your
+// keyboard" card, painted from a js/midi/input.js status. Every trainer page
+// uses the same ids: midiBtn, midiLabel, midiStatus, midiGate, gateTitle,
+// gateSub (the card is optional).
+export function paintMidiStatus({ state, names = [] }) {
+  const $ = (id) => document.getElementById(id);
+  const connected = state === 'connected';
+  const btn = $('midiBtn');
+  if (btn) {
+    btn.classList.toggle('is-connected', connected);
+    btn.classList.toggle('is-error', ['nodevice', 'denied', 'unsupported'].includes(state));
+    btn.setAttribute('aria-pressed', String(connected));
+    btn.title = connected ? 'MIDI connected' : 'Connect a MIDI keyboard';
+  }
+  if ($('midiLabel')) $('midiLabel').textContent = connected ? names.join(' · ') : 'Connect MIDI';
+  const status = $('midiStatus');
+  if (status) {
+    status.hidden = connected || state === 'off';
+    if (state === 'nodevice') renderMidiHint(status, 'No device found');
+    else if (state === 'unsupported') renderMidiHint(status, 'MIDI not supported here');
+    else if (state === 'denied') renderMidiHint(status, 'MIDI access denied', { html: DENIED_HELP_HTML });
+  }
+  if ($('midiGate')) {
+    $('midiGate').hidden = connected;
+    const copy = gateCopy(state);
+    $('gateTitle').textContent = copy.title;
+    $('gateSub').textContent = copy.sub;
+  }
+  document.body.classList.toggle('midi-ready', connected);
+}
+
 // Title + line for the "connect your keyboard" card, per MIDI state.
-// Accepts both pages' names for "no device" ('nodevice' / 'none').
 export function gateCopy(state) {
   switch (state) {
     case 'nodevice':
-    case 'none':
       return { title: 'MIDI is on, but no keyboard was found.', sub: 'It will appear here as soon as it connects.' };
     case 'unsupported':
       return { title: 'This browser has no Web MIDI.', sub: 'Use Chrome, Edge or Firefox on a computer or Android.' };

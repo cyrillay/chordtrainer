@@ -4,6 +4,7 @@
 // is read when a bar is scheduled, so it reacts from the next bar on.
 
 import { STYLES, GUESTS, barEvents, countIn, bassRoot, keysVoicing } from './styles.js';
+import { unlockAudio } from '../../js/audio/context.js';
 
 // A bar is scheduled once it starts within LOOKAHEAD. Generous, so a busy
 // main thread (layout, garbage collection) does not make the band late.
@@ -56,8 +57,7 @@ export class Band {
 
   audio() {
     if (!this.ctx) {
-      const Ctor = window.AudioContext || window.webkitAudioContext;
-      this.ctx = new Ctor({ latencyHint: 'interactive' });
+      this.ctx = unlockAudio();
       this.noise = this.makeNoise();
       this.impulse = this.makeImpulse(2.2);
       if (Offline) this.loadKit().catch(() => {});

@@ -1,7 +1,7 @@
 // Arpeggio Trainer — page controller. Views: the level path (map) and the
 // play stage. MIDI is required to play; everything else is local state.
 
-import { CHORD_FORMULAS, NOTE_NAMES, NOTE_DISPLAY } from '../../js/core/theory.js';
+import { CHORD_FORMULAS, NOTE_NAMES, chordRootDisplay } from '../../js/core/theory.js';
 import { ArpeggioMatcher, scoreArpeggio, comboMultiplier, starsFor, degreeName, STAR_RULES } from './engine.js';
 import {
   LEVELS, levelById, levelLength, makeTask, poolFrom, levelPool, timeLimitMs,
@@ -9,13 +9,18 @@ import {
 } from './levels.js';
 import { createKeyboard } from './keyboard.js';
 import { renderStage, clearStage, currentCard } from './stage.js';
-import { renderMidiHint, gateCopy, DENIED_HELP_HTML } from '../../js/midi/midiHelp.js';
+import { paintMidiStatus } from '../../js/midi/midiHelp.js';
 import { bindInfoTips } from '../../js/ux/infoTip.js';
-import { createMidi, attachComputerKeyboard } from './midi.js';
+import { createMidiInput } from '../../js/midi/input.js';
+import { getAudioContext } from '../../js/audio/context.js';
+import { attachComputerKeyboard } from '../../js/midi/computerKeyboard.js';
 import { loadSettings, saveSettings, loadProgress, saveProgress, loadWeak, saveWeak, clearWeak } from './storage.js';
 import { initAchievements, grant, bump, setMax, setValue } from './achievements.js';
 import * as eggs from './eggs.js';
 import { track, logRun } from '../../js/stats/log.js';
+import { createMenuRemote } from '../../js/music-ui/menuRemote.js';
+import { renderRemoteLegend } from '../../js/music-ui/pianoRemote.js';
+import { createNoteKeyboard } from '../../js/music-ui/noteKeyboard.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -55,7 +60,7 @@ const held = new Set();
 let pedalDown = false;
 const history = []; // recent note-ons: { midi, t }
 
-const midi = createMidi({
+const midi = createMidiInput({
   onNoteOn: handleNoteOn,
   onNoteOff: handleNoteOff,
   onPedal: (down) => { pedalDown = down; if (!down && session) session.pedalHeld = false; },
@@ -64,24 +69,9 @@ const midi = createMidi({
 
 function renderMidiStatus({ state, names }) {
   midiState = state;
-  const btn = $('midiBtn');
-  btn.classList.toggle('is-connected', state === 'connected');
-  btn.classList.toggle('is-error', ['nodevice', 'denied', 'unsupported'].includes(state));
-  const label = state === 'connected' ? names.join(' · ') : 'Connect MIDI';
-  $('midiLabel').textContent = label;
-  btn.title = state === 'connected' ? 'MIDI connected' : 'Connect a MIDI keyboard';
-
-  const gate = $('midiGate');
-  gate.hidden = state === 'connected';
-  const status = $('midiStatus');
-  status.hidden = state === 'connected' || state === 'off';
-  if (state === 'nodevice') renderMidiHint(status, 'No device found');
-  else if (state === 'unsupported') renderMidiHint(status, 'MIDI not supported here');
-  else if (state === 'denied') renderMidiHint(status, 'MIDI access denied', { html: DENIED_HELP_HTML });
-  const copy = gateCopy(state);
-  $('gateTitle').textContent = copy.title;
-  $('gateSub').textContent = copy.sub;
-  document.body.classList.toggle('midi-ready', state === 'connected');
+  paintMidiStatus({ state, names });
+  // The remote's cursor shows once a piano can drive it.
+  queueMicrotask(() => { menu.enabled = state === 'connected'; });
 }
 
 $('midiBtn').addEventListener('click', () => { if (midiState !== 'connected') midi.connect(); });
@@ -101,7 +91,7 @@ let ctx = null;
 function chime(freqs, { gain = 0.08, dur = 0.5, type = 'sine', spread = 0.06 } = {}) {
   if (!settings.sound) return;
   try {
-    ctx ||= new (window.AudioContext || window.webkitAudioContext)();
+    ctx ||= getAudioContext();
     const t0 = ctx.currentTime;
     freqs.forEach((f, i) => {
       const osc = ctx.createOscillator();
@@ -200,6 +190,7 @@ function startSession(kind, level = null) {
   requestAnimationFrame(() => keyboard.reveal(60));
   fillQueue();
   nextTask();
+  menu.paint();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -360,7 +351,14 @@ function handleNoteOn(midiNote, velocity, t) {
   keyboard.reveal(midiNote);
   checkEggs();
 
-  if (!session || session.transitioning || !session.matcher) return;
+  // Off the stage, the piano picks: the roots keyboard when it has focus,
+  // else the menu remote (a held G starts, so the hidden tunes don't).
+  if (!session) {
+    if (!rootKeys.noteOn(midiNote)) menu.noteOn(midiNote);
+    return;
+  }
+  if (!$('resultModal').hidden) { menu.noteOn(midiNote); return; }
+  if (session.transitioning || !session.matcher) return;
   const silence = t - session.lastNoteAt;
   session.lastNoteAt = t;
   if (silence >= 273000) grant('cage');
@@ -391,7 +389,23 @@ function handleNoteOn(midiNote, velocity, t) {
 function handleNoteOff(midiNote) {
   held.delete(midiNote);
   keyboard.setDown(midiNote, false);
+  menu.noteOff(midiNote);
 }
+
+// ---- The piano remote ----
+
+// What the piano can reach: the result's buttons, else the path and the
+// two practice cards. Nothing while an arpeggio is on the stage.
+const menu = createMenuRemote({
+  holdSelect: 600,
+  enabled: false,
+  items: () => {
+    if (!$('resultModal').hidden) return [$('resultNextBtn'), $('resultRetryBtn'), $('resultMapBtn')];
+    if (session) return null;
+    return [...document.querySelectorAll('#levelPath .level-btn'), $('freeCard'), $('weakCard')];
+  },
+});
+renderRemoteLegend($('remoteKeys'), { select: 'hold' });
 
 // Called continuously: idle-silence check for 4′33″ while on the play view.
 setInterval(() => {
@@ -583,6 +597,7 @@ function showResult(s, { accuracy, avgGapMs, stars, note }) {
   nextBtn.hidden = !(next && isUnlocked(next));
   $('resultRetryBtn').textContent = s.kind === 'weak' ? 'Again' : 'Retry';
   $('resultModal').hidden = false;
+  menu.paint();
   if (stars) chime([523.25, 659.25, 783.99, 1046.5].slice(0, stars + 1), { gain: 0.06, dur: 0.9, spread: 0.18 });
 }
 
@@ -635,6 +650,7 @@ function renderMap() {
     </li>`;
   }).join('');
   renderWeak();
+  menu.paint();
 }
 
 $('levelPath').addEventListener('click', (e) => {
@@ -664,7 +680,7 @@ function renderWeak() {
     : 'Play a few levels first. Your misses are remembered here.';
   $('weakList').innerHTML = list.length
     ? list.map(w => {
-      const name = NOTE_DISPLAY[w.root] + CHORD_FORMULAS[w.quality].suffix;
+      const name = chordRootDisplay(w.root, w.quality, () => 0) + CHORD_FORMULAS[w.quality].suffix;
       const missed = w.stats.tries - w.stats.clean;
       return `<li><span class="weak-chord">${name}</span><span class="weak-pattern">${ARROWS[w.direction]} ${DIR_NAMES[w.direction]} from the ${degreeName(w.start)}</span><span class="weak-stat">${missed}/${w.stats.tries} missed</span><span class="weak-bar"><span style="width:${Math.round(w.score * 100)}%"></span></span></li>`;
     }).join('')
@@ -684,6 +700,12 @@ $('unlockAllBtn').addEventListener('click', () => {
 
 // ---- Settings ----
 
+const rootKeys = createNoteKeyboard($('rootKeys'), {
+  value: settings.roots,
+  label: 'Roots',
+  onChange: (roots) => { settings.roots = roots; saveSettings(settings); renderSettings(); },
+});
+
 function chip(group, value, label, on) {
   return `<label class="chip"><input type="checkbox" data-group="${group}" value="${value}" ${on ? 'checked' : ''}><span>${label}</span></label>`;
 }
@@ -691,7 +713,7 @@ function chip(group, value, label, on) {
 function renderSettings() {
   $('qualityChips').innerHTML = QUALITY_ORDER.map(q =>
     `<label class="checkbox-item"><input type="checkbox" data-group="qualities" value="${q}" ${settings.qualities.includes(q) ? 'checked' : ''}>${QUALITY_LABELS[q]}</label>`).join('');
-  $('rootChips').innerHTML = NOTE_NAMES.map(r => chip('roots', r, NOTE_DISPLAY[r], settings.roots.includes(r))).join('');
+  rootKeys.set(settings.roots);
   $('freeDirChips').innerHTML = Object.entries(DIR_LABELS).map(([d, l]) => chip('freeDirections', d, `${ARROWS[d]} ${l}`, settings.freeDirections.includes(d))).join('');
   $('freeStartChips').innerHTML = Object.entries(START_LABELS).map(([st, l]) => chip('freeStarts', st, `from ${l}`, settings.freeStarts.includes(st))).join('');
   $('showNamesCb').checked = settings.showNames;

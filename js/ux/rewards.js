@@ -4,6 +4,7 @@
 import { onSuccess, onChordChange } from './feedback.js';
 import { recordStreak } from './achievements.js';
 import { LS, STREAK_RESET_MS } from '../core/constants.js';
+import { read, write, readRaw, writeRaw } from '../core/store.js';
 
 // ---- State ----
 
@@ -12,28 +13,20 @@ let best = 0;
 let enabled = true;
 
 function load() {
-  try {
-    const raw = localStorage.getItem(LS.REWARDS);
-    if (raw) {
-      const d = JSON.parse(raw);
-      best = d.best || 0;
-    }
-  } catch { /* ignore */ }
-  try {
-    const v = localStorage.getItem(LS.REWARDS_ENABLED);
-    if (v !== null) enabled = v !== 'false';
-  } catch { /* ignore */ }
+  best = read(LS.REWARDS, {}).best || 0;
+  const v = readRaw(LS.REWARDS_ENABLED);
+  if (v !== null) enabled = v !== 'false';
 }
 
 function saveBest() {
-  localStorage.setItem(LS.REWARDS, JSON.stringify({ best }));
+  write(LS.REWARDS, { best });
 }
 
 // ---- Enable / disable ----
 
 export function setRewardsEnabled(on) {
   enabled = on;
-  localStorage.setItem(LS.REWARDS_ENABLED, String(on));
+  writeRaw(LS.REWARDS_ENABLED, on);
   const counter = document.getElementById('streakCounter');
   if (counter) counter.style.display = on ? '' : 'none';
   if (!on) hideReward();
