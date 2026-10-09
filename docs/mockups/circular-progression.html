@@ -307,7 +307,7 @@ function deliveries(s) {
       const n = COIN_N[k];
       for (let c = 0; c < n; c++, j++) {
         const leave = h + 0.18 + j * 0.04;
-        out.push({ kind: k, j, leave, land: k === 'miss' ? leave : leave + 1.0, value: (FX === 'pints' ? 2 : 1) * VALUE[k] / n });
+        out.push({ kind: k, j, leave, land: k === 'miss' ? leave : leave + 1.0, value: VALUE[k] / n });
       }
     });
     out[out.length - 1].last = true;
