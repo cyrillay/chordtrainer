@@ -7,9 +7,9 @@
 
 import { formatChordHtml, spellChordTones, NOTE_NAMES } from '../../js/core/theory.js';
 import { PROGRESSIONS, romanToChord, progressionMode } from '../../js/training/progressions.js';
-import { renderMidiHint, gateCopy, DENIED_HELP_HTML } from '../../js/midi/midiHelp.js';
-import { connectMidi } from '../../sightreading/js/midi.js';
-import { attachComputerKeyboard } from '../../arpeggio/js/midi.js';
+import { paintMidiStatus } from '../../js/midi/midiHelp.js';
+import { createMidiInput } from '../../js/midi/input.js';
+import { attachComputerKeyboard } from '../../js/midi/computerKeyboard.js';
 import { STYLES, STYLE_ORDER, TIERS, MAX_ENERGY, GUESTS, partsAt } from './styles.js';
 import { FAMILIES, tuneFamily, fitsStyle, tunesFor } from './tunes.js';
 import { voicingTags, voicingBonus, voicingWords, bassRole } from './voicing.js';
@@ -31,7 +31,7 @@ const params = new URLSearchParams(location.search);
 // ---- Settings + high scores ----
 
 const K = KEYS.jam;
-const LS = { settings: K.SETTINGS, scores: K.SCORES, midi: 'ghostJam.midiAuto', guests: K.GUESTS, favs: K.FAVOURITES, sync: K.SYNC };
+const LS = { settings: K.SETTINGS, scores: K.SCORES, guests: K.GUESTS, favs: K.FAVOURITES, sync: K.SYNC };
 
 const settings = Object.assign({
   style: 'swing', tune: 'Autumnal', key: 'random', tempo: null, bars: 1, length: 4, showTones: true,
@@ -346,29 +346,18 @@ const held = new Map(); // midi -> role
 const velocities = new Map(); // midi -> velocity of the held key
 
 function midiStatus({ state, names }) {
-  midiState = state === 'none' ? 'nodevice' : state;
-  const btn = $('midiBtn');
-  btn.classList.toggle('is-connected', state === 'connected');
-  btn.classList.toggle('is-error', ['none', 'denied', 'unsupported'].includes(state));
-  $('midiLabel').textContent = state === 'connected' ? names.join(' · ') : 'Connect MIDI';
-  const status = $('midiStatus');
-  status.hidden = state === 'connected';
-  if (state === 'none') renderMidiHint(status, 'No device found');
-  else if (state === 'unsupported') renderMidiHint(status, 'MIDI not supported here');
-  else if (state === 'denied') renderMidiHint(status, 'MIDI access denied', { html: DENIED_HELP_HTML });
-  $('midiGate').hidden = state === 'connected';
+  midiState = state;
+  paintMidiStatus({ state, names });
   $('remote').hidden = state !== 'connected';
   $('resultRemote').hidden = state !== 'connected';
   paintNav();
-  const copy = gateCopy(state);
-  $('gateTitle').textContent = copy.title;
-  $('gateSub').textContent = copy.sub;
-  if (state === 'connected') write(LS.midi, true);
 }
+
+const midi = createMidiInput({ onNoteOn, onNoteOff, onStatus: midiStatus });
 
 function connect() {
   band.audio(); // unlock audio on the same click
-  connectMidi({ onNoteOn, onNoteOff, onStatus: midiStatus });
+  midi.connect();
   renderSync();
 }
 $('midiBtn').addEventListener('click', () => { if (midiState !== 'connected') connect(); });
@@ -1163,8 +1152,8 @@ renderSetup();
 if (params.has('keys')) {
   attachComputerKeyboard({ onNoteOn, onNoteOff });
   midiStatus({ state: 'connected', names: ['Computer keyboard (dev)'] });
-} else if (read(LS.midi, false)) {
-  connectMidi({ onNoteOn, onNoteOff, onStatus: midiStatus });
+} else if (midi.previouslyGranted()) {
+  midi.connect();
 }
 
 // ?debug exposes hooks for automated tests.

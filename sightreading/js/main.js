@@ -8,8 +8,8 @@ import { exerciseFromText, midiName, timeSignature } from './notation.js';
 import { generateExercise } from './generator.js';
 import { buildTimeline, WaitRun, TempoRun, tempoStars } from './engine.js';
 import { renderExercise, refKey } from './renderer.js';
-import { connectMidi } from './midi.js';
-import { renderMidiHint, gateCopy, DENIED_HELP_HTML } from '../../js/midi/midiHelp.js';
+import { createMidiInput } from '../../js/midi/input.js';
+import { paintMidiStatus } from '../../js/midi/midiHelp.js';
 import { scheduleClicks, unlockAudio, outputLatencyMs } from './metronome.js';
 import {
   loadProgress, levelStars, isUnlocked, totalStars, recordRun, focusMap,
@@ -39,7 +39,7 @@ const S = {
   stopClicks: null,
   marks: new Map(),     // refKey → class (re-applied after a re-render)
   retries: 0,
-  midi: 'off',          // 'off' | 'none' | 'connected' | 'unsupported' | 'denied'
+  midi: 'off',          // 'off' | 'nodevice' | 'connected' | 'unsupported' | 'denied'
   held: new Set(),
   finished: false,
   restartFloor: 72,     // lowest note of the restart chord zone (see keyCommands.js)
@@ -580,27 +580,15 @@ window.addEventListener('resize', () => {
 
 function midiStatus({ state, names }) {
   S.midi = state;
-  const btn = $('midiBtn');
-  const help = $('midiHelp');
-  btn.classList.toggle('is-connected', state === 'connected');
-  btn.classList.toggle('is-error', ['none', 'denied', 'unsupported'].includes(state));
-  btn.setAttribute('aria-pressed', String(state === 'connected'));
-  $('midiLabel').textContent = state === 'connected' ? names.join(' · ') : 'Connect MIDI';
-  help.hidden = state === 'connected';
-  if (state === 'none') renderMidiHint(help, 'No device found');
-  else if (state === 'unsupported') renderMidiHint(help, 'MIDI not supported here');
-  else if (state === 'denied') renderMidiHint(help, 'MIDI access denied', { html: DENIED_HELP_HTML });
-  $('midiGate').hidden = state === 'connected';
-  const copy = gateCopy(state);
-  $('gateTitle').textContent = copy.title;
-  $('gateSub').textContent = copy.sub;
-  if (state === 'connected') setSetting('midiAuto', true);
+  paintMidiStatus({ state, names });
   if (S.exercise && !S.running && !S.finished) armRun();
 }
 
+const midi = createMidiInput({ onNoteOn, onNoteOff, onStatus: midiStatus });
+
 function connect() {
   unlockAudio();
-  connectMidi({ onNoteOn, onNoteOff, onStatus: midiStatus });
+  midi.connect();
 }
 $('midiBtn').addEventListener('click', connect);
 $('gateConnectBtn').addEventListener('click', connect);
@@ -613,7 +601,8 @@ $('readAhead').checked = !!getSetting('readAhead', false);
 setMode(getSetting('mode', 'wait'));
 renderLevels();
 showView('levels');
-if (getSetting('midiAuto', false)) connectMidi({ onNoteOn, onNoteOff, onStatus: midiStatus });
+// Older versions remembered the grant in this app's settings.
+if (midi.previouslyGranted() || getSetting('midiAuto', false)) midi.connect();
 
 // ?debug exposes a hook for automated tests and play without a keyboard.
 if (DEBUG) {

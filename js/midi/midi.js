@@ -1,10 +1,12 @@
-// Web MIDI input: detect notes from a connected MIDI keyboard.
+// Chords' MIDI: the notes held on a connected keyboard, as pitch classes for
+// the chord matcher. The connection itself is js/midi/input.js, shared by
+// every app; this file keeps the held-notes set and the status line.
 import { state } from '../core/state.js';
 import { applyHeardPitchClasses } from '../instruments/chordDisplay.js';
 import { $ } from '../core/dom.js';
 import { recordAction } from '../ux/achievements.js';
 import { noDeviceHelpHtml, isIOS } from './midiHelp.js';
-import { midiInputs } from './ports.js';
+import { createMidiInput } from './input.js';
 
 function refreshHeardFromHeld() {
   const pcs = new Set();
@@ -12,23 +14,14 @@ function refreshHeardFromHeld() {
   applyHeardPitchClasses(pcs);
 }
 
-function handleMidiMessage(event) {
-  const [status, data1, data2] = event.data;
-  const command = status & 0xf0;
-  const note = data1;
-  const velocity = data2;
-
-  if (command === 0x90 && velocity > 0) {
-    state.midiHeldNotes.add(note);
-    refreshHeardFromHeld();
-  } else if (command === 0x80 || (command === 0x90 && velocity === 0)) {
-    state.midiHeldNotes.delete(note);
-    refreshHeardFromHeld();
-  }
+function noteOn(note) {
+  state.midiHeldNotes.add(note);
+  refreshHeardFromHeld();
 }
 
-function attachInputs(access) {
-  for (const input of midiInputs(access)) input.onmidimessage = handleMidiMessage;
+function noteOff(note) {
+  state.midiHeldNotes.delete(note);
+  refreshHeardFromHeld();
 }
 
 // Tapping anywhere closes an auto-opened hint; registered once.
@@ -62,13 +55,6 @@ function renderHint(statusEl, label, { openHint = false } = {}) {
   if (openHint) tip.classList.add('open');
 }
 
-function renderStatus(statusEl, access, opts) {
-  const names = [];
-  for (const input of midiInputs(access)) names.push(input.name);
-  if (names.length > 0) statusEl.textContent = names.join(' · ');
-  else renderHint(statusEl, 'No device found', opts);
-}
-
 // Auto-dismiss error messages after 5s so they don't linger forever on mobile.
 function showTransient(text) {
   const statusEl = $('midiStatus');
@@ -77,10 +63,11 @@ function showTransient(text) {
   setTimeout(() => { statusEl.style.display = 'none'; }, 5000);
 }
 
-export async function startMidi() {
+let input = null;
+
+function onStatus({ state: st, names, late }) {
   const statusEl = $('midiStatus');
-  delete statusEl.dataset.dismissible;
-  if (!navigator.requestMIDIAccess) {
+  if (st === 'unsupported') {
     if (isIOS()) {
       statusEl.style.display = 'block';
       statusEl.dataset.dismissible = '1';
@@ -88,50 +75,33 @@ export async function startMidi() {
     } else {
       showTransient('Web MIDI not supported in this browser');
     }
-    return;
-  }
-  let access;
-  try {
-    access = await navigator.requestMIDIAccess();
-  } catch (err) {
-    console.error(err);
+  } else if (st === 'denied') {
     showTransient('MIDI access denied');
-    return;
-  }
-  try {
-    state.midiAccess = access;
-    state.midiEnabled = true;
-    state.midiHeldNotes = new Set();
-
-    const updateStatus = (opts) => {
-      attachInputs(access);
-      renderStatus(statusEl, access, opts);
-      if (access.inputs.size > 0) recordAction('midiConnect');
-    };
-
-    access.onstatechange = () => updateStatus();
+  } else if (st === 'connected' || st === 'nodevice') {
     statusEl.style.display = 'block';
-
-    // On mobile browsers, inputs may be enumerated asynchronously after
-    // requestMIDIAccess resolves — check immediately then retry after a short delay.
-    // Only the delayed check pops the help open, so it doesn't flash on
-    // devices that were simply slow to enumerate.
-    updateStatus();
-    setTimeout(() => { if (state.midiAccess === access) updateStatus({ openHint: true }); }, 500);
-
-    refreshHeardFromHeld();
-  } catch (err) {
-    // Access was granted: a failure here is ours, not a refused permission.
-    console.error(err);
-    showTransient(`MIDI error: ${err && (err.message || err.name) || err}`);
+    if (st === 'connected') {
+      statusEl.textContent = names.join(' · ');
+      recordAction('midiConnect');
+    } else {
+      // Only the late check pops the help open, so it doesn't flash on
+      // devices that were simply slow to enumerate.
+      renderHint(statusEl, 'No device found', { openHint: !!late });
+    }
   }
 }
 
+export async function startMidi() {
+  delete $('midiStatus').dataset.dismissible;
+  input ||= createMidiInput({ onNoteOn: noteOn, onNoteOff: noteOff, onStatus });
+  state.midiHeldNotes = new Set();
+  const ok = await input.connect();
+  state.midiEnabled = ok;
+  state.midiAccess = ok ? input : null;
+  if (ok) refreshHeardFromHeld();
+}
+
 export function stopMidi() {
-  if (state.midiAccess) {
-    for (const input of midiInputs(state.midiAccess)) input.onmidimessage = null;
-    state.midiAccess.onstatechange = null;
-  }
+  input?.disconnect();
   state.midiAccess = null;
   state.midiEnabled = false;
   state.midiHeldNotes = new Set();

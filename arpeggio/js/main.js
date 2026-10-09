@@ -9,9 +9,10 @@ import {
 } from './levels.js';
 import { createKeyboard } from './keyboard.js';
 import { renderStage, clearStage, currentCard } from './stage.js';
-import { renderMidiHint, gateCopy, DENIED_HELP_HTML } from '../../js/midi/midiHelp.js';
+import { paintMidiStatus } from '../../js/midi/midiHelp.js';
 import { bindInfoTips } from '../../js/ux/infoTip.js';
-import { createMidi, attachComputerKeyboard } from './midi.js';
+import { createMidiInput } from '../../js/midi/input.js';
+import { attachComputerKeyboard } from '../../js/midi/computerKeyboard.js';
 import { loadSettings, saveSettings, loadProgress, saveProgress, loadWeak, saveWeak, clearWeak } from './storage.js';
 import { initAchievements, grant, bump, setMax, setValue } from './achievements.js';
 import * as eggs from './eggs.js';
@@ -55,7 +56,7 @@ const held = new Set();
 let pedalDown = false;
 const history = []; // recent note-ons: { midi, t }
 
-const midi = createMidi({
+const midi = createMidiInput({
   onNoteOn: handleNoteOn,
   onNoteOff: handleNoteOff,
   onPedal: (down) => { pedalDown = down; if (!down && session) session.pedalHeld = false; },
@@ -64,24 +65,7 @@ const midi = createMidi({
 
 function renderMidiStatus({ state, names }) {
   midiState = state;
-  const btn = $('midiBtn');
-  btn.classList.toggle('is-connected', state === 'connected');
-  btn.classList.toggle('is-error', ['nodevice', 'denied', 'unsupported'].includes(state));
-  const label = state === 'connected' ? names.join(' · ') : 'Connect MIDI';
-  $('midiLabel').textContent = label;
-  btn.title = state === 'connected' ? 'MIDI connected' : 'Connect a MIDI keyboard';
-
-  const gate = $('midiGate');
-  gate.hidden = state === 'connected';
-  const status = $('midiStatus');
-  status.hidden = state === 'connected' || state === 'off';
-  if (state === 'nodevice') renderMidiHint(status, 'No device found');
-  else if (state === 'unsupported') renderMidiHint(status, 'MIDI not supported here');
-  else if (state === 'denied') renderMidiHint(status, 'MIDI access denied', { html: DENIED_HELP_HTML });
-  const copy = gateCopy(state);
-  $('gateTitle').textContent = copy.title;
-  $('gateSub').textContent = copy.sub;
-  document.body.classList.toggle('midi-ready', state === 'connected');
+  paintMidiStatus({ state, names });
 }
 
 $('midiBtn').addEventListener('click', () => { if (midiState !== 'connected') midi.connect(); });
