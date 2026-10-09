@@ -1,7 +1,7 @@
 // Arpeggio Trainer — page controller. Views: the level path (map) and the
 // play stage. MIDI is required to play; everything else is local state.
 
-import { CHORD_FORMULAS, NOTE_NAMES, NOTE_DISPLAY } from '../../js/core/theory.js';
+import { CHORD_FORMULAS, NOTE_NAMES, chordRootDisplay } from '../../js/core/theory.js';
 import { ArpeggioMatcher, scoreArpeggio, comboMultiplier, starsFor, degreeName, STAR_RULES } from './engine.js';
 import {
   LEVELS, levelById, levelLength, makeTask, poolFrom, levelPool, timeLimitMs,
@@ -680,7 +680,7 @@ function renderWeak() {
     : 'Play a few levels first. Your misses are remembered here.';
   $('weakList').innerHTML = list.length
     ? list.map(w => {
-      const name = NOTE_DISPLAY[w.root] + CHORD_FORMULAS[w.quality].suffix;
+      const name = chordRootDisplay(w.root, w.quality, () => 0) + CHORD_FORMULAS[w.quality].suffix;
       const missed = w.stats.tries - w.stats.clean;
       return `<li><span class="weak-chord">${name}</span><span class="weak-pattern">${ARROWS[w.direction]} ${DIR_NAMES[w.direction]} from the ${degreeName(w.start)}</span><span class="weak-stat">${missed}/${w.stats.tries} missed</span><span class="weak-bar"><span style="width:${Math.round(w.score * 100)}%"></span></span></li>`;
     }).join('')
