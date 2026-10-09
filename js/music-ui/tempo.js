@@ -56,6 +56,15 @@ export function tapTempo(times, opts = TAP) {
 
 export const formatMark = (bpm, unit = '♩') => `${unit} = ${Math.round(bpm)}`;
 
+// The beat's note value as a small drawing: ♩, ♩. (dotted) or ♪.
+export function noteSvg(unit = '\u2669') {
+  const eighth = unit.startsWith('\u266A');
+  const dot = unit.endsWith('.');
+  const flag = eighth ? '<path d="M11.3 1.2c0 3.2 4.8 4.4 4.2 9-.4-2.6-2-3.9-4.2-4.3z" fill="currentColor"/>' : '';
+  const dotEl = dot ? '<circle cx="15.5" cy="18.6" r="1.5" fill="currentColor"/>' : '';
+  return `<svg class="tp-note" viewBox="0 0 18 22" aria-hidden="true"><ellipse cx="7" cy="18.4" rx="4.3" ry="3" transform="rotate(-22 7 18.4)" fill="currentColor"/><rect x="10.2" y="1" width="1.3" height="17.4" fill="currentColor"/>${flag}${dotEl}</svg>`;
+}
+
 // ---- The widget ----
 
 export function attachTempoPicker(range, { unit = '♩', onTapState } = {}) {
@@ -83,7 +92,9 @@ export function attachTempoPicker(range, { unit = '♩', onTapState } = {}) {
 
   function paint() {
     const bpm = Number(range.value);
-    valueEl.textContent = formatMark(bpm, unitText);
+    // The note value drawn, so it looks the same in every font.
+    valueEl.innerHTML = `${noteSvg(unitText)}<span class="tp-eq">=</span>${Math.round(bpm)}`;
+    valueEl.setAttribute('aria-label', formatMark(bpm, unitText));
     const name = tempoTerm(bpm);
     termEl.textContent = name;
     for (const b of termsEl.children) b.classList.toggle('is-on', b.textContent === name);

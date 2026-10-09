@@ -78,6 +78,8 @@
 .tp { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.8rem; margin-top: 0.4rem; }
 .tp-mark { display: flex; align-items: baseline; gap: 0.5rem; min-width: 9rem; }
 .tp-value { font-family: var(--font-display, serif); font-size: 1.3rem; color: var(--ivory); white-space: nowrap; }
+.tp-value { display: inline-flex; align-items: baseline; gap: 0.3em; }
+.tp-note { width: 0.8em; height: 1em; align-self: center; flex: none; }
 .tp-term { font-style: italic; color: var(--gold); }
 .tp-terms { display: flex; flex-wrap: wrap; gap: 0.3rem; flex: 1 1 100%; order: 3; }
 .tp-term-btn, .tp-tap {
