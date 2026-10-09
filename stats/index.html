@@ -65,6 +65,19 @@
     </div>
 
     <div id="panel" class="panel-body" role="tabpanel"></div>
+
+    <section class="backup" aria-labelledby="backupTitle">
+      <div class="backup-text">
+        <h2 class="backup-title" id="backupTitle">Keep a copy of your progress</h2>
+        <p>Stars, achievements, high scores, settings and this history live only in this browser. Safari can clear them after a few weeks away from the site. Save a backup file now and then, and restore it here on any device.</p>
+        <p class="backup-msg" id="backupMsg" role="status" hidden></p>
+      </div>
+      <div class="backup-actions">
+        <button type="button" class="ghost-btn" id="backupSaveBtn">Save a backup</button>
+        <button type="button" class="ghost-btn" id="backupLoadBtn">Restore a backup</button>
+        <input type="file" id="backupFile" accept="application/json,.json" hidden>
+      </div>
+    </section>
   </main>
 
   <footer class="page-footer">

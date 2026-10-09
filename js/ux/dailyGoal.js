@@ -20,6 +20,7 @@ import { onSuccess } from './feedback.js';
 import { celebrate } from './rewards.js';
 import { LS } from '../core/constants.js';
 import { $, $$ } from '../core/dom.js';
+import { read, write, readRaw } from '../core/store.js';
 
 // ---- Goal pool ----------------------------------------------------------
 
@@ -147,12 +148,7 @@ function defaultStoreFor(dateStr, prevStore) {
 
 function load() {
   const today = todayStr();
-  let raw = null;
-  try { raw = localStorage.getItem(LS.DAILY_GOAL); } catch { /* ignore */ }
-  let prev = null;
-  if (raw) {
-    try { prev = JSON.parse(raw); } catch { /* ignore */ }
-  }
+  const prev = read(LS.DAILY_GOAL, null);
 
   if (prev) {
     if (prev.date === today) {
@@ -195,7 +191,7 @@ function load() {
 }
 
 function save() {
-  try { localStorage.setItem(LS.DAILY_GOAL, JSON.stringify(store)); } catch { /* ignore */ }
+  write(LS.DAILY_GOAL, store);
 }
 
 function trimHistory() {
@@ -518,7 +514,7 @@ export function initDailyGoal() {
   load();
   onSuccess(handleSuccess);
 
-  const onboarded = localStorage.getItem(LS.ONBOARDED) === '1';
+  const onboarded = readRaw(LS.ONBOARDED) === '1';
   const buildAll = () => {
     buildPill();
     buildModal();

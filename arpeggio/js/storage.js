@@ -1,9 +1,11 @@
 // localStorage-backed settings, level progress and weak-spot stats.
 
+import { KEYS as ALL_KEYS, read, write } from '../../js/core/store.js';
+
 const KEYS = {
-  settings: 'arpeggioTrainer.settings',
-  progress: 'arpeggioTrainer.progress',
-  weak: 'arpeggioTrainer.weak',
+  settings: ALL_KEYS.arpeggio.SETTINGS,
+  progress: ALL_KEYS.arpeggio.PROGRESS,
+  weak: ALL_KEYS.arpeggio.WEAK,
 };
 
 export const DEFAULT_SETTINGS = {
@@ -15,19 +17,6 @@ export const DEFAULT_SETTINGS = {
   freeDirections: ['up', 'down'],
   freeStarts: ['root', 'third', 'fifth', 'seventh'],
 };
-
-function read(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function write(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* quota / private mode */ }
-}
 
 export function loadSettings() {
   const s = { ...DEFAULT_SETTINGS, ...read(KEYS.settings, {}) };

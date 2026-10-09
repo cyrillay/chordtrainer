@@ -12,7 +12,9 @@
 // are close enough (30 s by default), so a tab left open adds nothing.
 // Everything lives in localStorage, like the rest of the site.
 
-export const STATS_KEY = 'etude.stats';
+import { KEYS, read, write } from '../core/store.js';
+
+export const STATS_KEY = KEYS.site.STATS;
 export const APPS = ['chords', 'sightreading', 'arpeggio', 'repertoire', 'jam'];
 export const MAX_RUNS = 600;
 const DEFAULT_GAP_MS = 30000;
@@ -26,18 +28,15 @@ export const dayKey = (t) => {
 export const emptyStats = (now = Date.now()) => ({ v: 1, since: now, days: {}, hours: {}, tally: {}, runs: [] });
 
 export function readStats() {
-  try {
-    const raw = localStorage.getItem(STATS_KEY);
-    if (raw) {
-      const s = JSON.parse(raw);
-      return { ...emptyStats(), ...s, days: s.days || {}, hours: s.hours || {}, tally: s.tally || {}, runs: s.runs || [] };
-    }
-  } catch { /* private mode or bad JSON */ }
+  const s = read(STATS_KEY, null);
+  if (s && typeof s === 'object') {
+    return { ...emptyStats(), ...s, days: s.days || {}, hours: s.hours || {}, tally: s.tally || {}, runs: s.runs || [] };
+  }
   return emptyStats();
 }
 
 function writeStats(s) {
-  try { localStorage.setItem(STATS_KEY, JSON.stringify(s)); } catch { /* quota / private mode */ }
+  write(STATS_KEY, s);
 }
 
 // ---- Pure updates (tested) ----

@@ -4,6 +4,7 @@
 
 import { $ } from '../core/dom.js';
 import { LS } from '../core/constants.js';
+import { readRaw, writeRaw } from '../core/store.js';
 
 const STEPS = [
   {
@@ -34,7 +35,7 @@ const STEPS = [
 ];
 
 export function startOnboarding() {
-  if (localStorage.getItem(LS.ONBOARDED) === '1') return;
+  if (readRaw(LS.ONBOARDED) === '1') return;
   const overlay = $('onboardOverlay');
   if (!overlay) return;
   const card = overlay.querySelector('.onboard-card');
@@ -145,7 +146,7 @@ export function startOnboarding() {
     overlay.style.display = 'none';
     overlay.classList.remove('has-target');
     window.removeEventListener('resize', onResize);
-    localStorage.setItem(LS.ONBOARDED, '1');
+    writeRaw(LS.ONBOARDED, '1');
     document.dispatchEvent(new CustomEvent('etude:onboarded'));
     // The last steps scroll to highlighted controls below the fold; bring the
     // user back to the top so they aren't dropped mid-page after the walkthrough.

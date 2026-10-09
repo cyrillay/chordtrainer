@@ -22,6 +22,7 @@ import { state } from '../core/state.js';
 import { onSuccess } from './feedback.js';
 import { LS } from '../core/constants.js';
 import { escapeHtml } from '../core/dom.js';
+import { read, write } from '../core/store.js';
 
 const ACH = [
   // ---- Beginner journey ----
@@ -129,10 +130,7 @@ const DEFAULT_STORE = () => ({
 let store = DEFAULT_STORE();
 
 function load() {
-  try {
-    const raw = localStorage.getItem(LS.ACHIEVEMENTS);
-    if (raw) Object.assign(store, JSON.parse(raw));
-  } catch { /* ignore */ }
+  Object.assign(store, read(LS.ACHIEVEMENTS, {}));
   store.unlocked    ||= {};
   store.counters    ||= {};
   store.rootSets    ||= {};
@@ -140,7 +138,7 @@ function load() {
 }
 
 function save() {
-  localStorage.setItem(LS.ACHIEVEMENTS, JSON.stringify(store));
+  write(LS.ACHIEVEMENTS, store);
   paintBadge();
 }
 

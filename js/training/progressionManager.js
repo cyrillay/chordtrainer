@@ -4,25 +4,26 @@
 import { PROGRESSIONS } from './progressions.js';
 import { LS } from '../core/constants.js';
 import { escapeHtml as esc } from '../core/dom.js';
+import { read, write } from '../core/store.js';
 
 const MAX_CUSTOM = 10;
 
 function loadDisabled() {
-  try { return new Set(JSON.parse(localStorage.getItem(LS.DISABLED_PROGS) || '[]')); }
-  catch { return new Set(); }
+  const v = read(LS.DISABLED_PROGS, []);
+  return new Set(Array.isArray(v) ? v : []);
 }
 
 function saveDisabled(set) {
-  localStorage.setItem(LS.DISABLED_PROGS, JSON.stringify([...set]));
+  write(LS.DISABLED_PROGS, [...set]);
 }
 
 function loadCustom() {
-  try { return JSON.parse(localStorage.getItem(LS.CUSTOM_PROGS) || '[]'); }
-  catch { return []; }
+  const v = read(LS.CUSTOM_PROGS, []);
+  return Array.isArray(v) ? v : [];
 }
 
 function saveCustom(arr) {
-  localStorage.setItem(LS.CUSTOM_PROGS, JSON.stringify(arr));
+  write(LS.CUSTOM_PROGS, arr);
 }
 
 export function getActiveProgressions() {

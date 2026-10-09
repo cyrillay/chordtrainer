@@ -3,6 +3,7 @@
 // here except the reset of the practice log.
 
 import { readStats, APPS, STATS_KEY } from '../../js/stats/log.js';
+import { KEYS, read, remove, exportBackup, backupFileName, parseBackup, restoreBackup, describeBackup } from '../../js/core/store.js';
 import {
   dailySeries, streaks, appTotals, hourProfile, weekdayProfile, calendar, runsOf, rolling, formatDuration, dayList,
 } from '../../js/stats/compute.js';
@@ -17,7 +18,6 @@ import {
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const read = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
 
 const NAMES = { chords: 'Chords', sightreading: 'Sight-reading', arpeggio: 'Arpeggios', repertoire: 'Repertoire', jam: 'Ghost Jam' };
 const QUALITIES = Object.keys(CHORD_FORMULAS);
@@ -52,18 +52,18 @@ function loadAll() {
   return {
     log: readStats(),
     chords: {
-      ach: read('chordTrainer.achievements', {}),
-      best: read('chordTrainer.rewards', {}).best || 0,
-      goal: read('chordTrainer.dailyGoal', {}),
+      ach: read(KEYS.chords.ACHIEVEMENTS, {}),
+      best: read(KEYS.chords.REWARDS, {}).best || 0,
+      goal: read(KEYS.chords.DAILY_GOAL, {}),
     },
-    read: { progress: read('readTrainer.progress', {}), ach: read('readTrainer.achievements', {}) },
+    read: { progress: read(KEYS.sightreading.PROGRESS, {}), ach: read(KEYS.sightreading.ACHIEVEMENTS, {}) },
     arp: {
-      progress: read('arpeggioTrainer.progress', {}),
-      weak: read('arpeggioTrainer.weak', {}),
-      ach: read('arpeggioTrainer.achievements', {}),
+      progress: read(KEYS.arpeggio.PROGRESS, {}),
+      weak: read(KEYS.arpeggio.WEAK, {}),
+      ach: read(KEYS.arpeggio.ACHIEVEMENTS, {}),
     },
-    rep: { recent: read('scoretrainer.recent', []), markings: read('scoretrainer.markings', {}) },
-    jam: { scores: read('ghostJam.scores', {}) },
+    rep: { recent: read(KEYS.repertoire.RECENT, []), markings: read(KEYS.repertoire.MARKINGS, {}) },
+    jam: { scores: read(KEYS.jam.SCORES, {}) },
   };
 }
 
@@ -99,7 +99,7 @@ function achievementsCount() {
   const c = Object.keys(D.chords.ach.unlocked || {}).length;
   const r = Object.values(D.read.ach || {}).filter(Boolean).length;
   const a = Object.keys(D.arp.ach.unlocked || {}).length;
-  const jam = read('ghostJam.achievements', null);
+  const jam = read(KEYS.jam.ACHIEVEMENTS, null);
   const j = jam && typeof jam === 'object' ? Object.keys(jam.unlocked || jam).length : 0;
   return c + r + a + j;
 }
@@ -508,7 +508,7 @@ window.addEventListener('scroll', () => { tipEl.hidden = true; }, { passive: tru
 
 $('resetBtn').addEventListener('click', () => {
   if (!confirm('Reset your statistics? The practice calendar, times and charts start again from zero. Stars, achievements and high scores in the trainers are kept.')) return;
-  try { localStorage.removeItem(STATS_KEY); } catch { /* ignore */ }
+  remove(STATS_KEY);
   D = loadAll();
   render();
 });
@@ -519,6 +519,49 @@ window.addEventListener('resize', () => {
   lastW = window.innerWidth;
   clearTimeout(resizeT);
   resizeT = setTimeout(render, 150);
+});
+
+// ---- Backup: save everything to a file, or restore it ----
+
+const APP_NAMES = { site: 'site settings', chords: 'Chords', sightreading: 'Sight-reading', arpeggio: 'Arpeggios', repertoire: 'Repertoire', jam: 'Ghost Jam', midi: 'MIDI' };
+
+function backupMessage(text, isError = false) {
+  const el = $('backupMsg');
+  el.textContent = text;
+  el.classList.toggle('is-error', isError);
+  el.hidden = false;
+}
+
+$('backupSaveBtn').addEventListener('click', () => {
+  const now = new Date();
+  const backup = exportBackup(now);
+  const blob = new Blob([JSON.stringify(backup, null, 1)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = backupFileName(now);
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  backupMessage(`Saved ${a.download}. Keep it somewhere safe.`);
+});
+
+$('backupLoadBtn').addEventListener('click', () => $('backupFile').click());
+$('backupFile').addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  e.target.value = '';
+  if (!file) return;
+  const parsed = parseBackup(await file.text());
+  if (!parsed.ok) { backupMessage(parsed.error, true); return; }
+  const info = describeBackup(parsed.backup);
+  const when = info.exported ? new Date(info.exported).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'an unknown date';
+  const apps = info.apps.map((a) => APP_NAMES[a] || a).join(', ') || 'nothing';
+  if (!confirm(`Restore the backup from ${when}? It holds ${apps}. Everything this browser remembers now is replaced by it.`)) return;
+  restoreBackup(parsed.backup);
+  backupMessage('Backup restored.');
+  D = loadAll();
+  render();
 });
 
 // Another tab may have just recorded practice.

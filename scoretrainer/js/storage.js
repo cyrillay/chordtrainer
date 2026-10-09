@@ -6,9 +6,11 @@
 //     as markings, so a single hash links the bytes, the markings and the
 //     recent-list entry.
 
-const KEY_MARKINGS = 'scoretrainer.markings';
-const KEY_RECENT   = 'scoretrainer.recent';
-const KEY_CONFIG   = 'scoretrainer.config';
+import { KEYS, read, write } from '../../js/core/store.js';
+
+const KEY_MARKINGS = KEYS.repertoire.MARKINGS;
+const KEY_RECENT   = KEYS.repertoire.RECENT;
+const KEY_CONFIG   = KEYS.repertoire.CONFIG;
 
 const MAX_RECENT = 8;
 
@@ -25,14 +27,8 @@ export async function hashFile(file) {
     .join('');
 }
 
-function readJson(key, fallback) {
-  try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }
-  catch { return fallback; }
-}
-function writeJson(key, value) {
-  try { localStorage.setItem(key, JSON.stringify(value)); }
-  catch { /* quota — silently drop */ }
-}
+const readJson = read;
+const writeJson = write;
 
 export function saveMarkings(hash, markings) {
   const all = readJson(KEY_MARKINGS, {});

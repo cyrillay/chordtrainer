@@ -9,6 +9,7 @@ import {
   PIANO_LOW_HZ, PIANO_HIGH_HZ, PITCH_IGNORE_LOW_HZ, PITCH_IGNORE_HIGH_HZ,
   PEAK_TOP_N, HARMONIC_MAX, LS
 } from '../core/constants.js';
+import { read, write } from '../core/store.js';
 
 function freqToPitchClass(freq) {
   if (freq < PITCH_IGNORE_LOW_HZ || freq > PITCH_IGNORE_HIGH_HZ) return null;
@@ -232,15 +233,11 @@ const SLIDER_CONFIG = [
 ];
 
 export function loadSensitivity() {
-  try {
-    const saved = localStorage.getItem(LS.SENSITIVITY);
-    if (saved) Object.assign(state.sensitivity, JSON.parse(saved));
-  } catch { /* ignore */ }
+  Object.assign(state.sensitivity, read(LS.SENSITIVITY, {}));
 }
 
 function saveSensitivity() {
-  try { localStorage.setItem(LS.SENSITIVITY, JSON.stringify(state.sensitivity)); }
-  catch { /* ignore */ }
+  write(LS.SENSITIVITY, state.sensitivity);
 }
 
 export function syncSlidersFromState() {

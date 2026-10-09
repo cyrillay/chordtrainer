@@ -18,6 +18,7 @@ import { Band } from './band.js';
 import { SYNC, measureOffset, offsetFor, storeOffset, forgetOffset } from './sync.js';
 import { sprite, MAPS } from './sprites.js';
 import { track, logRun } from '../../js/stats/log.js';
+import { KEYS, read, write } from '../../js/core/store.js';
 import { JamTracker } from './achievements.js';
 import { initTrophyCase, grant, bump, setMax, setFinished } from './trophyCase.js';
 import { isFavourite, toggleFavourite, removeFavourite, cleanFavourites } from './favourites.js';
@@ -29,9 +30,8 @@ const params = new URLSearchParams(location.search);
 
 // ---- Settings + high scores ----
 
-const LS = { settings: 'ghostJam.settings', scores: 'ghostJam.scores', midi: 'ghostJam.midiAuto', guests: 'ghostJam.guestsMet', favs: 'ghostJam.favourites', sync: 'ghostJam.sync' };
-const read = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
-const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } };
+const K = KEYS.jam;
+const LS = { settings: K.SETTINGS, scores: K.SCORES, midi: 'ghostJam.midiAuto', guests: K.GUESTS, favs: K.FAVOURITES, sync: K.SYNC };
 
 const settings = Object.assign({
   style: 'swing', tune: 'Autumnal', key: 'random', tempo: null, bars: 1, length: 4, showTones: true,

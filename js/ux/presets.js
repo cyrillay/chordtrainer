@@ -10,6 +10,7 @@ import { $, $$, setDisplay, checkedDataValues } from '../core/dom.js';
 import { LS } from '../core/constants.js';
 import { updateCircleHighlight } from '../instruments/circle.js';
 import { recordAction } from './achievements.js';
+import { readRaw, writeRaw } from '../core/store.js';
 
 const PRESETS = {
   firstTimer:   { qualities: ['maj'],                                                                roots: ['C', 'F', 'G'],           inversions: false, showFingerings: true, showCircle: false, showInstrument: true,  progressions: false },
@@ -32,7 +33,7 @@ function setInversionFreq(pct, opts = {}) {
   const v = INVERSION_FREQ_OPTIONS.includes(pct) ? pct : 33;
   currentInversionFreq = v;
   $$('.inv-preset-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.invFreq, 10) === v));
-  localStorage.setItem(LS.INVERSION_FREQ, String(v));
+  writeRaw(LS.INVERSION_FREQ, v);
   if (!opts.silent) {
     refreshActivePreset();
     onChangeRegenerate();
@@ -135,7 +136,7 @@ export function initPresets({ regenerate, applyInstrumentVisibility, refreshRoot
   onChangeApplyInstrument = applyInstrumentVisibility;
   onChangeRefreshRoots = refreshRoots || (() => {});
 
-  const stored = parseInt(localStorage.getItem(LS.INVERSION_FREQ), 10);
+  const stored = parseInt(readRaw(LS.INVERSION_FREQ), 10);
   const initial = INVERSION_FREQ_OPTIONS.includes(stored) ? stored : 33;
   setInversionFreq(initial, { silent: true });
   syncInversionFreqVisibility();

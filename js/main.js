@@ -25,8 +25,9 @@ import { initPresets, refreshActivePreset, syncInversionFreqVisibility } from '.
 import { startOnboarding } from './ux/onboarding.js';
 import { $, $$, debounce, setDisplay } from './core/dom.js';
 import { LS, REGENERATE_DEBOUNCE_MS } from './core/constants.js';
+import { readRaw, writeRaw } from './core/store.js';
 
-let currentInstrument = localStorage.getItem(LS.INSTRUMENT) || 'piano';
+let currentInstrument = readRaw(LS.INSTRUMENT) || 'piano';
 
 // ---- Queue regeneration (debounced) ----
 // A single entry point so rapid setting changes (e.g. toggling several roots)
@@ -100,7 +101,7 @@ $$('.instrument-mode-btn').forEach(btn => {
     const next = btn.dataset.instrument;
     if (next === currentInstrument) return;
     currentInstrument = next;
-    localStorage.setItem(LS.INSTRUMENT, currentInstrument);
+    writeRaw(LS.INSTRUMENT, currentInstrument);
     applyInstrumentVisibility();
   });
 });

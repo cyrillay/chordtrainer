@@ -419,6 +419,28 @@ button {
 
 /* ---- footer ---- */
 
+/* ---- backup ---- */
+
+.backup {
+  margin-top: 3rem;
+  padding: 1.4rem 1.6rem;
+  border: 1px solid var(--line);
+  background: var(--card);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.2rem 2rem;
+  align-items: center;
+  justify-content: space-between;
+}
+.backup-text { flex: 1 1 420px; min-width: 0; }
+.backup-title { font-family: var(--font-display); font-weight: 500; font-size: 1.35rem; margin-bottom: 0.4rem; }
+.backup-text p { color: var(--ivory-dim); line-height: 1.5; font-size: 1.05rem; }
+.backup-msg { margin-top: 0.6rem; color: var(--gold) !important; }
+.backup-msg.is-error { color: var(--crimson) !important; }
+.backup-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.backup-actions .ghost-btn { color: var(--ivory); border-color: var(--gold); }
+.backup-actions .ghost-btn:hover { background: rgba(var(--gold-rgb), 0.12); }
+
 .page-footer {
   margin-top: 3rem;
   padding-top: 1.2rem;
