@@ -72,20 +72,31 @@ export function tonicDisplay(keyRoot, mode) {
   return LETTER_NAMES[t.letter] + (ACC_CHARS[t.accidental] || '');
 }
 
-// Two valid display spellings for the five enharmonic-ambiguous pcs. Used by
-// isolated-chords mode to vary between e.g. C♯ and D♭ for the same root.
-const ENHARMONIC_DISPLAYS = {
-  'C#': ['C\u266F', 'D\u266D'],
-  'D#': ['D\u266F', 'E\u266D'],
-  'F#': ['F\u266F', 'G\u266D'],
-  'G#': ['G\u266F', 'A\u266D'],
-  'A#': ['A\u266F', 'B\u266D']
+// How a musician names each tonic, by mode: the spelling with the shorter
+// key signature (F♯ major and E♭ minor tie at six, and keep the spelling
+// players see most). D♭ major but C♯ minor, A♭ major but G♯ minor.
+export const TONIC_NAMES = {
+  major: ['C', 'D\u266D', 'D', 'E\u266D', 'E', 'F', 'F\u266F', 'G', 'A\u266D', 'A', 'B\u266D', 'B'],
+  minor: ['C', 'C\u266F', 'D', 'E\u266D', 'E', 'F', 'F\u266F', 'G', 'G\u266F', 'A', 'B\u266D', 'B'],
 };
+export const tonicName = (key, mode) => TONIC_NAMES[mode][NOTE_NAMES.indexOf(key)];
 
-export function randomEnharmonicDisplay(root) {
-  const pair = ENHARMONIC_DISPLAYS[root];
-  if (!pair) return NOTE_DISPLAY[root];
-  return pair[Math.random() < 0.5 ? 0 : 1];
+// A chord read as a key: a minor third makes it minor.
+const MINOR_QUALITIES = new Set(['min', 'dim', 'min7', 'm7b5', 'mMaj7']);
+export const qualityMode = (quality) => (MINOR_QUALITIES.has(quality) ? 'minor' : 'major');
+
+// The two major tonics both spellings of which are keys players meet:
+// D♭ and C♯ (5♭ / 7♯), G♭ and F♯ (6♭ / 6♯).
+const TWO_WAY = { 'C#': ['D\u266D', 'C\u266F'], 'F#': ['G\u266D', 'F\u266F'] };
+
+// The root of a chord on its own (no key around it), spelled as a musician
+// would: E♭ major, never D♯ major; C♯ minor, never D♭ minor. Only D♭/C♯ and
+// G♭/F♯ major vary, to train reading both.
+export function chordRootDisplay(root, quality, random = Math.random) {
+  const mode = qualityMode(quality);
+  const pair = mode === 'major' ? TWO_WAY[root] : null;
+  if (pair) return pair[random() < 0.5 ? 0 : 1];
+  return tonicName(root, mode);
 }
 
 // Spell a chord root for a given tonic + scale-degree context: the letter is

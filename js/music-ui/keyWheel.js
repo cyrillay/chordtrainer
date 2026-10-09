@@ -1,26 +1,27 @@
-// Ghost Jam: the key picker, a circle of fifths. The tune decides major or
-// minor, so its ring is the outer one (the one you click) and the relative
-// keys sit inside it. Playing a note on the piano picks that tonic.
+// The key picker, a circle of fifths. The mode (major or minor) is given,
+// so its ring is the outer one (the one you click) and the relative keys sit
+// inside it. Playing a note on the piano picks that tonic. Ghost Jam uses it
+// for the tune's key; any page can, with the markup below and music-ui.css.
+//
+//   <div class="modal" hidden>  (any overlay; a click on it closes)
+//     <div class="kw-box"><span class="kw-title"></span><button class="kw-close"></button>
+//     <svg class="kw-wheel" viewBox="-100 -100 200 200"></svg></div>
+//   </div>
 
-import { NOTE_NAMES } from '../../js/core/theory.js';
+import { NOTE_NAMES, TONIC_NAMES, tonicName } from '../core/theory.js';
 
 // Pitch classes clockwise from the top: C G D A E B F♯ D♭ A♭ E♭ B♭ F.
 export const FIFTHS = Array.from({ length: 12 }, (_, i) => (i * 7) % 12);
 
-// How each tonic is spelled on the circle, by mode: the spelling with the
-// shorter key signature (F♯ major and E♭ minor tie at six, and keep the
-// spelling players see most).
-const SPELL = {
-  major: ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'],
-  minor: ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'B♭', 'B'],
-};
+// How each tonic is spelled on the circle, by mode: theory.js's
+// TONIC_NAMES, the spelling with the shorter key signature.
+export { TONIC_NAMES, tonicName };
 
 const SIX = { major: { '♯': 'F♯', '♭': 'G♭' }, minor: { '♯': 'D♯', '♭': 'E♭' } };
 
 const pcOf = (key) => NOTE_NAMES.indexOf(key);
 const relative = (pc, mode) => (mode === 'minor' ? pc + 3 : pc + 9) % 12;
 
-export const tonicName = (key, mode) => SPELL[mode][pcOf(key)];
 export const keyLabel = (key, mode) => `${tonicName(key, mode)} ${mode}`;
 
 // The key signature: { count, acc: '♯' | '♭' | '' }. Six is written ♯ for

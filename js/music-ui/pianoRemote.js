@@ -1,4 +1,4 @@
-// Ghost Jam: the piano as a TV remote for the menus, in intervals from C,
+// The piano as a TV remote for the menus, in intervals from C,
 // in any octave. A third below C (A or A♭) moves down the menu, a third
 // above (E or E♭) moves up, the fifth (G) selects. Once a setting is
 // selected, the thirds change its value (above: more, below: less) and the
@@ -22,10 +22,16 @@ export const gestureOf = (midi) => GESTURES[((midi % 12) + 12) % 12] ?? null;
 // repeats; letting go then fires nothing more. A second key cancels it all.
 export const REPEAT = { delay: 350, interval: 90, rush: 35, rushAfter: 8 };
 
+// holdMs(midi): how long that key must be held for its command to count
+// (0 for a tap). Arpeggios asks for a held fifth, so its hidden melodies
+// can't start a level by accident.
 export class PianoRemote {
-  constructor({ onCommand = () => {}, repeats = () => false } = {}) {
+  constructor({ onCommand = () => {}, repeats = () => false, holdMs = () => 0, now = () => performance.now() } = {}) {
     this.onCommand = onCommand;
     this.repeats = repeats;
+    this.holdMs = holdMs;
+    this.now = now;
+    this.armedAt = 0;
     this.held = new Set();
     this.armed = null;     // the key that opened the gesture, if it can be a command
     this.spoiled = false;  // another key joined in: it was a chord
@@ -37,6 +43,7 @@ export class PianoRemote {
   noteOn(midi, enabled) {
     if (this.held.size === 0) {
       this.armed = enabled ? midi : null;
+      this.armedAt = this.now();
       this.spoiled = false;
       this.fired = 0;
       if (this.armed !== null && this.repeats(midi)) this.#schedule(REPEAT.delay);
@@ -53,7 +60,9 @@ export class PianoRemote {
     this.#stop();
     const m = this.armed;
     this.armed = null;
-    if (m !== null && !this.spoiled && !this.fired) this.onCommand(m);
+    if (m === null || this.spoiled || this.fired) return;
+    if (this.now() - this.armedAt < this.holdMs(m)) return;
+    this.onCommand(m);
   }
 
   #schedule(ms) {
@@ -118,3 +127,27 @@ export const step = (list, current, dir) => {
   const i = list.indexOf(current);
   return list[((i < 0 ? 0 : i + dir) % list.length + list.length) % list.length];
 };
+
+// The legend: one octave around a C, F to A, the keys that do something
+// labelled. Returns the keys' markup and the number of grid columns.
+const BLACK_PCS = new Set([1, 3, 6, 8, 10]);
+export function remoteLegend({ select = 'OK' } = {}) {
+  const LABELS = { [MIDDLE_C - 4]: '↓', [MIDDLE_C - 3]: '↓', [MIDDLE_C]: 'C', [MIDDLE_C + 3]: '↑', [MIDDLE_C + 4]: '↑', [MIDDLE_C + 7]: select };
+  let html = '';
+  let white = 0;
+  for (let m = MIDDLE_C - 7; m <= MIDDLE_C + 9; m++) {
+    const black = BLACK_PCS.has(m % 12);
+    const col = black ? white * 2 : white * 2 + 1;
+    if (!black) white++;
+    const g = gestureOf(m);
+    html += `<span class="rk ${black ? 'rk-black' : 'rk-white'}${g ? ` rk-${g}` : ''}${m === MIDDLE_C ? ' rk-home' : ''}" style="grid-column:${col} / span 2">${LABELS[m] ?? ''}</span>`;
+  }
+  return { html, columns: white * 2 };
+}
+
+// Draws the legend into an element.
+export function renderRemoteLegend(el, opts) {
+  const { html, columns } = remoteLegend(opts);
+  el.innerHTML = html;
+  el.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+}

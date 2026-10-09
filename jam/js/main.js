@@ -23,8 +23,8 @@ import { KEYS, read, write } from '../../js/core/store.js';
 import { JamTracker } from './achievements.js';
 import { initTrophyCase, grant, bump, setMax, setFinished } from './trophyCase.js';
 import { isFavourite, toggleFavourite, removeFavourite, cleanFavourites } from './favourites.js';
-import { PianoRemote, MenuNav, MIDDLE_C, gestureOf, step } from './remote.js';
-import { KeyWheel, keyLabel } from './keyWheel.js';
+import { PianoRemote, MenuNav, gestureOf, step, renderRemoteLegend } from '../../js/music-ui/pianoRemote.js';
+import { KeyWheel, keyLabel } from '../../js/music-ui/keyWheel.js';
 
 const $ = (id) => document.getElementById(id);
 const params = new URLSearchParams(location.search);
@@ -1108,20 +1108,7 @@ function runRemote(midi) {
 }
 
 // The legend: one octave around a C, F to A, the keys that do something labelled.
-(function buildRemoteLegend() {
-  const LABELS = { [MIDDLE_C - 4]: '↓', [MIDDLE_C - 3]: '↓', [MIDDLE_C]: 'C', [MIDDLE_C + 3]: '↑', [MIDDLE_C + 4]: '↑', [MIDDLE_C + 7]: 'OK' };
-  let html = '';
-  let white = 0;
-  for (let m = MIDDLE_C - 7; m <= MIDDLE_C + 9; m++) {
-    const black = BLACK.has(m % 12);
-    const col = black ? white * 2 : white * 2 + 1;
-    if (!black) white++;
-    const g = gestureOf(m);
-    html += `<span class="rk ${black ? 'rk-black' : 'rk-white'}${g ? ` rk-${g}` : ''}${m === MIDDLE_C ? ' rk-home' : ''}" style="grid-column:${col} / span 2">${LABELS[m] ?? ''}</span>`;
-  }
-  $('remoteKeys').innerHTML = html;
-  $('remoteKeys').style.gridTemplateColumns = `repeat(${white * 2}, 1fr)`;
-})();
+renderRemoteLegend($('remoteKeys'));
 
 document.addEventListener('keydown', (e) => {
   if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;

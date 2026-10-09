@@ -4,7 +4,7 @@
 //   - progressions: walk through predefined chord progressions (see progressions.js)
 
 import { state } from '../core/state.js';
-import { CHORD_FORMULAS, buildChord, formatChordHtml, pickInversion, randomEnharmonicDisplay, tonicDisplay } from '../core/theory.js';
+import { CHORD_FORMULAS, buildChord, formatChordHtml, pickInversion, chordRootDisplay, tonicDisplay } from '../core/theory.js';
 import { ProgressionStream, romanToChord } from './progressions.js';
 import { getActiveProgressions } from './progressionManager.js';
 import { QUEUE_SIZE } from '../core/constants.js';
@@ -72,7 +72,7 @@ function generateRandomFreeChord(avoidSymbols) {
     const quality = qualities[Math.floor(Math.random() * qualities.length)];
     const numNotes = CHORD_FORMULAS[quality].intervals.length;
     chord = buildChord(root, quality, pickInversion(numNotes, useInversions, invFreq));
-    chord.rootDisplay = randomEnharmonicDisplay(root);
+    chord.rootDisplay = chordRootDisplay(root, quality);
     attempt++;
   } while (avoidSymbols.includes(chord.symbol) && attempt < 10);
 

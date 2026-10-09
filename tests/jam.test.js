@@ -380,7 +380,7 @@ test('favourites: toggle, newest first, capped, cleaned', async () => {
 });
 
 test('piano remote: one key alone is a command, a chord is not', async () => {
-  const { PianoRemote, gestureOf } = await import('../jam/js/remote.js');
+  const { PianoRemote, gestureOf } = await import('../js/music-ui/pianoRemote.js');
   const got = [];
   const r = new PianoRemote({ onCommand: (m) => got.push(m) });
   r.noteOn(67, true); r.noteOff(67);
@@ -406,7 +406,7 @@ test('piano remote: hold a third and it repeats, faster', async (t) => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   // Timers set from inside a timer only run on a later tick: advance 1 ms at a time.
   const tick = (ms) => { for (let i = 0; i < ms; i++) t.mock.timers.tick(1); };
-  const { PianoRemote, REPEAT } = await import('../jam/js/remote.js');
+  const { PianoRemote, REPEAT } = await import('../js/music-ui/pianoRemote.js');
   const got = [];
   const r = new PianoRemote({ onCommand: (m) => got.push(m), repeats: (m) => m === 64 });
   r.noteOn(64, true);
@@ -437,7 +437,7 @@ test('piano remote: hold a third and it repeats, faster', async (t) => {
 });
 
 test('menu cursor: thirds move, the fifth takes and lets go a setting', async () => {
-  const { MenuNav, step } = await import('../jam/js/remote.js');
+  const { MenuNav, step } = await import('../js/music-ui/pianoRemote.js');
   const nav = new MenuNav([
     { id: 'groove', kind: 'value' }, { id: 'tempo', kind: 'value' }, { id: 'play', kind: 'action' },
   ], 'groove');
