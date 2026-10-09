@@ -62,6 +62,33 @@ Current versions (keep this table in sync):
   note run) and `logRun()` (a finished level, exercise or set). The
   Statistics page (`/stats/`) reads it with the trainers' own stores; the
   series maths is in `js/stats/compute.js`. A new trainer should call both.
+- `js/core/store.js`: every `localStorage` key the site owns, in one
+  registry (`KEYS`), with safe `read`/`write` and the backup file the
+  Statistics page saves and restores. Add a new key there, never inline.
+- `js/midi/input.js`: the one Web MIDI connection (states, note on/off,
+  pedal, the remembered grant). `paintMidiStatus()` in `midiHelp.js` draws
+  its state in the header. `js/midi/computerKeyboard.js` is the `?keys`
+  dev piano.
+- `js/audio/context.js`: the one shared `AudioContext` (and its unlock on
+  the first tap) plus the latency offsets from Ghost Jam's audio sync.
+  Only the microphone keeps its own context.
+- `js/ux/achievementKit.js`: the achievements store, toast and case. Each
+  app keeps its own list and rules in its `achievements.js`.
+- `<app>/js/summary.js`: what the Statistics page may read from an app
+  (levels, achievements list, store keys). Keep it free of DOM code.
+- `js/music-ui/`: the musical controls, with `music-ui.css`:
+  `keyWheel.js` (a key on the circle of fifths), `noteKeyboard.js` (notes
+  on a one-octave keyboard), `tempo.js` (♩ = 120 with its Italian term,
+  the terms as buttons, tap tempo), `pianoRemote.js` and `menuRemote.js`
+  (the piano as a remote: A or E on their own move, G presses).
+
+## Imports: an app owns its folder
+
+An app imports only from `js/` and from its own folder. Code two apps need
+moves to `js/`; it is never imported across apps. The one exception is the
+Statistics page, which reads `<app>/js/summary.js`. `js/` never imports
+from an app. `tests/site.test.js` checks this, along with the shared nav
+and the version table above.
 
 ## Ghost Jam is the exception
 
@@ -85,8 +112,8 @@ controls:
   (see `jam/js/keyWheel.js`), a note on a keyboard, a rhythm on a beat grid.
   A `<select>` of note names is the last resort.
 - The piano is an input everywhere it makes sense: play a note to pick it,
-  move through menus from the keys. Mouse, touch and computer keyboard
-  still work too.
+  move through menus from the keys (`js/music-ui/menuRemote.js`). Mouse,
+  touch and computer keyboard still work too.
 - Spell and name things as a musician would (D♭ major, C♯ minor, key
   signatures, degrees), and keep the screens ergonomic: big targets, one
   tap or one note per choice.
